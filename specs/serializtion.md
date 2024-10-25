@@ -13,6 +13,7 @@ This is the current Serialization scheme to persist node data into the database:
 
 Nodes are persisted in an underlying database. In order to persist nodes, we must first serialize them. Serialization is done by the encoder interface defined in codec.go.
 The node serialization format is:
+```
 +----------------------------------------------------+
 | Value existence flag (1 byte)                      |
 +----------------------------------------------------+
@@ -24,9 +25,9 @@ The node serialization format is:
 +----------------------------------------------------+
 | Child index (varint)                               |
 +----------------------------------------------------+
-| Child compressed key length (varint)               |
+| Child compressed key length (varint)              |
 +----------------------------------------------------+
-| Child compressed key (variable length bytes)       |
+| Child compressed key (variable length bytes)      |
 +----------------------------------------------------+
 | Child ID (32 bytes)                                |
 +----------------------------------------------------+
@@ -34,9 +35,9 @@ The node serialization format is:
 +----------------------------------------------------+
 | Child index (varint)                               |
 +----------------------------------------------------+
-| Child compressed key length (varint)               |
+| Child compressed key length (varint)              |
 +----------------------------------------------------+
-| Child compressed key (variable length bytes)       |
+| Child compressed key (variable length bytes)      |
 +----------------------------------------------------+
 | Child ID (32 bytes)                                |
 +----------------------------------------------------+
@@ -44,17 +45,22 @@ The node serialization format is:
 +----------------------------------------------------+
 |...                                                 |
 +----------------------------------------------------+
+```
+
 Where:
-Value existence flag is 1 if this node has a value, otherwise 0.
-Value length is the length of the value, if it exists (i.e. if Value existence flag is 1.) Otherwise not serialized.
-Value is the value, if it exists (i.e. if Value existence flag is 1.) Otherwise not serialized.
-Number of children is the number of children this node has.
-Child index is the index of a child node within the list of the node's children.
-Child compressed key length is the length of the child node's compressed key.
-Child compressed key is the child node's compressed key.
-Child ID is the child node's ID.
-Child has value indicates if that child has a value.
+* `Value existence flag` is `1` if this node has a value, otherwise `0`.
+* `Value length` is the length of the value, if it exists (i.e. if `Value existence flag` is `1`.) Otherwise not serialized.
+* `Value` is the value, if it exists (i.e. if `Value existence flag` is `1`.) Otherwise not serialized.
+* `Number of children` is the number of children this node has.
+* `Child index` is the index of a child node within the list of the node's children.
+* `Child compressed key length` is the length of the child node's compressed key.
+* `Child compressed key` is the child node's compressed key.
+* `Child ID` is the child node's ID.
+* `Child has value` indicates if that child has a value.
+
 For each child of the node, we have an additional:
+
+```
 +----------------------------------------------------+
 | Child index (varint)                               |
 +----------------------------------------------------+
@@ -66,6 +72,7 @@ For each child of the node, we have an additional:
 +----------------------------------------------------+
 | Child has value (1 bytes)                          |
 +----------------------------------------------------+
+```
 Note that the Child index are not necessarily sequential. For example, if a node has 3 children, the Child index values could be 0, 2, and 15. However, the Child index values must be strictly increasing. For example, the Child index values cannot be 0, 0, and 1, or 1, 0. Since a node can have up to 16 children, there can be up to 16 such blocks of children data.
 Example
 Let's take a look at an example node.

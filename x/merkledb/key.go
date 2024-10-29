@@ -329,6 +329,7 @@ func stringToByteSlice(value string) []byte {
 // Returns the number of bytes needed to store [bits] bits.
 func bytesNeeded(bits int) int {
 	size := bits / 8
+	//if not multiple of 8, then add 1(ex: 65 bits = 8 bytes + remainder of 1 = 9 bytes)
 	if bits%8 != 0 {
 		size++
 	}

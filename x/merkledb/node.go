@@ -13,7 +13,7 @@ import (
 // Representation of a node stored in the database.
 type dbNode struct {
 	value    maybe.Maybe[[]byte]
-	children map[byte]*child
+	children map[byte]*child //hashmap of byte to child
 }
 
 type child struct {

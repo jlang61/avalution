@@ -122,10 +122,13 @@ func encodeKey(key Key) []byte {
 	return w.b
 }
 
+// codec Writer struct with certain functions definitions
+
 type codecWriter struct {
 	b []byte
 }
 
+// bool is ???
 func (w *codecWriter) Bool(v bool) {
 	if v {
 		w.b = append(w.b, trueByte)
@@ -134,9 +137,11 @@ func (w *codecWriter) Bool(v bool) {
 	}
 }
 
+// this appends the uvarint in an encoded format to the byte stream of the codec writer?
 func (w *codecWriter) Uvarint(v uint64) {
 	w.b = binary.AppendUvarint(w.b, v)
 }
+
 
 func (w *codecWriter) ID(v ids.ID) {
 	w.b = append(w.b, v[:]...)
@@ -162,17 +167,20 @@ func (w *codecWriter) Key(v Key) {
 
 // Assumes [n] is non-nil.
 func decodeDBNode(b []byte, n *dbNode) error {
+	// make a codecReader struct with the given byte sequence
 	r := codecReader{
 		b:    b,
 		copy: true,
 	}
 
+	// if bytes exists and no errors then continue
 	var err error
 	n.value, err = r.MaybeBytes()
 	if err != nil {
 		return err
 	}
 
+	
 	numChildren, err := r.Uvarint()
 	if err != nil {
 		return err
@@ -217,6 +225,7 @@ func decodeDBNode(b []byte, n *dbNode) error {
 	return nil
 }
 
+// decode key
 func decodeKey(b []byte) (Key, error) {
 	r := codecReader{
 		b:    b,
@@ -232,6 +241,9 @@ func decodeKey(b []byte) (Key, error) {
 	return key, nil
 }
 
+// this is the codecReader struct that is used to decode the serialization
+// it is an array of bytes
+// copy references mean copying the things at references? or just references themselves?
 type codecReader struct {
 	b []byte
 	// copy is used to flag to the reader if it is required to copy references
@@ -244,14 +256,16 @@ func (r *codecReader) Bool() (bool, error) {
 		return false, io.ErrUnexpectedEOF
 	}
 	boolByte := r.b[0]
+	// if its bigger than trueByte (1) it is not boolean
 	if boolByte > trueByte {
 		return false, errInvalidBool
 	}
-
+	// remove the byte after read
 	r.b = r.b[boolLen:]
 	return boolByte == trueByte, nil
 }
 
+// this is to decode a varint of varying length
 func (r *codecReader) Uvarint() (uint64, error) {
 	length, bytesRead := binary.Uvarint(r.b)
 	if bytesRead <= 0 {
@@ -271,16 +285,19 @@ func (r *codecReader) Uvarint() (uint64, error) {
 	return length, nil
 }
 
+// function to get an ID
 func (r *codecReader) ID() (ids.ID, error) {
+	// if not enough bytes left then no ID
 	if len(r.b) < ids.IDLen {
 		return ids.Empty, io.ErrUnexpectedEOF
 	}
 	id := ids.ID(r.b[:ids.IDLen])
-
+	//extend the original byte array by re slicing it
 	r.b = r.b[ids.IDLen:]
 	return id, nil
 }
 
+// based on the length read the actual value bytes
 func (r *codecReader) Bytes() ([]byte, error) {
 	length, err := r.Uvarint()
 	if err != nil {
@@ -299,6 +316,7 @@ func (r *codecReader) Bytes() ([]byte, error) {
 	return result, nil
 }
 
+// based on r.Bool(), read the bytes and wrap it around an option type
 func (r *codecReader) MaybeBytes() (maybe.Maybe[[]byte], error) {
 	if hasValue, err := r.Bool(); err != nil || !hasValue {
 		return maybe.Nothing[[]byte](), err
@@ -308,6 +326,7 @@ func (r *codecReader) MaybeBytes() (maybe.Maybe[[]byte], error) {
 	return maybe.Some(bytes), err
 }
 
+// read and decode a Key
 func (r *codecReader) Key() (Key, error) {
 	bitLen, err := r.Uvarint()
 	if err != nil {

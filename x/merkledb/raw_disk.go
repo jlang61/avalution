@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -53,6 +54,25 @@ func newRawDisk(dir string) (*rawDisk, error) {
 	}
 	return &rawDisk{file: file}, nil
 }
+
+// simple test function to write to end of disk
+func (r *rawDisk) writeBytes(data []byte) error {
+	fileInfo, err := r.file.Stat()
+	if err != nil {
+		log.Fatalf("failed to get file info: %v", err)
+	}
+	endOffset := fileInfo.Size()
+
+	// Write the data at the end of the file using WriteAt.
+	_, err = r.file.WriteAt(data, endOffset)
+	if err != nil {
+		log.Fatalf("failed to write data: %v", err)
+	}
+
+	log.Println("Data written successfully at the end of the file.")
+	return nil
+}
+
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
 	var shutdownType [1]byte

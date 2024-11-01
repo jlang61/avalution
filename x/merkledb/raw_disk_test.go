@@ -2,6 +2,7 @@ package merkledb
 
 import (
 	"bytes"
+	"log"
 	"os"
 	"testing"
 )
@@ -17,6 +18,8 @@ func TestAppendBytes(t *testing.T) {
 
 	// Data to be written
 	testData := []byte("Hello, World!\n")
+	//testData := []byte("Bye, World!\n")
+
 
 	// First write
 	if err := r.appendBytes(testData); err != nil {
@@ -36,6 +39,67 @@ func TestAppendBytes(t *testing.T) {
 
 	// Verify the content is as expected (testData twice in succession)
 	expectedContent := bytes.Repeat(testData, 2)
+	// log.Println("Content:")
+	// log.Println(content)
+	// log.Println("Expected Content:")
+	// log.Println(expectedContent)
+	if !bytes.Equal(content, expectedContent) {
+		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+	}
+}
+
+func TestAppendBytes2(t *testing.T) {
+	// Create a temporary file
+	r, err := newRawDisk(".")
+	if err != nil {
+		t.Fatalf("failed to create temp file: %v", err)
+	}
+	defer os.Remove(r.file.Name()) // clean up the file after the test
+	defer r.file.Close()
+
+	// Data to be written
+	testData1 := []byte("Hello, World!\n")
+	testData2 := []byte("Bye, World!\n")
+
+
+	// First write
+	if err := r.appendBytes(testData1); err != nil {
+		t.Fatalf("first write failed: %v", err)
+	}
+
+	// Second write to append more data to the file
+	if err := r.appendBytes(testData1); err != nil {
+		t.Fatalf("second write failed: %v", err)
+	}
+
+	// Read back the contents of the file to verify
+	content, err := os.ReadFile(r.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	}
+	log.Println("Content right now:\n", string(content))
+
+	// Third write
+	if err := r.appendBytes(testData2); err != nil {
+		t.Fatalf("first write failed: %v", err)
+	}
+
+	// Fourth write
+	if err := r.appendBytes(testData2); err != nil {
+		t.Fatalf("first write failed: %v", err)
+	}
+
+	content, err = os.ReadFile(r.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	}
+	log.Println("Content after:\n", string(content))
+
+
+	// Verify the content is as expected (testData twice in succession)
+	expectedContent := bytes.Repeat(testData1, 2)
+	expectedContent = append(expectedContent, bytes.Repeat(testData2, 2)...)
+
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	}

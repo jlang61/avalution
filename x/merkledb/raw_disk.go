@@ -142,57 +142,58 @@ func (r *rawDisk) writeNode(n *node, offset int64) error {
 	return nil
 }
 
-func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-	for _, nodeChange := range changes.nodes {
-		if nodeChange.after == nil { //nodeChange.after
-			continue
-		}
-		nodeBytes := nodeChange.after.bytes()
-		//-------------------(beg)appendBytes-----------------------
-		endOffset, err := r.endOfFile()
-		// Write the data at the end of the file using WriteAt.
-		_, err = r.file.WriteAt(nodeBytes, endOffset)
-		if err != nil {
-			// return err
-			log.Fatalf("failed to write data: %v", err)
-		}
+/*
+	func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
+		for _, nodeChange := range changes.nodes {
+			if nodeChange.after == nil { //nodeChange.after
+				continue
+			}
+			nodeBytes := nodeChange.after.bytes()
+			//-------------------(beg)appendBytes-----------------------
+			endOffset, err := r.endOfFile()
+			// Write the data at the end of the file using WriteAt.
+			_, err = r.file.WriteAt(nodeBytes, endOffset)
+			if err != nil {
+				// return err
+				log.Fatalf("failed to write data: %v", err)
+			}
 
-		log.Println("Data written successfully at the end of the file BIG DUB.")
+			log.Println("Data written successfully at the end of the file BIG DUB.")
+		}
+		//-------------------(end)appendBytes-----------------------
+		/*
+				offset, err := r.file.Seek(0, os.SEEK_END)
+				if err != nil {
+					return err
+				}
+
+				_, err = r.file.Write(nodeBytes)
+				if err != nil {
+					return err
+				}
+
+				// Store disk address of the written node.
+				childDiskAddr := diskAddress{
+					offset: offset,
+					size:   int64(len(nodeBytes)),
+				}
+
+				// Add the disk address bytes to the node's serialized form.
+				diskAddrBytes := childDiskAddr.bytes()
+				_, err = r.file.Write(diskAddrBytes[:])
+				if err != nil {
+					return err
+				}
+			}
+
+			// Record the changes in the history to enable tracking of the state over time.
+			trieHistory := newTrieHistory(r.cacheSize())
+			trieHistory.record(changes)
+
+		return nil
+		//return errors.New("not implemented")
 	}
-	//-------------------(end)appendBytes-----------------------
-	/*
-			offset, err := r.file.Seek(0, os.SEEK_END)
-			if err != nil {
-				return err
-			}
-
-			_, err = r.file.Write(nodeBytes)
-			if err != nil {
-				return err
-			}
-
-			// Store disk address of the written node.
-			childDiskAddr := diskAddress{
-				offset: offset,
-				size:   int64(len(nodeBytes)),
-			}
-
-			// Add the disk address bytes to the node's serialized form.
-			diskAddrBytes := childDiskAddr.bytes()
-			_, err = r.file.Write(diskAddrBytes[:])
-			if err != nil {
-				return err
-			}
-		}
-
-		// Record the changes in the history to enable tracking of the state over time.
-		trieHistory := newTrieHistory(r.cacheSize())
-		trieHistory.record(changes)
-	*/
-	return nil
-	//return errors.New("not implemented")
-}
-
+*/
 type diskNode struct {
 	node
 	diskAddr diskAddress
@@ -209,7 +210,38 @@ type diskChangeSummary struct {
 }
 
 func (n *diskNode) bytes() []byte {
-	return encodeDBNode(&n.dbNode)
+	encodedBytes := encodeDBNode(&n.dbNode)
+	diskAddrBytes := n.diskAddr.bytes()
+	return append(encodedBytes, diskAddrBytes[:]...)
+}
+
+func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
+	for _, nodeChange := range changes.nodes {
+		if nodeChange.after == nil {
+			continue
+		}
+		nodeBytes := nodeChange.after.bytes()
+		endOffset, err := r.endOfFile()
+		_, err = r.file.WriteAt(nodeBytes, endOffset)
+		if err != nil {
+			log.Fatalf("failed to write data: %v", err)
+		}
+		log.Println("Data written successfully at the end of the file BIG DUB.")
+	}
+	if changes.rootChange.after.HasValue() {
+		rootNode := changes.rootChange.after.Value()
+		rootNodeBytes := rootNode.bytes()
+		endOffset, err := r.endOfFile()
+		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
+		}
+		_, err = r.file.WriteAt(rootNodeBytes, endOffset)
+		if err != nil {
+			log.Fatalf("failed to write rootChange data: %v", err)
+		}
+		log.Println("Root change written successfully at the end of the file.")
+	}
+	return nil
 }
 
 func (r *rawDisk) Clear() error {

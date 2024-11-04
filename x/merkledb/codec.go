@@ -114,7 +114,6 @@ func encodeDBNode(n *dbNode) []byte {
 		w.ID(entry.id)             //***w+=child id(32 byte hash)***
 		w.Bool(entry.hasValue)     //***w+=1 if exist(yes)***
 	}
-
 	return w.b //finished serialization(byte slice) of node n
 }
 

@@ -36,10 +36,10 @@ var (
 )
 
 func childSize(index byte, childEntry *child) int {
-	// * index
-	// * child ID
-	// * child key
-	// * bool indicating whether the child has a value
+	// * index - size of index
+	// * child ID - 32 byte hash (avalanchego/ids/id.go, type ID [IDLen]byte, const IDLen=32)
+	// * child key - returns size of key len + bytes needed
+	// * bool indicating whether the child has a value - const of 1
 	return uintSize(uint64(index)) + ids.IDLen + keySize(childEntry.compressedKey) + boolLen
 }
 
@@ -48,10 +48,13 @@ func uintSize(value uint64) int {
 	if value == 0 {
 		return 1
 	}
-	return (bits.Len64(value) + 6) / 7
+	//bits.len64(value) converts 0100 to 3/removes trailing zeros, +6/7 is to include remainder
+	//ex: bits.Len64(0(x56)10000000)=8. each byte is 7 bits so 8+6/7=2 bytes req
+	return (bits.Len64(value) + 6) / 7 //size in bytes
 }
 
 func keySize(p Key) int {
+	//bytes needed function in key.go, byte=8
 	return uintSize(uint64(p.length)) + bytesNeeded(p.length)
 }
 
@@ -61,72 +64,74 @@ func encodedDBNodeSize(n *dbNode) int {
 	// * bool indicating whether [n] has a value
 	// * the value (optional)
 	// * children
-	size := uintSize(uint64(len(n.children))) + boolLen
+	size := uintSize(uint64(len(n.children))) + boolLen //number of children+1
 	if n.value.HasValue() {
 		valueLen := len(n.value.Value())
-		size += uintSize(uint64(valueLen)) + valueLen
+		size += uintSize(uint64(valueLen)) + valueLen //add len(valuelen) + len of value
 	}
 	// for each non-nil entry, we add the additional size of the child entry
 	for index, entry := range n.children {
-		size += childSize(index, entry)
+		size += childSize(index, entry) //add size of all children
 	}
-	return size
+	return size //lenB(numchildren) + 1 + lenB(lenvalue) + lenvalue +
+	//(childindex + childID + keylen + lenB(keylen) + 1)
 }
 
 // Assumes [n] is non-nil.
 func encodeDBNode(n *dbNode) []byte {
 	length := encodedDBNodeSize(n)
 	w := codecWriter{
-		b: make([]byte, 0, length),
+		b: make([]byte, 0, length), //byte slice with size:0, capacity:length
 	}
 
-	w.MaybeBytes(n.value)
+	w.MaybeBytes(n.value) // ***w=1(if exist) + varint(valuelen) + value***
 
-	numChildren := len(n.children)
-	w.Uvarint(uint64(numChildren))
+	numChildren := len(n.children) //count size of hashmap
+	w.Uvarint(uint64(numChildren)) //***w+=varint(number of children)***
 
 	// Avoid allocating keys entirely if the node doesn't have any children.
 	if numChildren == 0 {
-		return w.b
+		return w.b //done if no children
 	}
 
 	// By allocating BranchFactorLargest rather than [numChildren], this slice
 	// is allocated on the stack rather than the heap. BranchFactorLargest is
 	// at least [numChildren] which avoids memory allocations.
-	keys := make([]byte, numChildren, BranchFactorLargest)
+	keys := make([]byte, numChildren, BranchFactorLargest) //keys=hashmap of size:numchildren, capacity:branchfactorlargest
 	i := 0
+	//copies n's children into keys
 	for k := range n.children {
 		keys[i] = k
 		i++
 	}
 
-	// Ensure that the order of entries is correct.
+	// Ensure that the order of entries is correct., sort children increasing
 	slices.Sort(keys)
 	for _, index := range keys {
 		entry := n.children[index]
-		w.Uvarint(uint64(index))
-		w.Key(entry.compressedKey)
-		w.ID(entry.id)
-		w.Bool(entry.hasValue)
+		w.Uvarint(uint64(index))   //***w+=varint(child index)***
+		w.Key(entry.compressedKey) //***w+=varint(len compressed key) + child compressed key***
+		w.ID(entry.id)             //***w+=child id(32 byte hash)***
+		w.Bool(entry.hasValue)     //***w+=1 if exist(yes)***
 	}
-
-	return w.b
+	return w.b //finished serialization(byte slice) of node n
 }
 
 func encodeKey(key Key) []byte {
-	length := uintSize(uint64(key.length)) + len(key.Bytes())
+	length := uintSize(uint64(key.length)) + len(key.Bytes()) //len key + len(key value)
 	w := codecWriter{
 		b: make([]byte, 0, length),
 	}
-	w.Key(key)
+	w.Key(key) //add varint(len key)+key
 	return w.b
 }
 
 type codecWriter struct {
-	b []byte
+	b []byte //make an empty byte slice(dynamic sized array)
 }
 
 func (w *codecWriter) Bool(v bool) {
+	//everything stored in bytes, so byte of '1' or '0'
 	if v {
 		w.b = append(w.b, trueByte)
 	} else {
@@ -134,27 +139,32 @@ func (w *codecWriter) Bool(v bool) {
 	}
 }
 
+// add varint(v)
 func (w *codecWriter) Uvarint(v uint64) {
 	w.b = binary.AppendUvarint(w.b, v)
 }
 
+// add ID
 func (w *codecWriter) ID(v ids.ID) {
 	w.b = append(w.b, v[:]...)
 }
 
+// add varint(len v)+v
 func (w *codecWriter) Bytes(v []byte) {
 	w.Uvarint(uint64(len(v)))
 	w.b = append(w.b, v...)
 }
 
+// add value existence flag, varint(value len), and value
 func (w *codecWriter) MaybeBytes(v maybe.Maybe[[]byte]) {
 	hasValue := v.HasValue()
-	w.Bool(hasValue)
+	w.Bool(hasValue) //add 1 if hasvalue, else 0
 	if hasValue {
-		w.Bytes(v.Value())
+		w.Bytes(v.Value()) //add len of value(varint) and value to w
 	}
 }
 
+// add varint(len key)+key
 func (w *codecWriter) Key(v Key) {
 	w.Uvarint(uint64(v.length))
 	w.b = append(w.b, v.Bytes()...)

@@ -120,7 +120,7 @@ func Fuzz_SHA256_HashNode(f *testing.F) {
 
 				hv := &node{
 					key: ToKey(key),
-					dbNode: dbNode{
+					diskNode: diskNode{
 						children: children,
 						value:    value,
 					},

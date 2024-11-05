@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"math"
 	"math/bits"
@@ -20,6 +21,7 @@ const (
 	boolLen   = 1
 	trueByte  = 1
 	falseByte = 0
+	addrSize  = 16 //looks like Aaron B did a 16 byte array for address
 )
 
 var (
@@ -41,7 +43,7 @@ func childSize(index byte, childEntry *child) int {
 	// * child key
 	// * Now need a disk address
 	// * bool indicating whether the child has a value
-	return uintSize(uint64(index)) + ids.IDLen + keySize(childEntry.compressedKey) + boolLen
+	return uintSize(uint64(index)) + ids.IDLen + keySize(childEntry.compressedKey) + addrSize + boolLen
 }
 
 // based on the implementation of encodeUint which uses binary.PutUvarint
@@ -57,7 +59,7 @@ func keySize(p Key) int {
 }
 
 // Assumes [n] is non-nil.
-func encodedDBNodeSize(n *dbNode) int {
+func encodedDBNodeSize(n *diskNode) int {
 	// * number of children
 	// * bool indicating whether [n] has a value
 	// * the value (optional)
@@ -75,7 +77,7 @@ func encodedDBNodeSize(n *dbNode) int {
 }
 
 // Assumes [n] is non-nil.
-func encodeDBNode(n *dbNode) []byte {
+func encodeDBNode(n *diskNode) []byte {
 	length := encodedDBNodeSize(n)
 	w := codecWriter{
 		b: make([]byte, 0, length),
@@ -108,6 +110,7 @@ func encodeDBNode(n *dbNode) []byte {
 		w.Uvarint(uint64(index))
 		w.Key(entry.compressedKey)
 		w.ID(entry.id)
+		w.Address(entry.diskAddr) // how to know diskAddr before adding child?
 		w.Bool(entry.hasValue)
 	}
 
@@ -129,10 +132,6 @@ type codecWriter struct {
 	b []byte
 }
 
-func (w *codecWriter) Address(v diskAddress) {
-	w.b = binary.AppendUvarint(w.b, uint64(v.offset))
-}
-
 // bool is ???
 func (w *codecWriter) Bool(v bool) {
 	if v {
@@ -147,9 +146,14 @@ func (w *codecWriter) Uvarint(v uint64) {
 	w.b = binary.AppendUvarint(w.b, v)
 }
 
-
 func (w *codecWriter) ID(v ids.ID) {
 	w.b = append(w.b, v[:]...)
+}
+
+func (w *codecWriter) Address(v diskAddress) {
+	diskBytes := v.bytes()
+	fmt.Print(diskBytes)
+	w.b = append(w.b, diskBytes[:]...)
 }
 
 func (w *codecWriter) Bytes(v []byte) {
@@ -171,7 +175,7 @@ func (w *codecWriter) Key(v Key) {
 }
 
 // Assumes [n] is non-nil.
-func decodeDBNode(b []byte, n *dbNode) error {
+func decodeDBNode(b []byte, n *diskNode) error {
 	// make a codecReader struct with the given byte sequence
 	r := codecReader{
 		b:    b,
@@ -185,7 +189,6 @@ func decodeDBNode(b []byte, n *dbNode) error {
 		return err
 	}
 
-	
 	numChildren, err := r.Uvarint()
 	if err != nil {
 		return err
@@ -214,6 +217,10 @@ func decodeDBNode(b []byte, n *dbNode) error {
 		if err != nil {
 			return err
 		}
+		addr, err := r.Address()
+		if err != nil {
+			return err
+		}
 		hasValue, err := r.Bool()
 		if err != nil {
 			return err
@@ -222,6 +229,7 @@ func decodeDBNode(b []byte, n *dbNode) error {
 			compressedKey: compressedKey,
 			id:            childID,
 			hasValue:      hasValue,
+			diskAddr:      addr,
 		}
 	}
 	if len(r.b) != 0 {
@@ -300,6 +308,18 @@ func (r *codecReader) ID() (ids.ID, error) {
 	//extend the original byte array by re slicing it
 	r.b = r.b[ids.IDLen:]
 	return id, nil
+}
+
+func (r *codecReader) Address() (diskAddress, error) {
+	offset := int64(binary.BigEndian.Uint64(r.b)) //????????
+	if offset <= 0 {
+		return diskAddress{}, io.ErrUnexpectedEOF
+	}
+
+	r.b = r.b[8:]
+	size := int64(binary.BigEndian.Uint64(r.b))
+	r.b = r.b[8:]
+	return diskAddress{offset: offset, size: size}, nil
 }
 
 // based on the length read the actual value bytes

@@ -36,7 +36,7 @@ func TestValueNodeDB(t *testing.T) {
 
 	// Put a key-node pair.
 	node1 := &node{
-		dbNode: dbNode{
+		diskNode: diskNode{
 			value: maybe.Some([]byte{0x01}),
 		},
 		key: key,
@@ -71,7 +71,7 @@ func TestValueNodeDB(t *testing.T) {
 
 	// Put a key-node pair and overwrite it in the same batch.
 	node2 := &node{
-		dbNode: dbNode{
+		diskNode: diskNode{
 			value: maybe.Some([]byte{0x02}),
 		},
 		key: key,
@@ -127,7 +127,7 @@ func TestValueNodeDBIterator(t *testing.T) {
 	for i := 0; i < cacheSize; i++ {
 		key := ToKey([]byte{byte(i)})
 		node := &node{
-			dbNode: dbNode{
+			diskNode: diskNode{
 				value: maybe.Some([]byte{byte(i)}),
 			},
 			key: key,
@@ -165,7 +165,7 @@ func TestValueNodeDBIterator(t *testing.T) {
 	// Put key-node pairs with a common prefix.
 	key := ToKey([]byte{0xFF, 0x00})
 	n := &node{
-		dbNode: dbNode{
+		diskNode: diskNode{
 			value: maybe.Some([]byte{0xFF, 0x00}),
 		},
 		key: key,
@@ -176,7 +176,7 @@ func TestValueNodeDBIterator(t *testing.T) {
 
 	key = ToKey([]byte{0xFF, 0x01})
 	n = &node{
-		dbNode: dbNode{
+		diskNode: diskNode{
 			value: maybe.Some([]byte{0xFF, 0x01}),
 		},
 		key: key,

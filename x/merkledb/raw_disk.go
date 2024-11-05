@@ -228,7 +228,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) 
 		}
 		log.Println("Data written successfully at the end of the file BIG DUB.")
 	}
-	if changes.rootChange.after.HasValue() {
+	if r.file.Sync() == nil && changes.rootChange.after.HasValue() {
 		rootNode := changes.rootChange.after.Value()
 		rootNodeBytes := rootNode.bytes()
 		endOffset, err := r.endOfFile()

@@ -18,7 +18,7 @@ var (
 			name: "empty node",
 			n: &diskNode{
 				children: make(map[byte]*child),
-				diskAddr: diskAddress{offset: 1, size: 2},
+				//diskAddr: diskAddress{offset: 1, size: 2},
 			},
 			expectedBytes: []byte{
 				0x00, // value.HasValue()
@@ -30,7 +30,7 @@ var (
 			n: &diskNode{
 				value:    maybe.Some([]byte("value")),
 				children: make(map[byte]*child),
-				diskAddr: diskAddress{offset: 1, size: 2},
+				//diskAddr: diskAddress{offset: 1, size: 2},
 			},
 			expectedBytes: []byte{
 				0x01,                    // value.HasValue()
@@ -159,6 +159,18 @@ func TestEncodeDBNode(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			bytes := encodeDBNode(test.n)
 			require.Equal(t, test.expectedBytes, bytes)
+		})
+	}
+}
+
+func TestDecodeDBNode(t *testing.T) {
+	for _, test := range encodeDBNodeTests {
+		t.Run(test.name, func(t *testing.T) {
+			require := require.New(t)
+
+			var n diskNode
+			require.NoError(decodeDBNode(test.expectedBytes, &n))
+			require.Equal(test.n, &n)
 		})
 	}
 }

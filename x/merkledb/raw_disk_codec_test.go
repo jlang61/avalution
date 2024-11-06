@@ -11,12 +11,12 @@ import (
 var (
 	encodeDBNodeTests = []struct {
 		name          string
-		n             *diskNode
+		n             *dbNode
 		expectedBytes []byte
 	}{
 		{
 			name: "empty node",
-			n: &diskNode{
+			n: &dbNode{
 				children: make(map[byte]*child),
 				//diskAddr: diskAddress{offset: 1, size: 2},
 			},
@@ -27,7 +27,7 @@ var (
 		},
 		{
 			name: "has value",
-			n: &diskNode{
+			n: &dbNode{
 				value:    maybe.Some([]byte("value")),
 				children: make(map[byte]*child),
 				//diskAddr: diskAddress{offset: 1, size: 2},
@@ -41,7 +41,7 @@ var (
 		},
 		{
 			name: "1 child",
-			n: &diskNode{
+			n: &dbNode{
 				value: maybe.Some([]byte("value")),
 				children: map[byte]*child{
 					0: {
@@ -168,7 +168,7 @@ func TestDecodeDBNode(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
-			var n diskNode
+			var n dbNode
 			require.NoError(decodeDBNode(test.expectedBytes, &n))
 			require.Equal(test.n, &n)
 		})

@@ -59,7 +59,7 @@ func keySize(p Key) int {
 }
 
 // Assumes [n] is non-nil.
-func encodedDBNodeSize(n *diskNode) int {
+func encodedDBNodeSize(n *dbNode) int {
 	// * number of children
 	// * bool indicating whether [n] has a value
 	// * the value (optional)
@@ -77,7 +77,7 @@ func encodedDBNodeSize(n *diskNode) int {
 }
 
 // Assumes [n] is non-nil.
-func encodeDBNode(n *diskNode) []byte {
+func encodeDBNode(n *dbNode) []byte {
 	length := encodedDBNodeSize(n)
 	w := codecWriter{
 		b: make([]byte, 0, length),
@@ -175,7 +175,7 @@ func (w *codecWriter) Key(v Key) {
 }
 
 // Assumes [n] is non-nil.
-func decodeDBNode(b []byte, n *diskNode) error {
+func decodeDBNode(b []byte, n *dbNode) error {
 	// make a codecReader struct with the given byte sequence
 	r := codecReader{
 		b:    b,

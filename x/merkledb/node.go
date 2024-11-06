@@ -10,17 +10,17 @@ import (
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
-type diskNode struct {
-	value    maybe.Maybe[[]byte]
-	children map[byte]*child
-	diskAddr diskAddress
-}
-
-// // Representation of a node stored in the database.
-// type dbNode struct {
+// type diskNode struct {
 // 	value    maybe.Maybe[[]byte]
 // 	children map[byte]*child
+// 	diskAddr diskAddress
 // }
+
+// Representation of a node stored in the database.
+type dbNode struct {
+	value    maybe.Maybe[[]byte]
+	children map[byte]*child
+}
 
 type child struct {
 	compressedKey Key
@@ -31,7 +31,7 @@ type child struct {
 
 // node holds additional information on top of the dbNode that makes calculations easier to do
 type node struct {
-	diskNode
+	dbNode
 	key         Key
 	valueDigest maybe.Maybe[[]byte]
 }
@@ -39,7 +39,7 @@ type node struct {
 // Returns a new node with the given [key] and no value.
 func newNode(key Key) *node {
 	return &node{
-		diskNode: diskNode{
+		dbNode: dbNode{
 			children: make(map[byte]*child, 2),
 		},
 		key: key,
@@ -48,13 +48,13 @@ func newNode(key Key) *node {
 
 // Parse [nodeBytes] to a node and set its key to [key].
 func parseNode(hasher Hasher, key Key, nodeBytes []byte) (*node, error) {
-	n := diskNode{}
+	n := dbNode{}
 	if err := decodeDBNode(nodeBytes, &n); err != nil {
 		return nil, err
 	}
 	result := &node{
-		diskNode: n,
-		key:      key,
+		dbNode: n,
+		key:    key,
 	}
 
 	result.setValueDigest(hasher)
@@ -68,7 +68,7 @@ func (n *node) hasValue() bool {
 
 // Returns the byte representation of this node.
 func (n *node) bytes() []byte {
-	return encodeDBNode(&n.diskNode)
+	return encodeDBNode(&n.dbNode)
 }
 
 // Set [n]'s value to [val].
@@ -121,7 +121,7 @@ func (n *node) removeChild(child *node, tokenSize int) {
 func (n *node) clone() *node {
 	result := &node{
 		key: n.key,
-		diskNode: diskNode{
+		dbNode: dbNode{
 			value:    n.value,
 			children: make(map[byte]*child, len(n.children)),
 		},

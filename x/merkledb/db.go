@@ -1283,5 +1283,5 @@ func cacheEntrySize(key Key, n *node) int {
 	if n == nil {
 		return cacheEntryOverHead + len(key.Bytes())
 	}
-	return cacheEntryOverHead + len(key.Bytes()) + encodedDBNodeSize(&n.diskNode)
+	return cacheEntryOverHead + len(key.Bytes()) + encodedDBNodeSize(&n.dbNode)
 }

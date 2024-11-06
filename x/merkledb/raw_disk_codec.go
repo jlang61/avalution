@@ -311,15 +311,18 @@ func (r *codecReader) ID() (ids.ID, error) {
 }
 
 func (r *codecReader) Address() (diskAddress, error) {
-	offset := int64(binary.BigEndian.Uint64(r.b[:9])) //????????
-	fmt.Print(offset)
+	offset := int64(binary.BigEndian.Uint64(r.b[:8]))
+	//fmt.Print(offset)
 	if offset <= 0 {
 		return diskAddress{}, io.ErrUnexpectedEOF
 	}
 
 	r.b = r.b[8:]
-	size := int64(binary.BigEndian.Uint64(r.b[:9]))
-	fmt.Print(size)
+	size := int64(binary.BigEndian.Uint64(r.b[:8]))
+	//fmt.Print(size)
+	if size <= 0 {
+		return diskAddress{}, io.ErrUnexpectedEOF
+	}
 	r.b = r.b[8:]
 	return diskAddress{offset: offset, size: size}, nil
 }

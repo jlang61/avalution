@@ -2,13 +2,9 @@ package merkledb
 
 import (
 	"bytes"
-	"context"
 	"log"
 	"os"
 	"testing"
-
-	"github.com/ava-labs/avalanchego/ids"
-	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
 func TestAppendBytes(t *testing.T) {

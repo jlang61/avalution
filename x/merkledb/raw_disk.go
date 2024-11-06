@@ -36,9 +36,13 @@ func (r diskAddress) bytes() [16]byte {
 	return bytes
 }
 
-func (r *diskAddress) decode(diskAddressBytes []byte) {
-	r.offset = int64(binary.BigEndian.Uint64(diskAddressBytes))
-	r.size = int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+func (r *diskAddress) decode(diskAddressBytes []byte) (int64, int64) {
+
+	offset := int64(binary.BigEndian.Uint64(diskAddressBytes))
+	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+	r.offset = offset
+	r.size = size
+	return offset, size
 }
 
 type rawDisk struct {
@@ -62,6 +66,34 @@ func (r *rawDisk) endOfFile() (int64, error) {
 		log.Fatalf("failed to get file info: %v", err)
 	}
 	return fileInfo.Size(), err
+}
+
+// simple test function to write to end of disk
+func (r *rawDisk) appendBytes(data []byte) error {
+	endOffset, err := r.endOfFile()
+
+	// Write the data at the end of the file using WriteAt.
+	_, err = r.file.WriteAt(data, endOffset)
+	if err != nil {
+		// return err
+		log.Fatalf("failed to write data: %v", err)
+	}
+
+	log.Println("Data written successfully at the end of the file.")
+	return nil
+}
+
+// simple test function to write to end of disk
+func (r *rawDisk) writeBytes(data []byte, offset int64) error {
+	// Write the data at the offset in the file using WriteAt.
+	_, err := r.file.WriteAt(data, offset)
+	if err != nil {
+		log.Fatalf("failed to write data: %v", err)
+		return err
+	}
+
+	log.Println("Data written successfully at the end of the file.")
+	return nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"math"
 	"math/bits"
@@ -152,7 +151,7 @@ func (w *codecWriter) ID(v ids.ID) {
 
 func (w *codecWriter) Address(v diskAddress) {
 	diskBytes := v.bytes()
-	fmt.Print(diskBytes)
+	//fmt.Print(diskBytes)
 	w.b = append(w.b, diskBytes[:]...)
 }
 

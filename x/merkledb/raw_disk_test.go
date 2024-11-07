@@ -2,14 +2,18 @@ package merkledb
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"os"
 	"testing"
+
+	"github.com/ava-labs/avalanchego/ids"
+	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
 func TestAppendBytes(t *testing.T) {
 	// Create a temporary file
-	r, err := newRawDisk(".")
+	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -49,7 +53,7 @@ func TestAppendBytes(t *testing.T) {
 
 func TestAppendBytes2(t *testing.T) {
 	// Create a temporary file
-	r, err := newRawDisk(".")
+	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -103,7 +107,7 @@ func TestAppendBytes2(t *testing.T) {
 }
 
 func TestWriteBytes_Success(t *testing.T) {
-	r, err := newRawDisk(".")
+	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -148,7 +152,7 @@ func TestWriteBytes_Success(t *testing.T) {
 
 func TestWriteNode_Success(t *testing.T) {
 	// Create an instance of rawDisk
-	r, err := newRawDisk(".")
+	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
@@ -275,7 +279,7 @@ func TestWriteNode_Success(t *testing.T) {
 }*/
 
 func TestWriteChanges_Success(t *testing.T) {
-	r, err := newRawDisk(".")
+	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}

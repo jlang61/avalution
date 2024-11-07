@@ -1,38 +1,101 @@
 package merkledb
 
+import (
+	"log"
+	"math"
+	"os"
+)
+
 type freelist struct {
-	pool chan diskAddress
+	pools [][]diskAddress
 }
 
-func newFreelist(size int) *freelist {
+func newFreelist(maxSize int) *freelist {
+	numBuckets := int(math.Log2(float64(maxSize))) + 1
+	pools := make([][]diskAddress, numBuckets)
 	return &freelist{
-		pool: make(chan diskAddress, size),
+		pools: pools,
 	}
 }
 
 func (f *freelist) get(size int64) (diskAddress, bool) {
-	select {
-	case space := <-f.pool:
-		if space.size >= size {
+	bucket := f.bucketIndex(size)
+	for i := bucket; i < len(f.pools); i++ {
+		if len(f.pools[i]) > 0 {
+			space := f.pools[i][len(f.pools[i])-1]
+			f.pools[i] = f.pools[i][:len(f.pools[i])-1]
 			return space, true
 		}
-		// If the space is not large enough, discard it and return false
-		return diskAddress{}, false
-	default:
-		return diskAddress{}, false
 	}
+	return diskAddress{}, false
 }
 
 func (f *freelist) put(space diskAddress) {
-	select {
-	case f.pool <- space:
-	default:
-		// Pool is full, discard the space
-	}
+	bucket := f.bucketIndex(space.size)
+	f.pools[bucket] = append(f.pools[bucket], space)
+}
+
+// returns the index of the bucket that the size belongs to
+func (f *freelist) bucketIndex(size int64) int {
+	return int(math.Log2(float64(size)))
 }
 
 func (f *freelist) close() {
-	// iterate through the pool and output the information to a db file 
-	
-	close(f.pool)
+	r, err := newRawDisk(".", "freelist.db")
+	if err != nil {
+		log.Fatalf("failed to create temp file: %v", err)
+	}
+	defer r.file.Close()
+
+	var offset int64 = 0
+
+	// Iterate over each pool to write remaining diskAddresses to file
+	for _, pool := range f.pools {
+		// Write each diskAddress to the file
+		for _, space := range pool {
+			log.Println(offset)
+			// Encode the diskAddress to bytes
+			data := space.bytes()
+			// log.Print(space.bytes())
+		
+			// Write the bytes at the current offset, returns number of bytes written
+			n, err := r.file.WriteAt(data[:], offset)
+			log.Println("Data written: ", data[:])
+			if err != nil {
+				panic(err)
+			}
+			if r.file.Sync() == nil {
+				log.Println("Data written successfully at the end of the file BIG DUB.")
+			}
+			// Increment the offset by the number of bytes written
+			offset += int64(n)
+		}
+	}
+	if r.file.Sync() == nil {
+		log.Println(os.ReadFile("freelist.db"))
+	}
+
 }
+
+// func (f *freelist) load() {
+// 	file, err := os.Open("freelist.db")
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	defer file.Close()
+
+// 	var offset int64 = 0
+
+// 	// Read the file and populate the freelist
+// 	for {
+// 		// Read the diskAddress from the file
+// 		var space diskAddress
+// 		dec := gob.NewDecoder(file)
+// 		if err := dec.Decode(&space); err != nil {
+// 			break
+// 		}
+
+// 		// Put the diskAddress in the appropriate pool
+// 		f.put(space)
+// 	}
+// }

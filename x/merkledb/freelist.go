@@ -7,23 +7,23 @@ import (
 )
 
 type freelist struct {
-	pools [][]diskAddress
+	buckets [][]diskAddress
 }
 
 func newFreelist(maxSize int) *freelist {
 	numBuckets := int(math.Log2(float64(maxSize))) + 1
-	pools := make([][]diskAddress, numBuckets)
+	buckets := make([][]diskAddress, numBuckets)
 	return &freelist{
-		pools: pools,
+		buckets: buckets,
 	}
 }
 
 func (f *freelist) get(size int64) (diskAddress, bool) {
 	bucket := f.bucketIndex(size)
-	for i := bucket; i < len(f.pools); i++ {
-		if len(f.pools[i]) > 0 {
-			space := f.pools[i][len(f.pools[i])-1]
-			f.pools[i] = f.pools[i][:len(f.pools[i])-1]
+	for i := bucket; i < len(f.buckets); i++ {
+		if len(f.buckets[i]) > 0 {
+			space := f.buckets[i][len(f.buckets[i])-1]
+			f.buckets[i] = f.buckets[i][:len(f.buckets[i])-1]
 			return space, true
 		}
 	}
@@ -32,7 +32,7 @@ func (f *freelist) get(size int64) (diskAddress, bool) {
 
 func (f *freelist) put(space diskAddress) {
 	bucket := f.bucketIndex(space.size)
-	f.pools[bucket] = append(f.pools[bucket], space)
+	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
 
 // returns the index of the bucket that the size belongs to
@@ -50,7 +50,7 @@ func (f *freelist) close() {
 	var offset int64 = 0
 
 	// Iterate over each pool to write remaining diskAddresses to file
-	for _, pool := range f.pools {
+	for _, pool := range f.buckets {
 		// Write each diskAddress to the file
 		for _, space := range pool {
 			log.Println(offset)

@@ -13,11 +13,17 @@ type freeList struct {
 // newFreeList creates a new freeList with the specified maximum size.
 func newFreeList(maxSize int) *freeList {
 	numBuckets := int(math.Log2(float64(maxSize))) + 1
+	// 11 if 1024 is passed in as maxSize
 	buckets := make([][]diskAddress, numBuckets)
 	return &freeList{
 		buckets: buckets,
 	}
 }
+
+// Buckets should be initialized as follows:
+// max size of buckets[0] = 1
+// max size of buckets[1] = 2
+// max size of buckets[2] = 4
 
 // get retrieves a diskAddress from the freeList that can accommodate the specified size.
 // It returns the diskAddress and a boolean indicating whether a suitable address was found.
@@ -30,6 +36,7 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 			return space, true
 		}
 	}
+	// No suitable free block available
 	return diskAddress{}, false
 }
 
@@ -41,13 +48,13 @@ func (f *freeList) put(space diskAddress) {
 
 // bucketIndex returns the index of the bucket that the size belongs to.
 func (f *freeList) bucketIndex(size int64) int {
-	return int(math.Log2(float64(size)))
+	return int(math.Ceil(math.Log2(float64(size))))
 }
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.
 func (f *freeList) close() {
 	r, err := newRawDisk(".", "freeList.db")
-	if err != nil {
+	if (err != nil) {
 		log.Fatalf("failed to create temp file: %v", err)
 	}
 	defer r.file.Close()

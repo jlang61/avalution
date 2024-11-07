@@ -214,7 +214,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 	defer r.file.Close()
 
-	// Creating diskNodes to add to the change summary
+	// Creating initial diskNodes to add to the change summary
 	diskNode1 := &diskNode{
 		node: node{
 			dbNode: dbNode{
@@ -250,26 +250,9 @@ func TestWriteChanges_Success(t *testing.T) {
 		},
 		diskAddr: diskAddress{offset: 100, size: 150},
 	}
-	rootNode := &diskNode{
-		node: node{
-			dbNode: dbNode{
-				value: maybe.Some([]byte("rootValue")),
-				children: map[byte]*child{
-					3: {
-						compressedKey: Key{length: 8, value: "key3"},
-						id:            ids.GenerateTestID(),
-						hasValue:      true,
-					},
-				},
-			},
-			key:         Key{length: 8, value: "key3"},
-			valueDigest: maybe.Some([]byte("digest3")),
-		},
-		diskAddr: diskAddress{offset: 32, size: 16},
-	}
 
-	// Creating a diskChangeSummary
-	changeSummary := &diskChangeSummary{
+	// Creating a diskChangeSummary for initial nodes
+	initialChangeSummary := &diskChangeSummary{
 		nodes: map[Key]*change[*diskNode]{
 			Key{length: 8, value: "key1"}: {
 				after: diskNode1,
@@ -278,37 +261,70 @@ func TestWriteChanges_Success(t *testing.T) {
 				after: diskNode2,
 			},
 		},
-		rootChange: change[maybe.Maybe[*diskNode]]{
-			after: maybe.Some(rootNode),
-		},
 	}
 
 	// Create a new freeList
 	freelist := newFreeList(1024)
 
-	// Write changes to the file
-	if err := r.writeChanges(context.Background(), changeSummary, freelist); err != nil {
-		t.Fatalf("write changes failed: %v", err)
+	// Write initial changes to the file
+	if err := r.writeChanges(context.Background(), initialChangeSummary, freelist); err != nil {
+		t.Fatalf("write initial changes failed: %v", err)
 	}
-
-	// Read back the contents of the file to verify
 	content, err := os.ReadFile(r.file.Name())
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
 	}
+	log.Println("Content right now:\n", string(content))
+	// Creating a new node to replace diskNode1
+	newDiskNode1 := &diskNode{
+		node: node{
+			dbNode: dbNode{
+				value: maybe.Some([]byte("new_value1")),
+				children: map[byte]*child{
+					1: {
+						compressedKey: Key{length: 8, value: "new_key1"},
+						id:            ids.GenerateTestID(),
+						hasValue:      true,
+					},
+				},
+			},
+			key:         Key{length: 8, value: "new_key1"},
+			valueDigest: maybe.Some([]byte("new_digest1")),
+		},
+		diskAddr: diskAddress{offset: 0, size: 100}, // Reuse the same address
+	}
 
-	// Verify the content is as expected (diskNode1 and diskNode2 serialized bytes)
-	node1Bytes := diskNode1.bytes()
+	// Creating a diskChangeSummary for the new changes
+	newChangeSummary := &diskChangeSummary{
+		nodes: map[Key]*change[*diskNode]{
+			Key{length: 8, value: "key1"}: {
+				before: diskNode1,
+				after: newDiskNode1,
+			},
+		},
+	}
+
+	// Write new changes to the file
+	if err := r.writeChanges(context.Background(), newChangeSummary, freelist); err != nil {
+		t.Fatalf("write new changes failed: %v", err)
+	}
+
+	// Read back the contents of the file to verify
+	content, err = os.ReadFile(r.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	}
+	log.Println("Content right now:\n", string(content))
+	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
+	node1Bytes := newDiskNode1.bytes()
 	node2Bytes := diskNode2.bytes()
-	rootNodeBytes := rootNode.bytes()
 	expectedContent := append(node1Bytes, node2Bytes...)
-	expectedContent = append(expectedContent, rootNodeBytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	}
 
 	// Verify that the freelist contains the expected diskAddresses
-	expectedFreeList := []diskAddress{diskNode1.diskAddr, diskNode2.diskAddr}
+	expectedFreeList := []diskAddress{diskNode1.diskAddr}
 	for _, expectedAddr := range expectedFreeList {
 		retrievedAddr, ok := freelist.get(expectedAddr.size)
 		if !ok {

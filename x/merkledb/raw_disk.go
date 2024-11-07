@@ -159,9 +159,35 @@ type diskChangeSummary struct {
 func (n *diskNode) bytes() []byte {
 	encodedBytes := encodeDBNode(&n.dbNode)
 	diskAddrBytes := n.diskAddr.bytes()
-	return append(encodedBytes, diskAddrBytes[:]...)
+	data := append(encodedBytes, diskAddrBytes[:]...)
+
+	// Calculate the next power of 2 size
+	currentSize := len(data)
+	nextPowerOf2Size := nextPowerOf2(currentSize)
+
+	// Add dummy bytes to reach the next power of 2 size
+	paddingSize := nextPowerOf2Size - currentSize
+	if paddingSize > 0 {
+		padding := make([]byte, paddingSize)
+		data = append(data, padding...)
+	}
+	return data
 }
 
+// Helper function to calculate the next power of 2 for a given size
+func nextPowerOf2(n int) int {
+	if n <= 0 {
+		return 1
+	}
+	n--
+	n |= n >> 1
+	n |= n >> 2
+	n |= n >> 4
+	n |= n >> 8
+	n |= n >> 16
+	n++
+	return n
+}
 func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary, freelist *freeList) error {
 	for _, nodeChange := range changes.nodes {
 			// If nodes aren't changed, continue; otherwise, put the before into the freelist

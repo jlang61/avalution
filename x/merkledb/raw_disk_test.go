@@ -270,11 +270,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	if err := r.writeChanges(context.Background(), initialChangeSummary, freelist); err != nil {
 		t.Fatalf("write initial changes failed: %v", err)
 	}
-	content, err := os.ReadFile(r.file.Name())
-	if err != nil {
-		t.Fatalf("failed to read back file contents: %v", err)
-	}
-	log.Println("Content after initial write: ", string(content))
+
 	// Creating a new node to replace diskNode1
 	newDiskNode1 := &diskNode{
 		node: node{
@@ -310,7 +306,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 
 	// Read back the contents of the file to verify
-	content, err = os.ReadFile(r.file.Name())
+	content, err := os.ReadFile(r.file.Name())
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
 	}

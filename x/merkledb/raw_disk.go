@@ -155,6 +155,7 @@ type diskChangeSummary struct {
 	values     map[Key]*change[maybe.Maybe[[]byte]]
 }
 
+//
 func (n *diskNode) bytes() []byte {
 	encodedBytes := encodeDBNode(&n.dbNode)
 	diskAddrBytes := n.diskAddr.bytes()

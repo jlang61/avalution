@@ -48,6 +48,7 @@ func (f *freeList) put(space diskAddress) {
 
 // bucketIndex returns the index of the bucket that the size belongs to.
 func (f *freeList) bucketIndex(size int64) int {
+	log.Println("Got size: ", size, "Returning: ", int(math.Ceil(math.Log2(float64(size)))))
 	return int(math.Ceil(math.Log2(float64(size))))
 }
 
@@ -65,14 +66,12 @@ func (f *freeList) close() {
 	for _, pool := range f.buckets {
 		// Write each diskAddress to the file
 		for _, space := range pool {
-			log.Println(offset)
 			// Encode the diskAddress to bytes
 			data := space.bytes()
 			// log.Print(space.bytes())
 		
 			// Write the bytes at the current offset, returns number of bytes written
 			n, err := r.file.WriteAt(data[:], offset)
-			log.Println("Data written: ", data[:])
 			if err != nil {
 				panic(err)
 			}

@@ -274,7 +274,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
 	}
-	log.Println("Content right now:\n", string(content))
+	log.Println("Content after initial write: ", string(content))
 	// Creating a new node to replace diskNode1
 	newDiskNode1 := &diskNode{
 		node: node{
@@ -314,7 +314,6 @@ func TestWriteChanges_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
 	}
-	log.Println("Content right now:\n", string(content))
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
 	node1Bytes := newDiskNode1.bytes()
 	node2Bytes := diskNode2.bytes()

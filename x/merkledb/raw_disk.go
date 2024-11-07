@@ -17,7 +17,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/perms"
 )
 
-const fileName = "merkle.db"
 
 // diskAddress specifies a byte array stored on disk
 type diskAddress struct {
@@ -48,7 +47,7 @@ type rawDisk struct {
 	file *os.File
 }
 
-func newRawDisk(dir string, filename string) (*rawDisk, error) {
+func newRawDisk(dir string, fileName string) (*rawDisk, error) {
 	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		return nil, err

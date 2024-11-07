@@ -207,77 +207,6 @@ func TestWriteNode_Success(t *testing.T) {
 	}
 }
 
-/*func TestWriteChanges_Success(t *testing.T) {
-	r, err := newRawDisk(".")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer os.Remove(r.file.Name())
-	defer r.file.Close()
-
-	// Creating nodes to add to the change summary
-	node1 := &node{
-		dbNode: dbNode{
-			value: maybe.Some([]byte("value1")),
-			children: map[byte]*child{
-				1: {
-					compressedKey: Key{length: 8, value: "key1"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-				},
-			},
-		},
-		key:         Key{length: 8, value: "key1"},
-		valueDigest: maybe.Some([]byte("digest1")),
-	}
-
-	node2 := &node{
-		dbNode: dbNode{
-			value: maybe.Some([]byte("value2")),
-			children: map[byte]*child{
-				2: {
-					compressedKey: Key{length: 8, value: "key2"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-				},
-			},
-		},
-		key:         Key{length: 8, value: "key2"},
-		valueDigest: maybe.Some([]byte("digest2")),
-	}
-
-	// Creating a change summary
-	changeSummary := &changeSummary{
-		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key1"}: {
-				after: node1,
-			},
-			Key{length: 8, value: "key2"}: {
-				after: node2,
-			},
-		},
-	}
-
-	// Write changes to the file
-	if err := r.writeChanges(context.Background(), changeSummary); err != nil {
-		t.Fatalf("write changes failed: %v", err)
-	}
-
-	// Read back the contents of the file to verify
-	content, err := os.ReadFile(r.file.Name())
-	if err != nil {
-		t.Fatalf("failed to read back file contents: %v", err)
-	}
-
-	// Verify the content is as expected (node1 and node2 serialized bytes)
-	node1Bytes := node1.bytes()
-	node2Bytes := node2.bytes()
-	expectedContent := append(node1Bytes, node2Bytes...)
-	if !bytes.Equal(content, expectedContent) {
-		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
-	}
-}*/
-
 func TestWriteChanges_Success(t *testing.T) {
 	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
@@ -354,8 +283,11 @@ func TestWriteChanges_Success(t *testing.T) {
 		},
 	}
 
+	// Create a new freeList
+	freelist := newFreeList(1024)
+
 	// Write changes to the file
-	if err := r.writeChanges(context.Background(), changeSummary); err != nil {
+	if err := r.writeChanges(context.Background(), changeSummary, freelist); err != nil {
 		t.Fatalf("write changes failed: %v", err)
 	}
 
@@ -369,11 +301,21 @@ func TestWriteChanges_Success(t *testing.T) {
 	node1Bytes := diskNode1.bytes()
 	node2Bytes := diskNode2.bytes()
 	rootNodeBytes := rootNode.bytes()
-	//log.Printf("Serialized diskNode1 bytes: %v\n", node1Bytes)
-	//log.Printf("Serialized diskNode2 bytes: %v\n", node2Bytes)
 	expectedContent := append(node1Bytes, node2Bytes...)
 	expectedContent = append(expectedContent, rootNodeBytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+	}
+
+	// Verify that the freelist contains the expected diskAddresses
+	expectedFreeList := []diskAddress{diskNode1.diskAddr, diskNode2.diskAddr}
+	for _, expectedAddr := range expectedFreeList {
+		retrievedAddr, ok := freelist.get(expectedAddr.size)
+		if !ok {
+			t.Fatalf("failed to get address of size %d from freelist", expectedAddr.size)
+		}
+		if retrievedAddr != expectedAddr {
+			t.Errorf("expected %v, got %v", expectedAddr, retrievedAddr)
+		}
 	}
 }

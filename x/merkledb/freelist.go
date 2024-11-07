@@ -6,19 +6,19 @@ import (
 	"os"
 )
 
-type freelist struct {
+type freeList struct {
 	buckets [][]diskAddress
 }
 
-func newFreelist(maxSize int) *freelist {
+func newFreeList(maxSize int) *freeList {
 	numBuckets := int(math.Log2(float64(maxSize))) + 1
 	buckets := make([][]diskAddress, numBuckets)
-	return &freelist{
+	return &freeList{
 		buckets: buckets,
 	}
 }
 
-func (f *freelist) get(size int64) (diskAddress, bool) {
+func (f *freeList) get(size int64) (diskAddress, bool) {
 	bucket := f.bucketIndex(size)
 	for i := bucket; i < len(f.buckets); i++ {
 		if len(f.buckets[i]) > 0 {
@@ -30,18 +30,18 @@ func (f *freelist) get(size int64) (diskAddress, bool) {
 	return diskAddress{}, false
 }
 
-func (f *freelist) put(space diskAddress) {
+func (f *freeList) put(space diskAddress) {
 	bucket := f.bucketIndex(space.size)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
 
 // returns the index of the bucket that the size belongs to
-func (f *freelist) bucketIndex(size int64) int {
+func (f *freeList) bucketIndex(size int64) int {
 	return int(math.Log2(float64(size)))
 }
 
-func (f *freelist) close() {
-	r, err := newRawDisk(".", "freelist.db")
+func (f *freeList) close() {
+	r, err := newRawDisk(".", "freeList.db")
 	if err != nil {
 		log.Fatalf("failed to create temp file: %v", err)
 	}
@@ -72,30 +72,36 @@ func (f *freelist) close() {
 		}
 	}
 	if r.file.Sync() == nil {
-		log.Println(os.ReadFile("freelist.db"))
+		log.Println(os.ReadFile("freeList.db"))
 	}
-
 }
 
-// func (f *freelist) load() {
-// 	file, err := os.Open("freelist.db")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	defer file.Close()
+func (f *freeList) load() {
+	file, err := os.Open("freeList.db")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
 
-// 	var offset int64 = 0
+	var offset int64 = 0
 
-// 	// Read the file and populate the freelist
-// 	for {
-// 		// Read the diskAddress from the file
-// 		var space diskAddress
-// 		dec := gob.NewDecoder(file)
-// 		if err := dec.Decode(&space); err != nil {
-// 			break
-// 		}
+	// Read the file and populate the freeList
+	for {
+		readBytes := make([]byte, 16)
+		n, err := file.ReadAt(readBytes, offset)
+		if err != nil {
+			break
+		}
+		if n != 16 {
+			break
+		}
 
-// 		// Put the diskAddress in the appropriate pool
-// 		f.put(space)
-// 	}
-// }
+		var space diskAddress
+		space.decode(readBytes)
+
+		// Put the diskAddress in the appropriate pool
+		f.put(space)
+
+		offset += 16
+	}
+}

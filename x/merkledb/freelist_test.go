@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-func TestFreelist(t *testing.T) {
+func TestFreeList(t *testing.T) {
 	maxSize := 1024
-	f := newFreelist(maxSize)
+	f := newFreeList(maxSize)
 
 	// Create diskAddresses of different sizes
 	addresses := []diskAddress{
@@ -26,12 +26,12 @@ func TestFreelist(t *testing.T) {
 		{offset: 10, size: 1024},
 	}
 
-	// Put addresses into the freelist
+	// Put addresses into the freeList
 	for _, addr := range addresses {
 		f.put(addr)
 	}
 
-	// Get addresses from the freelist and ensure they come from the right bucket
+	// Get addresses from the freeList and ensure they come from the right bucket
 	for _, addr := range addresses {
 		retrievedAddr, ok := f.get(addr.size)
 		log.Println(retrievedAddr)
@@ -44,20 +44,20 @@ func TestFreelist(t *testing.T) {
 	}
 }
 
-func TestFreelistClose(t *testing.T) {
-	// Create a new freelist
-	f := newFreelist(1024)
+func TestFreeListClose(t *testing.T) {
+	// Create a new freeList
+	f := newFreeList(1024)
 
-	// Add some diskAddresses to the freelist
+	// Add some diskAddresses to the freeList
 	for i := int64(1); i <= 10; i++ {
 		f.put(diskAddress{offset: i, size: 1 << i})
 	}
 
-	// Close the freelist and write to file
+	// Close the freeList and write to file
 	f.close()
 
 	// Open the file to read back the data
-	file, err := os.Open("freelist.db")
+	file, err := os.Open("freeList.db")
 	if err != nil {
 		t.Fatalf("failed to open file: %v", err)
 	}
@@ -88,20 +88,20 @@ func TestFreelistClose(t *testing.T) {
 	}
 }
 
-func TestFreelistCloseWritesToFile(t *testing.T) {
-	// Create a new freelist
-	f := newFreelist(1024)
+func TestFreeListCloseWritesToFile(t *testing.T) {
+	// Create a new freeList
+	f := newFreeList(1024)
 
-	// Add some diskAddresses to the freelist
+	// Add some diskAddresses to the freeList
 	for i := int64(1); i <= 10; i++ {
 		f.put(diskAddress{offset: i, size: 1 << i})
 	}
 
-	// Close the freelist and write to file
+	// Close the freeList and write to file
 	f.close()
 
 	// Open the file to check if something is written
-	file, err := os.Open("freelist.db")
+	file, err := os.Open("freeList.db")
 	if err != nil {
 		t.Fatalf("failed to open file: %v", err)
 	}
@@ -118,3 +118,35 @@ func TestFreelistCloseWritesToFile(t *testing.T) {
 	}
 }
 
+func TestFreeListLoad(t *testing.T) {
+	// Create a new freeList and add some diskAddresses
+	f := newFreeList(1024)
+	addresses := []diskAddress{
+		{offset: 1, size: 2},
+		{offset: 2, size: 4},
+		{offset: 3, size: 8},
+		{offset: 4, size: 16},
+		{offset: 5, size: 32},
+	}
+	for _, addr := range addresses {
+		f.put(addr)
+	}
+
+	// Close the freeList to write the addresses to the file
+	f.close()
+
+	// Create a new freeList and load the addresses from the file
+	f2 := newFreeList(1024)
+	f2.load()
+
+	// Verify that the loaded addresses match the original addresses
+	for _, addr := range addresses {
+		retrievedAddr, ok := f2.get(addr.size)
+		if !ok {
+			t.Fatalf("failed to get address of size %d", addr.size)
+		}
+		if retrievedAddr != addr {
+			t.Errorf("expected %v, got %v", addr, retrievedAddr)
+		}
+	}
+}

@@ -80,21 +80,21 @@ var (
 )
 
 func TestEncodeDBNode_disk(t *testing.T) {
-	for _, test := range encodeDBNodeTests {
+	for _, test := range encodeDBNodeTests_disk {
 		t.Run(test.name, func(t *testing.T) {
-			bytes := encodeDBNode(test.n)
+			bytes := encodeDBNode_disk(test.n)
 			require.Equal(t, test.expectedBytes, bytes)
 		})
 	}
 }
 
 func TestDecodeDBNode_disk(t *testing.T) {
-	for _, test := range encodeDBNodeTests {
+	for _, test := range encodeDBNodeTests_disk {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
 
 			var n dbNode
-			require.NoError(decodeDBNode(test.expectedBytes, &n))
+			require.NoError(decodeDBNode_disk(test.expectedBytes, &n))
 			require.Equal(test.n, &n)
 		})
 	}

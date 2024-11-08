@@ -161,6 +161,30 @@ func (n *diskNode) bytes() []byte {
 	diskAddrBytes := n.diskAddr.bytes()
 	data := append(encodedBytes, diskAddrBytes[:]...)
 
+	// 80 bytes 
+
+	// 80 bytes 00000//next node 
+	// 128 bytes // 80 bytes next node -> node 
+	// 5 12345.12345678 
+	// 6 123456.2345678
+	// 88 bytes // 8 bytes next node 
+	
+	// writing raw disk 
+	// append
+	// 80 bytes // next node
+	// 88 bytes
+	// 128 bytes, append 48 bytes of padding to the end of 80 bytes
+
+
+	// node1 -> node2
+	// [ 00 0 00 0 ]
+	// [80] -> []
+	// 88 -> 88 89 90 so 
+
+
+	// 0 children 
+	// 1 children 32 bytes, 31 bytes of compressed key 
+
 	// Calculate the next power of 2 size
 	currentSize := len(data)
 	nextPowerOf2Size := nextPowerOf2(currentSize)

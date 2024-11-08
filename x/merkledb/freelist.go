@@ -21,9 +21,9 @@ func newFreeList(maxSize int) *freeList {
 }
 
 // Buckets should be initialized as follows:
-// max size of buckets[0] = 1
-// max size of buckets[1] = 2
-// max size of buckets[2] = 4
+// max size of buckets[0] = 1 -> 1 byte 
+// max size of buckets[1] = 2 -> 2 byes
+// max size of buckets[2] = 4 -> 4 bytes, 
 
 // get retrieves a diskAddress from the freeList that can accommodate the specified size.
 // It returns the diskAddress and a boolean indicating whether a suitable address was found.
@@ -39,12 +39,18 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 	// No suitable free block available
 	return diskAddress{}, false
 }
+// 80 bytes 
+// 128 bytes 
+// 256 
+
+
 
 // put adds a diskAddress to the freeList.
 func (f *freeList) put(space diskAddress) {
 	bucket := f.bucketIndex(space.size)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
+// 80 bytes -> 128 bytes 
 
 // bucketIndex returns the index of the bucket that the size belongs to.
 func (f *freeList) bucketIndex(size int64) int {
@@ -85,6 +91,8 @@ func (f *freeList) close() {
 		log.Println(os.ReadFile("freeList.db"))
 	}
 }
+// freelist should always be running
+// merkle.db, freelist
 
 // load reads the diskAddresses from a file and populates the freeList.
 func (f *freeList) load() {

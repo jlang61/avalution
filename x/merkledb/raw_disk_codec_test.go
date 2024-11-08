@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	encodeDBNodeTests = []struct {
+	encodeDBNodeTests_disk = []struct {
 		name          string
 		n             *dbNode
 		expectedBytes []byte
@@ -77,84 +77,9 @@ var (
 			},
 		},
 	}
-	encodeKeyTests = []struct {
-		name          string
-		key           Key
-		expectedBytes []byte
-	}{
-		{
-			name: "empty",
-			key:  ToKey([]byte{}),
-			expectedBytes: []byte{
-				0x00, // length
-			},
-		},
-		{
-			name: "1 byte",
-			key:  ToKey([]byte{0}),
-			expectedBytes: []byte{
-				0x08, // length
-				0x00, // key
-			},
-		},
-		{
-			name: "2 bytes",
-			key:  ToKey([]byte{0, 1}),
-			expectedBytes: []byte{
-				0x10,       // length
-				0x00, 0x01, // key
-			},
-		},
-		{
-			name: "4 bytes",
-			key:  ToKey([]byte{0, 1, 2, 3}),
-			expectedBytes: []byte{
-				0x20,                   // length
-				0x00, 0x01, 0x02, 0x03, // key
-			},
-		},
-		{
-			name: "8 bytes",
-			key:  ToKey([]byte{0, 1, 2, 3, 4, 5, 6, 7}),
-			expectedBytes: []byte{
-				0x40,                                           // length
-				0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, // key
-			},
-		},
-		{
-			name: "32 bytes",
-			key:  ToKey(make([]byte, 32)),
-			expectedBytes: append(
-				[]byte{
-					0x80, 0x02, // length
-				},
-				make([]byte, 32)..., // key
-			),
-		},
-		{
-			name: "64 bytes",
-			key:  ToKey(make([]byte, 64)),
-			expectedBytes: append(
-				[]byte{
-					0x80, 0x04, // length
-				},
-				make([]byte, 64)..., // key
-			),
-		},
-		{
-			name: "1024 bytes",
-			key:  ToKey(make([]byte, 1024)),
-			expectedBytes: append(
-				[]byte{
-					0x80, 0x40, // length
-				},
-				make([]byte, 1024)..., // key
-			),
-		},
-	}
 )
 
-func TestEncodeDBNode(t *testing.T) {
+func TestEncodeDBNode_disk(t *testing.T) {
 	for _, test := range encodeDBNodeTests {
 		t.Run(test.name, func(t *testing.T) {
 			bytes := encodeDBNode(test.n)
@@ -163,7 +88,7 @@ func TestEncodeDBNode(t *testing.T) {
 	}
 }
 
-func TestDecodeDBNode(t *testing.T) {
+func TestDecodeDBNode_disk(t *testing.T) {
 	for _, test := range encodeDBNodeTests {
 		t.Run(test.name, func(t *testing.T) {
 			require := require.New(t)
@@ -171,15 +96,6 @@ func TestDecodeDBNode(t *testing.T) {
 			var n dbNode
 			require.NoError(decodeDBNode(test.expectedBytes, &n))
 			require.Equal(test.n, &n)
-		})
-	}
-}
-
-func TestEncodeKey(t *testing.T) {
-	for _, test := range encodeKeyTests {
-		t.Run(test.name, func(t *testing.T) {
-			bytes := encodeKey(test.key)
-			require.Equal(t, test.expectedBytes, bytes)
 		})
 	}
 }

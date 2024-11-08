@@ -309,6 +309,8 @@ func TestWriteChanges_Success(t *testing.T) {
 	content, err := os.ReadFile(r.file.Name())
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
+	} else {
+		log.Println("Read back file contents successfully.")
 	}
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
 	node1Bytes := newDiskNode1.bytes()

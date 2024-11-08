@@ -161,7 +161,10 @@ func (n *diskNode) bytes() []byte {
 	diskAddrBytes := n.diskAddr.bytes()
 	data := append(encodedBytes, diskAddrBytes[:]...)
 
-	// 80 bytes 
+	// 80 bytes 128  129 
+
+	// adding offset, size, capacity 
+	// capacity would be 128 -> reading it would read out only 80 bytes 
 
 	// 80 bytes 00000//next node 
 	// 128 bytes // 80 bytes next node -> node 
@@ -212,9 +215,74 @@ func nextPowerOf2(n int) int {
 	n++
 	return n
 }
+
+
+
+
+// type assertion to ensure that 
+// pointer to rawdisk implements disk interface
+// var _ Disk = &rawDisk{}
+// return new error for iterator
+
+// BUG CHEANGE FREELIST TO ONLY 
+// add freelist to constructor (ensure that parameter types and names are the same)
+// add freelist to field on rawdisk
+// adding to freelist should be done AFTER iterations
+// diskaddress on node works probably for the best
 func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary, freelist *freeList) error {
 	for _, nodeChange := range changes.nodes {
-			// If nodes aren't changed, continue; otherwise, put the before into the freelist
+		// If nodes aren't changed, continue; otherwise, put the before into the freelist
+		if nodeChange.after == nil {
+			continue
+		} 
+		// else {
+		// 	if nodeChange.before != nil {
+		// 		freelist.put(nodeChange.before.diskAddr)
+		// 	}
+		// }
+
+		nodeBytes := nodeChange.after.bytes()
+		// Get a diskAddress from the freelist to write the data
+		freeSpace, ok := freelist.get(int64(len(nodeBytes)))
+		if !ok {
+			// If there is no free space, write at the end of the file
+			endOffset, err := r.endOfFile()
+			if err != nil {
+				log.Fatalf("failed to get end of file: %v", err)
+			}
+			_, err = r.file.WriteAt(nodeBytes, endOffset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Data written successfully at the end of the file.")
+		} else {
+			// If there is free space, write at the offset
+			_, err := r.file.WriteAt(nodeBytes, freeSpace.offset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Data written successfully at free space.")
+		}
+	}
+	
+	if changes.rootChange.after.HasValue() && r.file.Sync() == nil{
+		rootNode := changes.rootChange.after.Value()
+		rootNodeBytes := rootNode.bytes()
+		// Get a diskAddress from the freelist to write the data
+		endOffset, err := r.endOfFile()
+		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
+		}
+		_, err = r.file.WriteAt(rootNodeBytes, endOffset)
+		if err != nil {
+			log.Fatalf("failed to write rootChange data: %v", err)
+		}
+		log.Println("Root change written successfully.")
+	}
+
+	// ensuring that there are two trees, then add old one to freelist
+	if r.file.Sync() == nil{
+		for _, nodeChange := range changes.nodes {
 			if nodeChange.after == nil {
 				continue
 			} else {
@@ -222,45 +290,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary, 
 					freelist.put(nodeChange.before.diskAddr)
 				}
 			}
-
-			nodeBytes := nodeChange.after.bytes()
-			// Get a diskAddress from the freelist to write the data
-			freeSpace, ok := freelist.get(int64(len(nodeBytes)))
-			if !ok {
-				// If there is no free space, write at the end of the file
-				endOffset, err := r.endOfFile()
-				if err != nil {
-					log.Fatalf("failed to get end of file: %v", err)
-				}
-				_, err = r.file.WriteAt(nodeBytes, endOffset)
-				if err != nil {
-					log.Fatalf("failed to write data: %v", err)
-				}
-				log.Println("Data written successfully at the end of the file.")
-			} else {
-				// If there is free space, write at the offset
-				_, err := r.file.WriteAt(nodeBytes, freeSpace.offset)
-				if err != nil {
-					log.Fatalf("failed to write data: %v", err)
-				}
-				log.Println("Data written successfully at free space.")
-			}
 		}
-
-		if changes.rootChange.after.HasValue() {
-			rootNode := changes.rootChange.after.Value()
-			rootNodeBytes := rootNode.bytes()
-			// Get a diskAddress from the freelist to write the data
-			endOffset, err := r.endOfFile()
-			if err != nil {
-				log.Fatalf("failed to get end of file: %v", err)
-			}
-			_, err = r.file.WriteAt(rootNodeBytes, endOffset)
-			if err != nil {
-				log.Fatalf("failed to write rootChange data: %v", err)
-			}
-			log.Println("Root change written successfully.")
-		}
+	}
 	return nil
 }
 
@@ -269,7 +300,21 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-	return nil, errors.New("not implemented")
+	rootKey, err := r.getRootKey()
+	if err != nil {
+		return nil, err
+	}
+	// check if its what you're looking for 
+	// if not, either check children or return error
+
+
+	// compare key and if prefix matches key of 
+
+
+	// truncate key, if we have a match, check children of current node 
+
+
+	// check all children of current node, if we have a match, check children of current node
 }
 
 func (r *rawDisk) cacheSize() int {

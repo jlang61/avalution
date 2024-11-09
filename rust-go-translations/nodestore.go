@@ -17,14 +17,16 @@ import (
 	"sync/atomic"
 )
 
+// defines structure for metadata in the node store 
 type NodeStoreHeader struct {
 	version     uint32
 	endianTest  uint32
 	rootAddress *uint64
 	size        uint64
-	freeLists   []*uint64
+	freeLists   []*uint64 // array of free list pointers, one for each area size
 }
 
+//  initializes nodestoreheader with default values
 func NewNodeStoreHeader() NodeStoreHeader {
 	return NodeStoreHeader{
 		version:     1,
@@ -35,25 +37,30 @@ func NewNodeStoreHeader() NodeStoreHeader {
 	}
 }
 
+// represents main structure for storing nodes with metadata and storage handling
 type NodeStore struct {
 	header NodeStoreHeader
 	kind   NodeStoreKind
 	storage Storage
 }
 
+//  represents the type of node store, committed or proposal
 type NodeStoreKind interface{}
 
+// committed holds data for the committed nodes, includes deleted nodes addresses and root hash
 type Committed struct {
 	deleted  []uint64
 	rootHash *uint64
 }
 
+// mutable proposal holds data for proposed node set
 type MutableProposal struct {
 	root    *Node
 	deleted []uint64
 	parent  NodeStoreParent
 }
 
+// holds hash for immutable proposal
 type ImmutableProposal struct {
 	rootHash *uint64
 }
@@ -94,6 +101,7 @@ const NUM_AREA_SIZES = len(AREA_SIZES)
 const MIN_AREA_SIZE = AREA_SIZES[0]
 const MAX_AREA_SIZE = AREA_SIZES[NUM_AREA_SIZES-1]
 
+// returns the AreaIndex for given size, validates the size
 func areaSizeToIndex(n uint64) (AreaIndex, error) {
 	if n > MAX_AREA_SIZE {
 		return 0, errors.New(fmt.Sprintf("Node size %d is too large", n))
@@ -112,8 +120,9 @@ func areaSizeToIndex(n uint64) (AreaIndex, error) {
 	return 0, errors.New(fmt.Sprintf("Node size %d is too large", n))
 }
 
-type LinearAddress uint64
 
+type LinearAddress uint64
+//  represents a structure with a node and freeArea that is associated
 type Area[T, U any] struct {
 	Node T
 	Free U
@@ -167,6 +176,7 @@ func (ns *NodeStore) readNodeFromDisk(addr LinearAddress) (*Node, error) {
 	return nil, errors.New("attempted to read a freed area")
 }
 
+// initializes nodestore from storage by reading header and setting up root if it exists
 func (ns *NodeStore) open(storage Storage) (*NodeStore, error) {
 	stream, err := storage.StreamFrom(0)
 	if err != nil {

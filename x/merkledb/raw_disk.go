@@ -249,7 +249,16 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-	return nil, errors.New("not implemented")
+  // pseudo
+  r.getRoot() // should be able to get from diskmanager later
+
+  // match prefix of key to current node
+    // if doesn't match return
+    // if matches then match next byte to find children 
+      // if no matches then return
+      // if match then match children's compressedkey to current key
+        // read bytes from child's diskaddress, recurse
+  return nil, errors.New("not implemented")
 }
 
 func (r *rawDisk) cacheSize() int {

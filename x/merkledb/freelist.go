@@ -20,11 +20,31 @@ func newDiskManager(metaData []byte) diskManager {
 
 	// if metadata always fixed in length, return error if not fixed
 
-
-
 	// create new file, new diskmanager
 	// with a certain size in the constructor, this is the size of the metadata
+	return nil
 }
+
+func getHeader() ([]byte, error) {
+	return nil, nil
+}
+
+func get(diskAddress) ([]byte, error) {
+	return nil, nil
+}	
+
+func putBack(diskAddress) (error) {	
+	return nil 
+}
+
+func write([]byte) (diskAddress, error) {	
+	return diskAddress{}, nil
+}
+
+
+
+
+
 // be able to write metadata - might need to modify 
 // arbitray node can write to arbitrary location in disk store 
 // be able to read arbitrary location in disk store - what is the root node 

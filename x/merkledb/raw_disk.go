@@ -11,8 +11,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 	"github.com/ava-labs/avalanchego/utils/perms"
 )
@@ -101,121 +101,55 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-// simple test function to write to end of disk
-func (r *rawDisk) appendBytes(data []byte) error {
-	endOffset, err := r.endOfFile()
+/*func (w *codecWriter) Address(v diskAddress) {
+	w.b = append(w.b, v[:]...)
+}*/
 
-	// Write the data at the end of the file using WriteAt.
-	_, err = r.file.WriteAt(data, endOffset)
-	if err != nil {
-		// return err
-		log.Fatalf("failed to write data: %v", err)
+func encodeRawDiskNode(n *dbNode) []byte {
+	length := encodedDBNodeSize(n)
+	w := codecWriter{
+		b: make([]byte, 0, length), //byte slice with size:0, capacity:length
 	}
 
-	log.Println("Data written successfully at the end of the file.")
-	return nil
-}
+	w.MaybeBytes(n.value) // ***w=1(if exist) + varint(valuelen) + value***
 
-// simple test function to write to end of disk
-func (r *rawDisk) writeBytes(data []byte, offset int64) error {
-	// Write the data at the offset in the file using WriteAt.
-	_, err := r.file.WriteAt(data, offset)
-	if err != nil {
-		log.Fatalf("failed to write data: %v", err)
-		return err
+	numChildren := len(n.children) //count size of hashmap
+	w.Uvarint(uint64(numChildren)) //***w+=varint(number of children)***
+
+	// Avoid allocating keys entirely if the node doesn't have any children.
+	if numChildren == 0 {
+		return w.b //done if no children
 	}
 
-	log.Println("Data written successfully at the end of the file.")
-	return nil
-}
-
-func (r *rawDisk) writeNode(n *node, offset int64) error {
-	// Write the data at the offset in the file using WriteAt.
-	data := n.bytes()
-	_, err := r.file.WriteAt(data, offset)
-	if err != nil {
-		log.Fatalf("failed to write data node: %v", err)
-		return err
+	// By allocating BranchFactorLargest rather than [numChildren], this slice
+	// is allocated on the stack rather than the heap. BranchFactorLargest is
+	// at least [numChildren] which avoids memory allocations.
+	keys := make([]byte, numChildren, BranchFactorLargest) //keys=hashmap of size:numchildren, capacity:branchfactorlargest
+	i := 0
+	//copies n's children into keys
+	for k := range n.children {
+		keys[i] = k
+		i++
 	}
 
-	log.Println("Data node written successfully at the end of the file.")
-	return nil
-}
-
-/*
-	func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-		for _, nodeChange := range changes.nodes {
-			if nodeChange.after == nil { //nodeChange.after
-				continue
-			}
-			nodeBytes := nodeChange.after.bytes()
-			//-------------------(beg)appendBytes-----------------------
-			endOffset, err := r.endOfFile()
-			// Write the data at the end of the file using WriteAt.
-			_, err = r.file.WriteAt(nodeBytes, endOffset)
-			if err != nil {
-				// return err
-				log.Fatalf("failed to write data: %v", err)
-			}
-
-			log.Println("Data written successfully at the end of the file BIG DUB.")
-		}
-		//-------------------(end)appendBytes-----------------------
-		/*
-				offset, err := r.file.Seek(0, os.SEEK_END)
-				if err != nil {
-					return err
-				}
-
-				_, err = r.file.Write(nodeBytes)
-				if err != nil {
-					return err
-				}
-
-				// Store disk address of the written node.
-				childDiskAddr := diskAddress{
-					offset: offset,
-					size:   int64(len(nodeBytes)),
-				}
-
-				// Add the disk address bytes to the node's serialized form.
-				diskAddrBytes := childDiskAddr.bytes()
-				_, err = r.file.Write(diskAddrBytes[:])
-				if err != nil {
-					return err
-				}
-			}
-
-			// Record the changes in the history to enable tracking of the state over time.
-			trieHistory := newTrieHistory(r.cacheSize())
-			trieHistory.record(changes)
-
-		return nil
-		//return errors.New("not implemented")
+	// Ensure that the order of entries is correct., sort children increasing
+	slices.Sort(keys)
+	for _, index := range keys {
+		entry := n.children[index]
+		w.Uvarint(uint64(index))   //***w+=varint(child index)***
+		w.Key(entry.compressedKey) //***w+=varint(len compressed key) + child compressed key***
+		w.ID(entry.id)             //***w+=child id(32 byte hash)***
+		w.Bool(entry.hasValue)     //***w+=1 if exist(yes)***
+		//w.Address(entry.diskAddr)
 	}
-*/
-type diskNode struct {
-	node
-	diskAddr diskAddress
+	return w.b //finished serialization(byte slice) of node n
 }
 
-type diskChangeSummary struct {
-	// The ID of the trie after these changes.
-	rootID ids.ID
-	// The root before/after this change.
-	// Set in [applyValueChanges].
-	rootChange change[maybe.Maybe[*diskNode]]
-	nodes      map[Key]*change[*diskNode]
-	values     map[Key]*change[maybe.Maybe[[]byte]]
+func (n *node) raw_disk_bytes() []byte {
+	return encodeRawDiskNode(&n.dbNode)
 }
 
-func (n *diskNode) bytes() []byte {
-	encodedBytes := encodeDBNode(&n.dbNode)
-	diskAddrBytes := n.diskAddr.bytes()
-	return append(encodedBytes, diskAddrBytes[:]...)
-}
-
-func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
+func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	for _, nodeChange := range changes.nodes {
 		if nodeChange.after == nil {
 			continue
@@ -241,7 +175,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) 
 		}
 		log.Println("Root change written successfully at the end of the file.")
 	}
-	return nil
+	return r.file.Sync()
 }
 
 func (r *rawDisk) Clear() error {

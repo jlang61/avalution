@@ -20,6 +20,7 @@ type child struct {
 	compressedKey Key
 	id            ids.ID
 	hasValue      bool
+	diskAddr      diskAddress
 }
 
 // node holds additional information on top of the dbNode that makes calculations easier to do

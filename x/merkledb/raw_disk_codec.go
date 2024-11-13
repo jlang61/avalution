@@ -66,6 +66,7 @@ func encodeDBNode_disk(n *dbNode) []byte {
 	return w.b
 }
 
+// TODO: remove this
 func (w *codecWriter) Address(v diskAddress) {
 	diskBytes := v.bytes()
 	//fmt.Print(diskBytes)
@@ -115,6 +116,8 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 		if err != nil {
 			return err
 		}
+		// TODO: just do child entry address bytes instead
+		// make sure 16 bytes
 		addr, err := r.Address()
 		if err != nil {
 			return err
@@ -136,7 +139,10 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 	return nil
 }
 
+// TODO: remove this
 func (r *codecReader) Address() (diskAddress, error) {
+	// check 16 bytes
+
 	offset := int64(binary.BigEndian.Uint64(r.b[:8]))
 	//fmt.Print(offset)
 	if offset <= 0 {

@@ -44,6 +44,7 @@ type rawDisk struct {
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
 	file *os.File
+	free freeList 
 }
 
 func newRawDisk(dir string, fileName string) (*rawDisk, error) {
@@ -53,6 +54,7 @@ func newRawDisk(dir string, fileName string) (*rawDisk, error) {
 	}
 	return &rawDisk{file: file}, nil
 }
+
 
 func (r *rawDisk) endOfFile() (int64, error) {
 	fileInfo, err := r.file.Stat()
@@ -229,7 +231,8 @@ func nextPowerOf2(n int) int {
 // add freelist to field on rawdisk
 // adding to freelist should be done AFTER iterations
 // diskaddress on node works probably for the best
-func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary, freelist *freeList) error {
+func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
+	// freelist is not initialized, need to initialize
 	for _, nodeChange := range changes.nodes {
 		// If nodes aren't changed, continue; otherwise, put the before into the freelist
 		if nodeChange.after == nil {
@@ -243,7 +246,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary, 
 
 		nodeBytes := nodeChange.after.bytes()
 		// Get a diskAddress from the freelist to write the data
-		freeSpace, ok := freelist.get(int64(len(nodeBytes)))
+		freeSpace, ok := r.free.get(int64(len(nodeBytes)))
 		if !ok {
 			// If there is no free space, write at the end of the file
 			endOffset, err := r.endOfFile()
@@ -287,7 +290,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary, 
 				continue
 			} else {
 				if nodeChange.before != nil {
-					freelist.put(nodeChange.before.diskAddr)
+					r.free.put(nodeChange.before.diskAddr)
 				}
 			}
 		}

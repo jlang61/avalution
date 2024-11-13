@@ -208,6 +208,7 @@ func TestWriteNode_Success(t *testing.T) {
 }
 
 func TestWriteChanges_Success(t *testing.T) {
+	os.Remove("merkle.db")
 	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -267,7 +268,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	freeList := newFreeList(1024)
 
 	// Write initial changes to the file
-	if err := r.writeChanges(context.Background(), initialChangeSummary, freeList); err != nil {
+	if err := r.writeChanges(context.Background(), initialChangeSummary); err != nil {
 		t.Fatalf("write initial changes failed: %v", err)
 	}
 
@@ -301,7 +302,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 
 	// Write new changes to the file
-	if err := r.writeChanges(context.Background(), newChangeSummary, freeList); err != nil {
+	if err := r.writeChanges(context.Background(), newChangeSummary); err != nil {
 		t.Fatalf("write new changes failed: %v", err)
 	}
 

@@ -5,7 +5,7 @@ package merkledb
 
 import (
 	"encoding/binary"
-	"io"
+	"errors"
 	"math"
 	"slices"
 
@@ -14,6 +14,11 @@ import (
 
 const (
 	addrSize = 16
+)
+
+var (
+	errInvalidDiskAddrOffset = errors.New("Unable to get disk addr offset")
+	errInvalidDiskAddrSize   = errors.New("Unable to get disk addr size")
 )
 
 func childSize_disk(index byte, childEntry *child) int {
@@ -26,8 +31,26 @@ func childSize_disk(index byte, childEntry *child) int {
 }
 
 // Assumes [n] is non-nil.
+func encodedDBNodeSize_disk(n *dbNode) int {
+	// * number of children
+	// * bool indicating whether [n] has a value
+	// * the value (optional)
+	// * children
+	size := uintSize(uint64(len(n.children))) + boolLen
+	if n.value.HasValue() {
+		valueLen := len(n.value.Value())
+		size += uintSize(uint64(valueLen)) + valueLen
+	}
+	// for each non-nil entry, we add the additional size of the child entry
+	for index, entry := range n.children {
+		size += childSize_disk(index, entry)
+	}
+	return size
+}
+
+// Assumes [n] is non-nil.
 func encodeDBNode_disk(n *dbNode) []byte {
-	length := encodedDBNodeSize(n)
+	length := encodedDBNodeSize_disk(n)
 	w := codecWriter{
 		b: make([]byte, 0, length),
 	}
@@ -59,18 +82,14 @@ func encodeDBNode_disk(n *dbNode) []byte {
 		w.Uvarint(uint64(index))
 		w.Key(entry.compressedKey)
 		w.ID(entry.id)
-		w.Address(entry.diskAddr) // how to know diskAddr before adding child?
+		// add Disk Address here
+		diskBytes := entry.diskAddr.bytes()
+		w.b = append(w.b, diskBytes[:]...)
+		//w.Address(entry.diskAddr)
 		w.Bool(entry.hasValue)
 	}
 
 	return w.b
-}
-
-// TODO: remove this
-func (w *codecWriter) Address(v diskAddress) {
-	diskBytes := v.bytes()
-	//fmt.Print(diskBytes)
-	w.b = append(w.b, diskBytes[:]...)
 }
 
 // Assumes [n] is non-nil.
@@ -116,12 +135,19 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 		if err != nil {
 			return err
 		}
-		// TODO: just do child entry address bytes instead
-		// make sure 16 bytes
-		addr, err := r.Address()
-		if err != nil {
-			return err
+		// Read Disk Address from byte stream
+		offset := int64(binary.BigEndian.Uint64(r.b[:8]))
+		if offset <= 0 { // change this condition?
+			return errInvalidDiskAddrOffset // change error code?
 		}
+		r.b = r.b[8:]
+		size := int64(binary.BigEndian.Uint64(r.b[:8]))
+		if size <= 0 { // change this condition?
+			return errInvalidDiskAddrSize // change error code?
+		}
+		r.b = r.b[8:]
+		addr := diskAddress{offset: offset, size: size}
+
 		hasValue, err := r.Bool()
 		if err != nil {
 			return err
@@ -137,24 +163,4 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 		return errExtraSpace
 	}
 	return nil
-}
-
-// TODO: remove this
-func (r *codecReader) Address() (diskAddress, error) {
-	// check 16 bytes
-
-	offset := int64(binary.BigEndian.Uint64(r.b[:8]))
-	//fmt.Print(offset)
-	if offset <= 0 {
-		return diskAddress{}, io.ErrUnexpectedEOF
-	}
-
-	r.b = r.b[8:]
-	size := int64(binary.BigEndian.Uint64(r.b[:8]))
-	//fmt.Print(size)
-	if size <= 0 {
-		return diskAddress{}, io.ErrUnexpectedEOF
-	}
-	r.b = r.b[8:]
-	return diskAddress{offset: offset, size: size}, nil
 }

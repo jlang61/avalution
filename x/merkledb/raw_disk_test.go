@@ -263,10 +263,6 @@ func TestWriteChanges_Success(t *testing.T) {
 			},
 		},
 	}
-
-	// Create a new freeList
-	freeList := newFreeList(1024)
-
 	// Write initial changes to the file
 	if err := r.writeChanges(context.Background(), initialChangeSummary); err != nil {
 		t.Fatalf("write initial changes failed: %v", err)
@@ -295,8 +291,8 @@ func TestWriteChanges_Success(t *testing.T) {
 	newChangeSummary := &diskChangeSummary{
 		nodes: map[Key]*change[*diskNode]{
 			Key{length: 8, value: "key1"}: {
-				before: diskNode1, 
-				after: newDiskNode1, 
+				before: diskNode1,
+				after:  newDiskNode1,
 			},
 		},
 	}
@@ -314,24 +310,69 @@ func TestWriteChanges_Success(t *testing.T) {
 		log.Println("Read back file contents successfully.")
 	}
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
-	node1Bytes := newDiskNode1.bytes()
+	node1Bytes := diskNode1.bytes()
 	node2Bytes := diskNode2.bytes()
+	newNode1Bytes := newDiskNode1.bytes()
 	expectedContent := append(node1Bytes, node2Bytes...)
+	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
-	} else{
-		log.Println("Content matches expected content.")
-		log.Println("Content:\n", string(content))
-		log.Println("Expected Content:\n", string(expectedContent))
 	}
 
-	// TO IMPLEMENT LATER/SOON
-	// Verify that the freeList contains the expected diskAddresses
+	newDiskNode2 := &diskNode{
+		node: node{
+			dbNode: dbNode{
+				value: maybe.Some([]byte("new_value2")),
+				children: map[byte]*child{
+					1: {
+						compressedKey: Key{length: 8, value: "new_key2"},
+						id:            ids.GenerateTestID(),
+						hasValue:      true,
+					},
+				},
+			},
+			key:         Key{length: 8, value: "new_key2"},
+			valueDigest: maybe.Some([]byte("new_digest2")),
+		},
+		diskAddr: diskAddress{offset: 0, size: 100}, // Reuse the same address
+	}
+
+	newChangeSummary2 := &diskChangeSummary{
+		nodes: map[Key]*change[*diskNode]{
+			Key{length: 8, value: "key2"}: {
+				after:  newDiskNode2,
+			},
+		},
+	}
+
+	// Write new changes to the file
+	if err := r.writeChanges(context.Background(), newChangeSummary2); err != nil {
+		t.Fatalf("write new changes failed: %v", err)
+	}
+
+	// Read back the contents of the file to verify
+	content, err = os.ReadFile(r.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	} else {
+		log.Println("Read back file contents successfully.")
+	}
+	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
+	// The write should overwrite node 1, and then put in new value 2
+	newNode2Bytes := newDiskNode2.bytes()
+	expectedContent = append(newNode2Bytes, node2Bytes...)
+	expectedContent = append(expectedContent, newNode1Bytes...)
+	if !bytes.Equal(content, expectedContent) {
+		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+	}
+
+
+	// Verify that the freelist contains the expected diskAddresses
 	// expectedFreeList := []diskAddress{diskNode1.diskAddr}
 	// for _, expectedAddr := range expectedFreeList {
-	// 	retrievedAddr, ok := freeList.get(expectedAddr.size)
+	// 	retrievedAddr, ok := freelist.get(expectedAddr.size)
 	// 	if !ok {
-	// 		t.Fatalf("failed to get address of size %d from freeList", expectedAddr.size)
+	// 		t.Fatalf("failed to get address of size %d from freelist", expectedAddr.size)
 	// 	}
 	// 	if retrievedAddr != expectedAddr {
 	// 		t.Errorf("expected %v, got %v", expectedAddr, retrievedAddr)

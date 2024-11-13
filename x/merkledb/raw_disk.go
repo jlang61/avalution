@@ -44,7 +44,7 @@ type rawDisk struct {
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
 	file *os.File
-	free freeList 
+	free *freeList 
 }
 
 func newRawDisk(dir string, fileName string) (*rawDisk, error) {
@@ -233,17 +233,14 @@ func nextPowerOf2(n int) int {
 // diskaddress on node works probably for the best
 func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
 	// freelist is not initialized, need to initialize
+	if r.free == nil {
+		// SIZE CAN BE CHANGED
+		r.free = newFreeList(1024)
+	}
 	for _, nodeChange := range changes.nodes {
-		// If nodes aren't changed, continue; otherwise, put the before into the freelist
 		if nodeChange.after == nil {
 			continue
 		} 
-		// else {
-		// 	if nodeChange.before != nil {
-		// 		freelist.put(nodeChange.before.diskAddr)
-		// 	}
-		// }
-
 		nodeBytes := nodeChange.after.bytes()
 		// Get a diskAddress from the freelist to write the data
 		freeSpace, ok := r.free.get(int64(len(nodeBytes)))
@@ -302,23 +299,25 @@ func (r *rawDisk) Clear() error {
 	return r.file.Truncate(0)
 }
 
-func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-	rootKey, err := r.getRootKey()
-	if err != nil {
-		return nil, err
-	}
-	// check if its what you're looking for 
-	// if not, either check children or return error
+// TO IMPLEMENT
+
+// func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
+// 	rootKey, err := r.getRootKey()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// check if its what you're looking for 
+// 	// if not, either check children or return error
 
 
-	// compare key and if prefix matches key of 
+// 	// compare key and if prefix matches key of 
 
 
-	// truncate key, if we have a match, check children of current node 
+// 	// truncate key, if we have a match, check children of current node 
 
 
-	// check all children of current node, if we have a match, check children of current node
-}
+// 	// check all children of current node, if we have a match, check children of current node
+// }
 
 func (r *rawDisk) cacheSize() int {
 	return 0 // TODO add caching layer

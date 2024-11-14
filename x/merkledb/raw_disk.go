@@ -270,15 +270,26 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) 
 		rootNode := changes.rootChange.after.Value()
 		rootNodeBytes := rootNode.bytes()
 		// Get a diskAddress from the freelist to write the data
-		endOffset, err := r.endOfFile()
-		if err != nil {
-			log.Fatalf("failed to get end of file: %v", err)
+		freeSpace, ok := r.free.get(int64(len(rootNodeBytes)))
+		if !ok {
+			// If there is no free space, write at the end of the file
+			endOffset, err := r.endOfFile()
+			if err != nil {
+				log.Fatalf("failed to get end of file: %v", err)
+			}
+			_, err = r.file.WriteAt(rootNodeBytes, endOffset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Root node written successfully at the end of the file.")
+		} else {
+			// If there is free space, write at the offset
+			_, err := r.file.WriteAt(rootNodeBytes, freeSpace.offset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Root node written successfully at free space.")
 		}
-		_, err = r.file.WriteAt(rootNodeBytes, endOffset)
-		if err != nil {
-			log.Fatalf("failed to write rootChange data: %v", err)
-		}
-		log.Println("Root change written successfully.")
 	}
 
 	// ensuring that there are two trees, then add old one to freelist

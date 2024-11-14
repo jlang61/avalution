@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-// power of 2 implementation managing single file 
+// power of 2 implementation managing single file
 type diskManager interface {
 	write([]byte) (diskAddress, error) // malloc()
 	putBack(diskAddress) (error) // done working, should put a disk address back free() 
@@ -106,7 +106,7 @@ func (f *freeList) bucketIndex(size int64) int {
 }
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.
-func (f *freeList) close() {
+func (f *freeList) close() error {
 	r, err := newRawDisk(".", "freeList.db")
 	if (err != nil) {
 		log.Fatalf("failed to create temp file: %v", err)
@@ -128,16 +128,20 @@ func (f *freeList) close() {
 			if err != nil {
 				panic(err)
 			}
-			if r.file.Sync() == nil {
-				log.Println("Data written successfully at the end of the file BIG DUB.")
-			}
+			// if r.file.Sync() == nil {
+			// 	log.Println("Data written successfully at the end of the file BIG DUB.")
+			// }
 			// Increment the offset by the number of bytes written
 			offset += int64(n)
 		}
 	}
-	if r.file.Sync() == nil {
-		log.Println(os.ReadFile("freeList.db"))
+	// ensures that the file is written to disk
+	// log.Println(os.ReadFile("freeList.db"))
+	err = r.file.Sync()
+	if err != nil {
+		return err
 	}
+	return nil
 }
 // freelist should always be running
 // merkle.db, freelist

@@ -233,6 +233,7 @@ func nextPowerOf2(n int) int {
 // diskaddress on node works probably for the best
 func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
 	// freelist is not initialized, need to initialize
+	r.free.load()
 	if r.free == nil {
 		// SIZE CAN BE CHANGED
 		r.free = newFreeList(1024)

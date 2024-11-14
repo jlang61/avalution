@@ -131,12 +131,14 @@ func TestFreeListLoad(t *testing.T) {
 	for _, addr := range addresses {
 		f.put(addr)
 	}
-
 	// Close the freeList to write the addresses to the file
-	f.close()
-
+	err := f.close()
+	if err != nil {
+		t.Fatalf("failed to close freeList: %v", err)
+	}
 	// Create a new freeList and load the addresses from the file
 	f2 := newFreeList(1024)
+
 	f2.load()
 
 	// Verify that the loaded addresses match the original addresses

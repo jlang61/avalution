@@ -18,6 +18,7 @@ import (
 
 const (
 	boolLen   = 1
+	addrLen   = 16
 	trueByte  = 1
 	falseByte = 0
 )
@@ -39,8 +40,9 @@ func childSize(index byte, childEntry *child) int {
 	// * index - size of index
 	// * child ID - 32 byte hash (avalanchego/ids/id.go, type ID [IDLen]byte, const IDLen=32)
 	// * child key - returns size of key len + bytes needed
+	// * child diskAddress - 16 bytes (8 byte offset + 8 byte size)
 	// * bool indicating whether the child has a value - const of 1
-	return uintSize(uint64(index)) + ids.IDLen + keySize(childEntry.compressedKey) + boolLen
+	return uintSize(uint64(index)) + ids.IDLen + keySize(childEntry.compressedKey) + addrLen + boolLen
 }
 
 // based on the implementation of encodeUint which uses binary.PutUvarint

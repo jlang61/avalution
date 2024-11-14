@@ -29,6 +29,7 @@ func (r diskAddress) end() int64 {
 	return r.offset + r.size
 }
 
+// serializes diskAddr, first 8 bytes = size, next 8 is offset
 func (r diskAddress) bytes() [16]byte {
 	var bytes [16]byte
 	binary.BigEndian.PutUint64(bytes[:8], uint64(r.offset))
@@ -39,6 +40,7 @@ func (r diskAddress) bytes() [16]byte {
 func (r *diskAddress) decode(diskAddressBytes []byte) {
 	r.offset = int64(binary.BigEndian.Uint64(diskAddressBytes))
 	r.size = int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+	//return offset, size
 }
 
 type rawDisk struct {
@@ -101,10 +103,6 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-/*func (w *codecWriter) Address(v diskAddress) {
-	w.b = append(w.b, v[:]...)
-}*/
-
 func encodeRawDiskNode(n *dbNode) []byte {
 	length := encodedDBNodeSize(n)
 	w := codecWriter{
@@ -139,8 +137,9 @@ func encodeRawDiskNode(n *dbNode) []byte {
 		w.Uvarint(uint64(index))   //***w+=varint(child index)***
 		w.Key(entry.compressedKey) //***w+=varint(len compressed key) + child compressed key***
 		w.ID(entry.id)             //***w+=child id(32 byte hash)***
-		w.Bool(entry.hasValue)     //***w+=1 if exist(yes)***
-		//w.Address(entry.diskAddr)
+		serializedAddr := entry.diskAddr.bytes()
+		w.b = append(w.b, serializedAddr[:]...) //***w+=diskAddress(size+offset)
+		w.Bool(entry.hasValue)                  //***w+=1 if exist(yes)***
 	}
 	return w.b //finished serialization(byte slice) of node n
 }
@@ -154,7 +153,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		if nodeChange.after == nil {
 			continue
 		}
-		nodeBytes := nodeChange.after.bytes()
+		nodeBytes := nodeChange.after.raw_disk_bytes()
 		endOffset, err := r.endOfFile()
 		_, err = r.file.WriteAt(nodeBytes, endOffset)
 		if err != nil {

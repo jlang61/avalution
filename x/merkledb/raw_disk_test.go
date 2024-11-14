@@ -3,7 +3,6 @@ package merkledb
 import (
 	"bytes"
 	"context"
-	"log"
 	"os"
 	"testing"
 

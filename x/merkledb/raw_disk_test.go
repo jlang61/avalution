@@ -6,12 +6,14 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
 func TestAppendBytes(t *testing.T) {
+	os.Remove("merkle.db")
 	// Create a temporary file
 	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
@@ -210,6 +212,8 @@ func TestWriteNode_Success(t *testing.T) {
 func TestFreeListWriteChanges(t *testing.T) {
 	os.Remove("merkle.db")
 	os.Remove("freelist.db")
+	// make sure the file is deleted before moving on 
+	time.Sleep(1 * time.Second)
 	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)

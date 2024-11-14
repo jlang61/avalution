@@ -13,6 +13,11 @@ import (
 )
 
 func TestWriteChanges_Success(t *testing.T) {
+	os.Remove("merkle.db")
+	os.Remove("freelist.db")
+	// make sure the file is deleted before moving on
+	time.Sleep(1 * time.Second)
+
 	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
@@ -96,9 +101,9 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 
 	// Verify the content is as expected (node1, node2, and rootNode serialized bytes)
-	node1Bytes := node1.bytes()
-	node2Bytes := node2.bytes()
-	rootNodeBytes := rootNode.bytes()
+	node1Bytes := node1.raw_disk_bytes()
+	node2Bytes := node2.raw_disk_bytes()
+	rootNodeBytes := rootNode.raw_disk_bytes()
 	log.Printf("Serialized node1 bytes: %v\n", node1Bytes)
 	log.Printf("Serialized node2 bytes: %v\n", node2Bytes)
 	log.Printf("Serialized rootNode bytes: %v\n", rootNodeBytes)
@@ -130,15 +135,16 @@ func TestFreeListWriteChanges(t *testing.T) {
 			value: maybe.Some([]byte("value1")),
 			children: map[byte]*child{
 				1: {
-					compressedKey: Key{length: 8, value: "key1"},
+					compressedKey: Key{length: 8, value: "key1____"},
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
-					diskAddr:      diskAddress{offset: 0, size: 100},
+					diskAddr:      diskAddress{offset: 0, size: 120},
 				},
 			},
 		},
-		key:         Key{length: 8, value: "key1"},
+		key:         Key{length: 8, value: "key1____"},
 		valueDigest: maybe.Some([]byte("digest1")),
+		diskAddr:      diskAddress{offset: 0, size: 120},
 	}
 
 	node2 := &node{
@@ -146,24 +152,25 @@ func TestFreeListWriteChanges(t *testing.T) {
 			value: maybe.Some([]byte("value2")),
 			children: map[byte]*child{
 				2: {
-					compressedKey: Key{length: 8, value: "key2"},
+					compressedKey: Key{length: 8, value: "key2____"},
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					diskAddr:      diskAddress{offset: 100, size: 150},
 				},
 			},
 		},
-		key:         Key{length: 8, value: "key2"},
+		key:         Key{length: 8, value: "key2____"},
 		valueDigest: maybe.Some([]byte("digest2")),
+		diskAddr:   diskAddress{offset: 100, size: 150},
 	}
 
 	// Creating a diskChangeSummary for initial nodes
 	initialChangeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key1"}: {
+			Key{length: 8, value: "key1____"}: {
 				after: node1,
 			},
-			Key{length: 8, value: "key2"}: {
+			Key{length: 8, value: "key2____"}: {
 				after: node2,
 			},
 		},
@@ -172,7 +179,6 @@ func TestFreeListWriteChanges(t *testing.T) {
 	if err := r.writeChanges(context.Background(), initialChangeSummary); err != nil {
 		t.Fatalf("write initial changes failed: %v", err)
 	}
-
 	// Creating a new node to replace node1
 	newnode1 := &node{
 		dbNode: dbNode{
@@ -188,12 +194,13 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "new_key1"},
 		valueDigest: maybe.Some([]byte("new_digest1")),
+		diskAddr:      diskAddress{offset: 0, size: 100},
 	}
 
 	// Creating a diskChangeSummary for the new changes
 	newChangeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key1"}: {
+			Key{length: 8, value: "key1____"}: {
 				before: node1,
 				after:  newnode1,
 			},
@@ -213,14 +220,14 @@ func TestFreeListWriteChanges(t *testing.T) {
 		log.Println("Read back file contents successfully.")
 	}
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
-	node1Bytes := node1.bytes()
-	node2Bytes := node2.bytes()
-	newNode1Bytes := newnode1.bytes()
+	node1Bytes := node1.raw_disk_bytes()
+	node2Bytes := node2.raw_disk_bytes()
+	newNode1Bytes := newnode1.raw_disk_bytes()
 	expectedContent := append(node1Bytes, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
-	}
+	} 
 	newnode2 := &node{
 		dbNode: dbNode{
 			value: maybe.Some([]byte("new_value2")),
@@ -235,11 +242,12 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "new_key2"},
 		valueDigest: maybe.Some([]byte("new_digest2")),
+		diskAddr:      diskAddress{offset: 0, size: 100},
 	}
 
 	newChangeSummary2 := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key2"}: {
+			Key{length: 8, value: "key2___"}: {
 				after: newnode2,
 			},
 		},
@@ -259,11 +267,13 @@ func TestFreeListWriteChanges(t *testing.T) {
 	}
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
 	// The write should overwrite node 1, and then put in new value 2
-	newNode2Bytes := newnode2.bytes()
+	newNode2Bytes := newnode2.raw_disk_bytes()
 	expectedContent = append(newNode2Bytes, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+	} else{
+		log.Printf("Got: \n%s", expectedContent)
 	}
 
 	// Verify that the freelist contains the expected diskAddresses

@@ -133,10 +133,12 @@ func (n *node) raw_disk_bytes() []byte {
 
 	// Calculate the next power of 2 size
 	currentSize := len(encodedBytes)
+	log.Printf("Current size: %v\n", currentSize)
 	nextPowerOf2Size := nextPowerOf2(currentSize)
 
 	// Add dummy bytes to reach the next power of 2 size
 	paddingSize := nextPowerOf2Size - currentSize
+	log.Printf("Padding size: %v\n", paddingSize)
 	if paddingSize > 0 {
 		padding := make([]byte, paddingSize)
 		encodedBytes = append(encodedBytes, padding...)
@@ -182,7 +184,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		if nodeChange.after == nil {
 			continue
 		}
-		nodeBytes := nodeChange.after.bytes()
+		nodeBytes := nodeChange.after.raw_disk_bytes()
+		log.Printf("Length of Node bytes: %v\n", len(nodeBytes))
 		// Get a diskAddress from the freelist to write the data
 		freeSpace, ok := r.free.get(int64(len(nodeBytes)))
 		if !ok {
@@ -208,7 +211,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 	if changes.rootChange.after.HasValue() && r.file.Sync() == nil {
 		rootNode := changes.rootChange.after.Value()
-		rootNodeBytes := rootNode.bytes()
+		rootNodeBytes := rootNode.raw_disk_bytes()
 		// Get a diskAddress from the freelist to write the data
 		freeSpace, ok := r.free.get(int64(len(rootNodeBytes)))
 		if !ok {

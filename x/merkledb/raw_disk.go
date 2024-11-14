@@ -12,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 	"github.com/ava-labs/avalanchego/utils/perms"
 )
@@ -105,121 +104,12 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-// simple test function to write to end of disk
-func (r *rawDisk) appendBytes(data []byte) error {
-	endOffset, err := r.endOfFile()
-
-	// Write the data at the end of the file using WriteAt.
-	_, err = r.file.WriteAt(data, endOffset)
-	if err != nil {
-		// return err
-		log.Fatalf("failed to write data: %v", err)
-	}
-
-	log.Println("Data written successfully at the end of the file.")
-	return nil
+func (n *node) raw_disk_bytes() []byte {
+	encodedBytes := encodeDBNode_disk(&n.dbNode)
+	return encodedBytes
 }
 
-// simple test function to write to end of disk
-func (r *rawDisk) writeBytes(data []byte, offset int64) error {
-	// Write the data at the offset in the file using WriteAt.
-	_, err := r.file.WriteAt(data, offset)
-	if err != nil {
-		log.Fatalf("failed to write data: %v", err)
-		return err
-	}
-
-	log.Println("Data written successfully at the end of the file.")
-	return nil
-}
-
-func (r *rawDisk) writeNode(n *node, offset int64) error {
-	// Write the data at the offset in the file using WriteAt.
-	data := n.bytes()
-	_, err := r.file.WriteAt(data, offset)
-	if err != nil {
-		log.Fatalf("failed to write data node: %v", err)
-		return err
-	}
-
-	log.Println("Data node written successfully at the end of the file.")
-	return nil
-}
-
-/*
-	func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-		for _, nodeChange := range changes.nodes {
-			if nodeChange.after == nil { //nodeChange.after
-				continue
-			}
-			nodeBytes := nodeChange.after.bytes()
-			//-------------------(beg)appendBytes-----------------------
-			endOffset, err := r.endOfFile()
-			// Write the data at the end of the file using WriteAt.
-			_, err = r.file.WriteAt(nodeBytes, endOffset)
-			if err != nil {
-				// return err
-				log.Fatalf("failed to write data: %v", err)
-			}
-
-			log.Println("Data written successfully at the end of the file BIG DUB.")
-		}
-		//-------------------(end)appendBytes-----------------------
-		/*
-				offset, err := r.file.Seek(0, os.SEEK_END)
-				if err != nil {
-					return err
-				}
-
-				_, err = r.file.Write(nodeBytes)
-				if err != nil {
-					return err
-				}
-
-				// Store disk address of the written node.
-				childDiskAddr := diskAddress{
-					offset: offset,
-					size:   int64(len(nodeBytes)),
-				}
-
-				// Add the disk address bytes to the node's serialized form.
-				diskAddrBytes := childDiskAddr.bytes()
-				_, err = r.file.Write(diskAddrBytes[:])
-				if err != nil {
-					return err
-				}
-			}
-
-			// Record the changes in the history to enable tracking of the state over time.
-			trieHistory := newTrieHistory(r.cacheSize())
-			trieHistory.record(changes)
-
-		return nil
-		//return errors.New("not implemented")
-	}
-*/
-type diskNode struct {
-	node
-	diskAddr diskAddress
-}
-
-type diskChangeSummary struct {
-	// The ID of the trie after these changes.
-	rootID ids.ID
-	// The root before/after this change.
-	// Set in [applyValueChanges].
-	rootChange change[maybe.Maybe[*diskNode]]
-	nodes      map[Key]*change[*diskNode]
-	values     map[Key]*change[maybe.Maybe[[]byte]]
-}
-
-func (n *diskNode) bytes() []byte {
-	encodedBytes := encodeDBNode(&n.dbNode)
-	diskAddrBytes := n.diskAddr.bytes()
-	return append(encodedBytes, diskAddrBytes[:]...)
-}
-
-func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
+func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	for _, nodeChange := range changes.nodes {
 		if nodeChange.after == nil {
 			continue

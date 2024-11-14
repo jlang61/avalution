@@ -10,12 +10,6 @@ import (
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
-// type diskNode struct {
-// 	value    maybe.Maybe[[]byte]
-// 	children map[byte]*child
-// 	diskAddr diskAddress
-// }
-
 // Representation of a node stored in the database.
 type dbNode struct {
 	value    maybe.Maybe[[]byte]

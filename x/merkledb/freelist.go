@@ -147,11 +147,13 @@ func (f *freeList) close() error {
 // merkle.db, freelist
 
 // load reads the diskAddresses from a file and populates the freeList.
-func (f *freeList) load() {
-	file, err := os.Open("freeList.db")
+func (f *freeList) load() error{
+	file, err := os.Open("freelist.db")
 	if err != nil {
-		panic(err)
+		return err
 	}
+	// check size of stuff inside freelist 
+
 	defer file.Close()
 
 	var offset int64 = 0
@@ -175,4 +177,5 @@ func (f *freeList) load() {
 
 		offset += 16
 	}
+	return nil
 }

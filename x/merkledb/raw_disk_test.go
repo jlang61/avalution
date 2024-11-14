@@ -209,6 +209,7 @@ func TestWriteNode_Success(t *testing.T) {
 
 func TestFreeListWriteChanges(t *testing.T) {
 	os.Remove("merkle.db")
+	os.Remove("freelist.db")
 	r, err := newRawDisk(".", "merkle.db")
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)

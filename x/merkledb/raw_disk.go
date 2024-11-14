@@ -233,11 +233,13 @@ func nextPowerOf2(n int) int {
 // diskaddress on node works probably for the best
 func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
 	// freelist is not initialized, need to initialize
-	r.free.load()
+	log.Println("FreeList: ", r.free)
 	if r.free == nil {
+		log.Printf("Free list not initialized, creating new free list with size 1024")
 		// SIZE CAN BE CHANGED
 		r.free = newFreeList(1024)
 	}
+	r.free.load()
 	for _, nodeChange := range changes.nodes {
 		if nodeChange.after == nil {
 			continue

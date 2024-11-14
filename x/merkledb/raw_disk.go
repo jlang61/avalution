@@ -36,9 +36,13 @@ func (r diskAddress) bytes() [16]byte {
 	return bytes
 }
 
-func (r *diskAddress) decode(diskAddressBytes []byte) {
-	r.offset = int64(binary.BigEndian.Uint64(diskAddressBytes))
-	r.size = int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+func (r *diskAddress) decode(diskAddressBytes []byte) (int64, int64) {
+
+	offset := int64(binary.BigEndian.Uint64(diskAddressBytes))
+	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+	r.offset = offset
+	r.size = size
+	return offset, size
 }
 
 type rawDisk struct {

@@ -25,7 +25,7 @@ type diskAddress struct {
 	size   int64
 }
 
-func (r diskAddress) end() int64 {
+func (r diskAddress) end() int64 { // i think its the end idx for root root might b here ? at 
 	return r.offset + r.size
 }
 
@@ -98,12 +98,12 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 }
 
 func (r *rawDisk) getRootKey() ([]byte, error) {
-	var rootKey [16]byte
-	_, err := r.file.ReadAt(rootKey[:], 1)
+	var rootKeyBytes [16]byte
+	_, err := r.file.ReadAt(rootKeyBytes[:], 1)
 	if err != nil {
 		return nil, err
 	}
-	return ToKey(root_node[:]), nil
+	return rootKeyBytes[:], nil
 }
 
 // simple test function to write to end of disk
@@ -255,7 +255,6 @@ func (r *rawDisk) Clear() error {
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
   // pseudo
-  r.getRoot() // should be able to get from diskmanager later
 
   // match prefix of key to current node
     // if doesn't match return

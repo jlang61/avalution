@@ -101,9 +101,9 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 
 	// Verify the content is as expected (node1, node2, and rootNode serialized bytes)
-	node1Bytes := node1.raw_disk_bytes()
-	node2Bytes := node2.raw_disk_bytes()
-	rootNodeBytes := rootNode.raw_disk_bytes()
+	node1Bytes, _ := node1.raw_disk_bytes()
+	node2Bytes, _ := node2.raw_disk_bytes()
+	rootNodeBytes, _ := rootNode.raw_disk_bytes()
 	log.Printf("Serialized node1 bytes: %v\n", node1Bytes)
 	log.Printf("Serialized node2 bytes: %v\n", node2Bytes)
 	log.Printf("Serialized rootNode bytes: %v\n", rootNodeBytes)
@@ -220,9 +220,9 @@ func TestFreeListWriteChanges(t *testing.T) {
 		log.Println("Read back file contents successfully.")
 	}
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
-	node1Bytes := node1.raw_disk_bytes()
-	node2Bytes := node2.raw_disk_bytes()
-	newNode1Bytes := newnode1.raw_disk_bytes()
+	node1Bytes, _ := node1.raw_disk_bytes()
+	node2Bytes, _ := node2.raw_disk_bytes()
+	newNode1Bytes, _ := newnode1.raw_disk_bytes()
 	expectedContent := append(node1Bytes, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {
@@ -267,7 +267,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 	}
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
 	// The write should overwrite node 1, and then put in new value 2
-	newNode2Bytes := newnode2.raw_disk_bytes()
+	newNode2Bytes, _ := newnode2.raw_disk_bytes()
 	expectedContent = append(newNode2Bytes, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {

@@ -20,26 +20,30 @@ import (
 type diskAddress struct {
 	offset int64
 	size   int64
+	padding int64
 }
 
 func (r diskAddress) end() int64 {
 	return r.offset + r.size
 }
 
-func (r diskAddress) bytes() [16]byte {
-	var bytes [16]byte
+func (r diskAddress) bytes() [24]byte {
+	var bytes [24]byte
 	binary.BigEndian.PutUint64(bytes[:8], uint64(r.offset))
-	binary.BigEndian.PutUint64(bytes[8:], uint64(r.size))
+	binary.BigEndian.PutUint64(bytes[8:16], uint64(r.size))
+	binary.BigEndian.PutUint64(bytes[16:24], uint64(r.padding))
 	return bytes
 }
 
-func (r *diskAddress) decode(diskAddressBytes []byte) (int64, int64) {
+func (r *diskAddress) decode(diskAddressBytes []byte) (int64, int64, int64) {
 
 	offset := int64(binary.BigEndian.Uint64(diskAddressBytes))
-	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:16]))
+	padding := int64(binary.BigEndian.Uint64(diskAddressBytes[16:24]))
 	r.offset = offset
 	r.size = size
-	return offset, size
+	r.padding = padding
+	return offset, size, padding
 }
 
 type rawDisk struct {
@@ -103,7 +107,7 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (n *node) raw_disk_bytes() []byte {
+func (n *node) raw_disk_bytes() ([]byte,  int64) {
 	encodedBytes := encodeDBNode_disk(&n.dbNode)
 
 	// 80 bytes 128  129
@@ -143,7 +147,7 @@ func (n *node) raw_disk_bytes() []byte {
 		padding := make([]byte, paddingSize)
 		encodedBytes = append(encodedBytes, padding...)
 	}
-	return encodedBytes
+	return encodedBytes, int64(paddingSize)
 }
 
 // Helper function to calculate the next power of 2 for a given size
@@ -158,8 +162,7 @@ func nextPowerOf2(n int) int {
 	n |= n >> 8
 	n |= n >> 16
 	n++
-	return n
-}
+	return n}
 
 // type assertion to ensure that
 // pointer to rawdisk implements disk interface
@@ -184,7 +187,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		if nodeChange.after == nil {
 			continue
 		}
-		nodeBytes := nodeChange.after.raw_disk_bytes()
+		nodeBytes, paddingSize := nodeChange.after.raw_disk_bytes()
+		nodeChange.after.diskAddr.padding = paddingSize
+
 		log.Printf("Length of Node bytes: %v\n", len(nodeBytes))
 		// Get a diskAddress from the freelist to write the data
 		freeSpace, ok := r.free.get(int64(len(nodeBytes)))
@@ -211,7 +216,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 	if changes.rootChange.after.HasValue() && r.file.Sync() == nil {
 		rootNode := changes.rootChange.after.Value()
-		rootNodeBytes := rootNode.raw_disk_bytes()
+		rootNodeBytes, paddingSize := rootNode.raw_disk_bytes()
+		rootNode.diskAddr.padding = paddingSize
 		// Get a diskAddress from the freelist to write the data
 		freeSpace, ok := r.free.get(int64(len(rootNodeBytes)))
 		if !ok {

@@ -98,7 +98,12 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 }
 
 func (r *rawDisk) getRootKey() ([]byte, error) {
-	return nil, errors.New("not implemented")
+	var rootKey [16]byte
+	_, err := r.file.ReadAt(rootKey[:], 1)
+	if err != nil {
+		return nil, err
+	}
+	return ToKey(root_node[:]), nil
 }
 
 // simple test function to write to end of disk

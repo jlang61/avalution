@@ -34,14 +34,17 @@ func (r diskAddress) bytes() [16]byte {
 }
 
 func (r *diskAddress) decode(diskAddressBytes []byte) (int64, int64) {
-
 	offset := int64(binary.BigEndian.Uint64(diskAddressBytes))
 	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
 	r.offset = offset
 	r.size = size
 	return offset, size
 }
-
+func decode(diskAddressBytes []byte) (int64, int64) {
+	offset := int64(binary.BigEndian.Uint64(diskAddressBytes))
+	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+	return offset, size
+}
 type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
@@ -99,8 +102,22 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 	return errors.New("not implemented")
 }
 
-func (r *rawDisk) getRootKey() ([]byte, error) {
-	return nil, errors.New("not implemented")
+func (r *rawDisk) getRootKey() (Key, error) {
+	rootAddrBytes := make([]byte, 16)
+	_, err := r.file.ReadAt(rootAddrBytes, 1)
+	if err != nil {
+		return Key{}, err
+	}	
+	offset, size := decode(rootAddrBytes)
+	rootAddr := diskAddress{offset: offset, size: size}
+	// reading in rootnodebytes
+	rootNodeBytes := make([]byte, rootAddr.size)
+	r.file.ReadAt(rootNodeBytes, rootAddr.offset)
+	// decode rootnodebytes into node 
+	
+
+	// return root node key
+	return Key{}, errors.New("not implemented")
 }
 
 func (n *node) raw_disk_bytes() []byte {

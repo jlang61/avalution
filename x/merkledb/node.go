@@ -56,6 +56,18 @@ func parseNode(hasher Hasher, key Key, nodeBytes []byte) (*node, error) {
 	return result, nil
 }
 
+// decodeNodeBytes decodes the given byte array into a node without a key.
+func decodeNodeBytes(nodeBytes []byte) (*node, error) {
+	var n dbNode
+	if err := decodeDBNode(nodeBytes, &n); err != nil {
+		return nil, err
+	}
+	return &node{
+		dbNode: n,
+		// The key is not set as it's unknown.
+	}, nil
+}
+
 // Returns true iff this node has a value.
 func (n *node) hasValue() bool {
 	return !n.value.IsNothing()
@@ -143,4 +155,71 @@ func (n *node) asProofNode() ProofNode {
 		pn.Children[index] = entry.id
 	}
 	return pn
+}
+
+// encodeNode encodes the node's fields into bytes, including the dbNode.
+func encodeNode(n *node) []byte {
+	w := codecWriter{
+		b: make([]byte, 0),
+	}
+
+	// Encode the key
+	w.Key(n.key)
+
+	// Encode the valueDigest
+	w.MaybeBytes(n.valueDigest)
+
+	// Encode the diskaddresss
+	w.DiskAddress(n.diskAddr)
+
+	// Encode the dbNode
+	dbNodeBytes := encodeDBNode(&n.dbNode)
+	w.Bytes(dbNodeBytes)
+
+	// Note: diskAddr is excluded as it's not needed here.
+
+	return w.b
+}
+
+// decodeNode decodes the given byte array into a node.
+func decodeNode(b []byte) (*node, error) {
+	r := codecReader{
+		b:    b,
+		copy: true,
+	}
+
+	// Decode the key
+	key, err := r.Key()
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the valueDigest
+	valueDigest, err := r.MaybeBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the disk address
+	diskAddr, err := r.DiskAddress()
+	if err != nil {
+		return nil, err
+	}
+
+	// Decode the dbNode
+	var dbNode dbNode
+	nodeBytes, err := r.Bytes()
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeDBNode(nodeBytes, &dbNode); err != nil {
+		return nil, err
+	}
+
+	return &node{
+		dbNode:      dbNode,
+		key:         key,
+		valueDigest: valueDigest,
+		diskAddr:    diskAddr,
+	}, nil
 }

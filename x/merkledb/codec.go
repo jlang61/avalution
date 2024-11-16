@@ -148,6 +148,11 @@ func (w *codecWriter) Uvarint(v uint64) {
 	w.b = binary.AppendUvarint(w.b, v)
 }
 
+func (w *codecWriter) DiskAddress(v diskAddress) {
+	// convert disk address to bytes and append to w
+	diskBytes := v.bytes()
+	w.b = append(w.b, diskBytes[:]...)
+}
 
 // add ID
 func (w *codecWriter) ID(v ids.ID) {
@@ -293,6 +298,18 @@ func (r *codecReader) Uvarint() (uint64, error) {
 
 	r.b = r.b[bytesRead:]
 	return length, nil
+}
+
+func (r * codecReader) DiskAddress() (diskAddress, error) {
+	if len(r.b) < 16 {
+		return diskAddress{}, io.ErrUnexpectedEOF
+	}
+	addr := diskAddress{
+		offset: int64(binary.BigEndian.Uint64(r.b[:8])),
+		size:   int64(binary.BigEndian.Uint64(r.b[8:])),
+	}
+	r.b = r.b[16:]
+	return addr, nil
 }
 
 // function to get an ID

@@ -8,6 +8,9 @@ import (
 	"github.com/ava-labs/avalanchego/utils/perms"
 )
 
+// Metadata size constant
+const metaSize = 16
+
 type DiskManager interface {
 	write([]byte) (diskAddress, error) // malloc()
 	putBack(diskAddress) error         // done working, should put a disk address back free()
@@ -23,6 +26,7 @@ type diskMgr struct {
 	free *freeList
 }
 
+// TODO pointer and nil instead of diskMgr{}?
 func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, error) {
 	// create file on-disk
 	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
@@ -36,7 +40,15 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 	f.load()
 
 	// metaData is fixed size of the header
-	if metaData == nil {
+	if len(metaData) != metaSize {
+		return diskMgr{}, log.Output(2, "Metadata size is incorrect")
+	}
+
+	// Write metadata at the start of the file
+	_, err = file.WriteAt(metaData, 0)
+	if err != nil {
+		log.Fatalf("failed to write metadata: %v", err)
+		return diskMgr{}, err
 	}
 
 	// if metadata always fixed in length, return error if not fixed
@@ -47,7 +59,13 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 }
 
 func (dm *diskMgr) getHeader() ([]byte, error) {
-	return nil, nil
+	// Read the metadata from the reserved header space
+	headerBytes := make([]byte, metaSize)
+	_, err := dm.file.ReadAt(headerBytes, 0)
+	if err != nil {
+		return nil, err
+	}
+	return headerBytes, nil
 }
 
 func (dm *diskMgr) get(addr diskAddress) ([]byte, error) {

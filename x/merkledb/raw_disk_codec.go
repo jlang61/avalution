@@ -17,8 +17,8 @@ const (
 )
 
 var (
-	errInvalidDiskAddrOffset = errors.New("Unable to get disk addr offset")
-	errInvalidDiskAddrSize   = errors.New("Unable to get disk addr size")
+	errInvalidDiskAddrOffset = errors.New("unable to get disk addr offset")
+	errInvalidDiskAddrSize   = errors.New("unable to get disk addr size")
 )
 
 func childSize_disk(index byte, childEntry *child) int {

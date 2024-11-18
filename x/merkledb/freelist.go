@@ -4,6 +4,9 @@ import (
 	"log"
 	"math"
 	"os"
+	"path/filepath"
+
+	"github.com/ava-labs/avalanchego/utils/perms"
 )
 
 // power of 2 implementation managing single file
@@ -63,12 +66,12 @@ func (f *freeList) bucketIndex(size int64) int {
 }
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.
-func (f *freeList) close() error {
-	r, err := newRawDisk(".", "freeList.db")
+func (f *freeList) close(dir string) error {
+	r, err := os.OpenFile(filepath.Join(dir, "freelist.db"), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		log.Fatalf("failed to create temp file: %v", err)
 	}
-	defer r.file.Close()
+	defer r.Close()
 
 	var offset int64 = 0
 
@@ -81,7 +84,7 @@ func (f *freeList) close() error {
 			// log.Print(space.bytes())
 
 			// Write the bytes at the current offset, returns number of bytes written
-			n, err := r.file.WriteAt(data[:], offset)
+			n, err := r.WriteAt(data[:], offset)
 			if err != nil {
 				panic(err)
 			}
@@ -94,7 +97,7 @@ func (f *freeList) close() error {
 	}
 	// ensures that the file is written to disk
 	// log.Println(os.ReadFile("freeList.db"))
-	err = r.file.Sync()
+	err = r.Sync()
 	if err != nil {
 		return err
 	}

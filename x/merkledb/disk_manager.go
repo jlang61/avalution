@@ -35,6 +35,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 	if metaData == nil {
 		metaData = make([]byte, metaSize) // Initialize to 16 bytes of zeros
 	}
+
 	// create file on-disk
 	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
@@ -57,7 +58,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 	if fileInfo.Size() > 0 {
 		// The file already exists; attempt to read the existing metadata
 		existingMeta := make([]byte, metaSize)
-		_, err := file.ReadAt(existingMeta, 0)
+		_, err := file.ReadAt(existingMeta, 1)
 		if err != nil {
 			file.Close()
 			log.Fatalf("failed to read metadata %v", err)
@@ -74,7 +75,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 		log.Printf("Existing metadata loaded successfully.")
 	} else {
 		// The file is new; write the provided metadata
-		_, err := file.WriteAt(metaData, 0)
+		_, err := file.WriteAt(metaData, 1)
 		if err != nil {
 			file.Close()
 			log.Fatalf("failed to write metadata %v", err)
@@ -96,7 +97,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 func (dm *diskMgr) getHeader() ([]byte, error) {
 	// Read the metadata from the reserved header space
 	headerBytes := make([]byte, metaSize)
-	_, err := dm.file.ReadAt(headerBytes, 0)
+	_, err := dm.file.ReadAt(headerBytes, 1)
 	if err != nil {
 		return nil, err
 	}

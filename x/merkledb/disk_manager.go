@@ -27,31 +27,66 @@ type diskMgr struct {
 }
 
 // TODO pointer and nil instead of diskMgr{}?
+// creates disk manager with metadata size, if exists, should fetch metadata?
+// this is fixed size of header, create new file, metadata takes this amount of space
+// if already exist but metadata not fetched, crash, otherwise load into memory
+// if metadata ever not correct size, return error
 func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, error) {
+	if metaData == nil {
+		metaData = make([]byte, metaSize) // Initialize to 16 bytes of zeros
+	}
 	// create file on-disk
 	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		return diskMgr{}, err
 	}
 
+	// if metadata always fixed in length, return error if not fixed
+	if len(metaData) != metaSize {
+		log.Fatalf("invalid metadata size; expected %d bytes, got %d bytes; error: %v", metaSize, len(metaData), err)
+		return diskMgr{}, err
+	}
+
+	// Check if the file already exists and has data
+	fileInfo, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return diskMgr{}, err
+	}
+
+	if fileInfo.Size() > 0 {
+		// The file already exists; attempt to read the existing metadata
+		existingMeta := make([]byte, metaSize)
+		_, err := file.ReadAt(existingMeta, 0)
+		if err != nil {
+			file.Close()
+			log.Fatalf("failed to read metadata %v", err)
+			return diskMgr{}, err
+		}
+
+		if len(existingMeta) != metaSize {
+			file.Close()
+			log.Fatalf("invalid metadata size; expected %d bytes, got %d bytes; error: %v", metaSize, len(existingMeta), err)
+			return diskMgr{}, err
+		}
+
+		// If metadata is found and is correct, we assume it is loaded successfully.
+		log.Printf("Existing metadata loaded successfully.")
+	} else {
+		// The file is new; write the provided metadata
+		_, err := file.WriteAt(metaData, 0)
+		if err != nil {
+			file.Close()
+			log.Fatalf("failed to write metadata %v", err)
+			return diskMgr{}, err
+		}
+		log.Printf("Metadata written successfully to new file.")
+	}
+
 	// start freelist
 	maxSize := 1024
 	f := newFreeList(maxSize)
 	f.load()
-
-	// metaData is fixed size of the header
-	if len(metaData) != metaSize {
-		return diskMgr{}, log.Output(2, "Metadata size is incorrect")
-	}
-
-	// Write metadata at the start of the file
-	_, err = file.WriteAt(metaData, 0)
-	if err != nil {
-		log.Fatalf("failed to write metadata: %v", err)
-		return diskMgr{}, err
-	}
-
-	// if metadata always fixed in length, return error if not fixed
 
 	// create new file, new diskmanager
 	// with a certain size in the constructor, this is the size of the metadata

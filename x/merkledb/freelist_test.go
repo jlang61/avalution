@@ -54,7 +54,7 @@ func TestFreeListClose(t *testing.T) {
 	}
 
 	// Close the freeList and write to file
-	f.close()
+	f.close(".")
 
 	// Open the file to read back the data
 	file, err := os.Open("freeList.db")
@@ -98,7 +98,7 @@ func TestFreeListCloseWritesToFile(t *testing.T) {
 	}
 
 	// Close the freeList and write to file
-	f.close()
+	f.close(".")
 
 	// Open the file to check if something is written
 	file, err := os.Open("freeList.db")
@@ -132,7 +132,7 @@ func TestFreeListLoad(t *testing.T) {
 		f.put(addr)
 	}
 	// Close the freeList to write the addresses to the file
-	err := f.close()
+	err := f.close(".")
 	if err != nil {
 		t.Fatalf("failed to close freeList: %v", err)
 	}

@@ -31,7 +31,7 @@ type diskMgr struct {
 // this is fixed size of header, create new file, metadata takes this amount of space
 // if already exist but metadata not fetched, crash, otherwise load into memory
 // if metadata ever not correct size, return error
-func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, error) {
+func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, error) {
 	if metaData == nil {
 		metaData = make([]byte, metaSize) // Initialize to 16 bytes of zeros
 	}
@@ -39,20 +39,20 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 	// create file on-disk
 	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
-		return diskMgr{}, err
+		return nil, err
 	}
 
 	// if metadata always fixed in length, return error if not fixed
 	if len(metaData) != metaSize {
 		log.Fatalf("invalid metadata size; expected %d bytes, got %d bytes; error: %v", metaSize, len(metaData), err)
-		return diskMgr{}, err
+		return nil, err
 	}
 
 	// Check if the file already exists and has data
 	fileInfo, err := file.Stat()
 	if err != nil {
 		file.Close()
-		return diskMgr{}, err
+		return &diskMgr{}, err
 	}
 
 	if fileInfo.Size() > 0 {
@@ -62,13 +62,13 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 		if err != nil {
 			file.Close()
 			log.Fatalf("failed to read metadata %v", err)
-			return diskMgr{}, err
+			return nil, err
 		}
 
 		if len(existingMeta) != metaSize {
 			file.Close()
 			log.Fatalf("invalid metadata size; expected %d bytes, got %d bytes; error: %v", metaSize, len(existingMeta), err)
-			return diskMgr{}, err
+			return nil, err
 		}
 
 		// If metadata is found and is correct, we assume it is loaded successfully.
@@ -79,7 +79,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 		if err != nil {
 			file.Close()
 			log.Fatalf("failed to write metadata %v", err)
-			return diskMgr{}, err
+			return nil, err
 		}
 		log.Printf("Metadata written successfully to new file.")
 	}
@@ -91,7 +91,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (diskMgr, erro
 
 	// create new file, new diskmanager
 	// with a certain size in the constructor, this is the size of the metadata
-	return diskMgr{file: file, free: f}, err
+	return &diskMgr{file: file, free: f}, err
 }
 
 func (dm *diskMgr) getHeader() ([]byte, error) {

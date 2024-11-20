@@ -8,13 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
-	"os"
-	"path/filepath"
-	"sort"
 
 	"github.com/ava-labs/avalanchego/utils/maybe"
-	"github.com/ava-labs/avalanchego/utils/perms"
 )
 
 // diskAddress specifies a byte array stored on disk
@@ -47,29 +42,21 @@ type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
-	file *os.File
-	free *freeList
+	dm *diskMgr
 }
 
 func newRawDisk(dir string, fileName string) (*rawDisk, error) {
-	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
+	dm, err := newDiskManager(nil, dir, fileName)
 	if err != nil {
 		return nil, err
 	}
-	return &rawDisk{file: file}, nil
-}
-
-func (r *rawDisk) endOfFile() (int64, error) {
-	fileInfo, err := r.file.Stat()
-	if err != nil {
-		log.Fatalf("failed to get file info: %v", err)
-	}
-	return fileInfo.Size(), err
+	return &rawDisk{dm: dm}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
+
 	var shutdownType [1]byte
-	_, err := r.file.ReadAt(shutdownType[:], 0)
+	_, err := r.dm.file.ReadAt(shutdownType[:], 0)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +67,7 @@ func (r *rawDisk) setShutdownType(shutdownType []byte) error {
 	if len(shutdownType) != 1 {
 		return fmt.Errorf("invalid shutdown type with length %d", len(shutdownType))
 	}
-	_, err := r.file.WriteAt(shutdownType, 0)
+	_, err := r.dm.file.WriteAt(shutdownType, 0)
 	return err
 }
 
@@ -104,170 +91,45 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (n *node) raw_disk_bytes() []byte {
-	encodedBytes := encodeDBNode_disk(&n.dbNode)
-
-	// 80 bytes 128  129
-
-	// adding offset, size, capacity
-	// capacity would be 128 -> reading it would read out only 80 bytes
-
-	// 80 bytes 00000//next node
-	// 128 bytes // 80 bytes next node -> node
-	// 5 12345.12345678
-	// 6 123456.2345678
-	// 88 bytes // 8 bytes next node
-
-	// writing raw disk
-	// append
-	// 80 bytes // next node
-	// 88 bytes
-	// 128 bytes, append 48 bytes of padding to the end of 80 bytes
-
-	// node1 -> node2
-	// [ 00 0 00 0 ]
-	// [80] -> []
-	// 88 -> 88 89 90 so
-
-	// 0 children
-	// 1 children 32 bytes, 31 bytes of compressed key
-
-	// Calculate the next power of 2 size
-	currentSize := len(encodedBytes)
-	log.Printf("Current size: %v\n", currentSize)
-	nextPowerOf2Size := nextPowerOf2(currentSize)
-
-	// Add dummy bytes to reach the next power of 2 size
-	paddingSize := nextPowerOf2Size - currentSize
-	log.Printf("Padding size: %v\n", paddingSize)
-	if paddingSize > 0 {
-		padding := make([]byte, paddingSize)
-		encodedBytes = append(encodedBytes, padding...)
-	}
-	return encodedBytes
-}
-
-// Helper function to calculate the next power of 2 for a given size
-func nextPowerOf2(n int) int {
-	if n <= 0 {
-		return 1
-	}
-	n--
-	n |= n >> 1
-	n |= n >> 2
-	n |= n >> 4
-	n |= n >> 8
-	n |= n >> 16
-	n++
-	return n
-}
-
 // type assertion to ensure that
 // pointer to rawdisk implements disk interface
 // var _ Disk = &rawDisk{}
 // return new error for iterator
 
-// BUG CHEANGE FREELIST TO ONLY
-// add freelist to constructor (ensure that parameter types and names are the same)
-// add freelist to field on rawdisk
-// adding to freelist should be done AFTER iterations
-// diskaddress on node works probably for the best
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	// freelist is not initialized, need to initialize
-	if r.free == nil {
-		log.Printf("Free list not initialized, creating new free list with size 1024")
-		r.free = newFreeList(1024) // SIZE CAN BE CHANGED
-	}
-	r.free.load()
-	var keys []Key
-	for k := range changes.nodes {
-		keys = append(keys, k)
-	}
-	sort.Slice(keys, func(i, j int) bool {
-		return keys[i].value < keys[j].value
-	})
-	for _, k := range keys {
-		nodeChange := changes.nodes[k]
+	for _, nodeChange := range changes.nodes {
 		if nodeChange.after == nil {
 			continue
 		}
-		nodeBytes := nodeChange.after.raw_disk_bytes()
-		log.Printf("Length of Node bytes: %v\n", len(nodeBytes))
-		// Get a diskAddress from the freelist to write the data
-		freeSpace, ok := r.free.get(int64(len(nodeBytes)))
-		if !ok {
-			// If there is no free space, write at the end of the file
-			endOffset, err := r.endOfFile()
-			if err != nil {
-				log.Fatalf("failed to get end of file: %v", err)
-			}
-			_, err = r.file.WriteAt(nodeBytes, endOffset)
-			if err != nil {
-				log.Fatalf("failed to write data: %v", err)
-			}
-			log.Println("Data written successfully at the end of the file.")
-		} else {
-			// If there is free space, write at the offset
-			_, err := r.file.WriteAt(nodeBytes, freeSpace.offset)
-			if err != nil {
-				log.Fatalf("failed to write data: %v", err)
-			}
-			log.Println("Data written successfully at free space.")
-		}
-		if err := r.file.Sync(); err != nil {
-			log.Fatalf("failed to sync data: %v", err)
-		}
+		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
+		r.dm.write(nodeBytes)
 	}
-
-	if changes.rootChange.after.HasValue() && r.file.Sync() == nil {
+	if changes.rootChange.after.HasValue() && r.dm.file.Sync() == nil {
 		rootNode := changes.rootChange.after.Value()
-		rootNodeBytes := rootNode.raw_disk_bytes()
-		// Get a diskAddress from the freelist to write the data
-		freeSpace, ok := r.free.get(int64(len(rootNodeBytes)))
-		if !ok {
-			// If there is no free space, write at the end of the file
-			endOffset, err := r.endOfFile()
-			if err != nil {
-				log.Fatalf("failed to get end of file: %v", err)
-			}
-			_, err = r.file.WriteAt(rootNodeBytes, endOffset)
-			if err != nil {
-				log.Fatalf("failed to write data: %v", err)
-			}
-			log.Println("Root node written successfully at the end of the file.")
-		} else {
-			// If there is free space, write at the offset
-			_, err := r.file.WriteAt(rootNodeBytes, freeSpace.offset)
-			if err != nil {
-				log.Fatalf("failed to write data: %v", err)
-			}
-			log.Println("Root node written successfully at free space.")
-		}
-		if err := r.file.Sync(); err != nil {
-			log.Fatalf("failed to sync data: %v", err)
-		}
+		rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
+		r.dm.write(rootNodeBytes)
 	}
-
 	// ensuring that there are two trees, then add old one to freelist
-	if r.file.Sync() == nil {
+	if r.dm.file.Sync() == nil {
 		for _, nodeChange := range changes.nodes {
 			if nodeChange.after == nil {
 				continue
 			} else {
 				if nodeChange.before != nil {
-					r.free.put(nodeChange.before.diskAddr)
+					r.dm.free.put(nodeChange.before.diskAddr)
 				}
 			}
 		}
 	}
-	if err := r.file.Sync(); err != nil {
-		log.Fatalf("failed to sync data at the end: %v", err)
-	}
+	// if err := r.file.Sync(); err != nil {
+	// 	log.Fatalf("failed to sync data at the end: %v", err)
+	// }
 	return nil //r.file.Sync()
 }
 
 func (r *rawDisk) Clear() error {
-	return r.file.Truncate(0)
+	return r.dm.file.Truncate(0)
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {

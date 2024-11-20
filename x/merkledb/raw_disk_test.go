@@ -10,8 +10,51 @@ import (
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
+	// "golang.org/x/tools/go/expect"
 )
 
+func (n *node) raw_disk_bytes() []byte {
+	encodedBytes := encodeDBNode_disk(&n.dbNode)
+
+	// 80 bytes 128  129
+
+	// adding offset, size, capacity
+	// capacity would be 128 -> reading it would read out only 80 bytes
+
+	// 80 bytes 00000//next node
+	// 128 bytes // 80 bytes next node -> node
+	// 5 12345.12345678
+	// 6 123456.2345678
+	// 88 bytes // 8 bytes next node
+
+	// writing raw disk
+	// append
+	// 80 bytes // next node
+	// 88 bytes
+	// 128 bytes, append 48 bytes of padding to the end of 80 bytes
+
+	// node1 -> node2
+	// [ 00 0 00 0 ]
+	// [80] -> []
+	// 88 -> 88 89 90 so
+
+	// 0 children
+	// 1 children 32 bytes, 31 bytes of compressed key
+
+	// Calculate the next power of 2 size
+	currentSize := len(encodedBytes)
+	// log.Printf("Current size: %v\n", currentSize)
+	nextPowerOf2Size := nextPowerOf2(currentSize)
+
+	// Add dummy bytes to reach the next power of 2 size
+	paddingSize := nextPowerOf2Size - currentSize
+	// log.Printf("Padding size: %v\n", paddingSize)
+	if paddingSize > 0 {
+		padding := make([]byte, paddingSize)
+		encodedBytes = append(encodedBytes, padding...)
+	}
+	return encodedBytes
+}
 func TestWriteChanges_Success(t *testing.T) {
 	os.Remove("merkle.db")
 	os.Remove("freelist.db")
@@ -27,9 +70,9 @@ func TestWriteChanges_Success(t *testing.T) {
 	if err != nil {
 		//t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(r.file.Name()) // clean up the file after the test
+	defer os.Remove(r.dm.file.Name()) // clean up the file after the test
 	defer os.RemoveAll(tempDir)    // Clean up the directory and all its contents after the test
-	defer r.file.Close()
+	defer r.dm.file.Close()
 
 	// Creating nodes to add to the change summary
 	node1 := &node{
@@ -101,7 +144,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 
 	// Read back the contents of the file to verify
-	content, err := os.ReadFile(r.file.Name())
+	content, err := os.ReadFile(r.dm.file.Name())
 	if err != nil {
 		//t.Fatalf("failed to read back file contents: %v", err)
 	}
@@ -137,8 +180,8 @@ func TestFreeListWriteChanges(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(r.file.Name()) // clean up the file after the test
-	defer r.file.Close()
+	defer os.Remove(r.dm.file.Name()) // clean up the file after the test
+	defer r.dm.file.Close()
 
 	// Creating initial diskNodes to add to the change summary
 
@@ -156,7 +199,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "key1____"},
 		valueDigest: maybe.Some([]byte("digest1")),
-		diskAddr:    diskAddress{offset: 0, size: 120},
+		diskAddr:    diskAddress{offset: 17, size: 120},
 	}
 
 	node2 := &node{
@@ -206,7 +249,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "new_key1"},
 		valueDigest: maybe.Some([]byte("new_digest1")),
-		diskAddr:    diskAddress{offset: 0, size: 100},
+		diskAddr:    diskAddress{offset: 17, size: 100},
 	}
 
 	// Creating a diskChangeSummary for the new changes
@@ -225,7 +268,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 	}
 
 	// Read back the contents of the file to verify
-	content, err := os.ReadFile(r.file.Name())
+	content, err := os.ReadFile(r.dm.file.Name())
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
 	} else {
@@ -235,7 +278,8 @@ func TestFreeListWriteChanges(t *testing.T) {
 	node1Bytes := node1.raw_disk_bytes()
 	node2Bytes := node2.raw_disk_bytes()
 	newNode1Bytes := newnode1.raw_disk_bytes()
-	expectedContent := append(node1Bytes, node2Bytes...)
+	expectedContent := append(make([]byte, 17), node1Bytes...)
+	expectedContent = append(expectedContent, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
@@ -254,7 +298,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "new_key2"},
 		valueDigest: maybe.Some([]byte("new_digest2")),
-		diskAddr:    diskAddress{offset: 0, size: 100},
+		diskAddr:    diskAddress{offset: 17, size: 100},
 	}
 
 	newChangeSummary2 := &changeSummary{
@@ -271,7 +315,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 	}
 
 	// Read back the contents of the file to verify
-	content, err = os.ReadFile(r.file.Name())
+	content, err = os.ReadFile(r.dm.file.Name())
 	if err != nil {
 		t.Fatalf("failed to read back file contents: %v", err)
 	} else {
@@ -280,12 +324,12 @@ func TestFreeListWriteChanges(t *testing.T) {
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
 	// The write should overwrite node 1, and then put in new value 2
 	newNode2Bytes := newnode2.raw_disk_bytes()
-	expectedContent = append(newNode2Bytes, node2Bytes...)
+	expectedContent = append(make([]byte, 17), newNode2Bytes...)
+	expectedContent = append(expectedContent, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	} else {
-		log.Printf("Got: \n%s", expectedContent)
 	}
 
 	// Verify that the freelist contains the expected diskAddresses

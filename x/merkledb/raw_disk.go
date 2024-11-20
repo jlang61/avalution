@@ -43,8 +43,9 @@ func (r *diskAddress) decode(diskAddressBytes []byte) {
 
 type rawDisk struct {
 	// [0] = shutdownType
-	// [1,17] = rootKey raw file offset
-	// [18,] = node store
+	// [1,17] = root Db Node raw file offset
+  // [18, 34] = rootKey
+	// [34,] = node store
 	file *os.File
 }
 
@@ -95,15 +96,6 @@ func (r *rawDisk) HealthCheck(ctx context.Context) (interface{}, error) {
 
 func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 	return errors.New("not implemented")
-}
-
-func (r *rawDisk) getRootKey() ([]byte, error) {
-	var rootKeyBytes [16]byte
-	_, err := r.file.ReadAt(rootKeyBytes[:], 1)
-	if err != nil {
-		return nil, err
-	}
-	return rootKeyBytes[:], nil
 }
 
 // simple test function to write to end of disk
@@ -253,16 +245,67 @@ func (r *rawDisk) Clear() error {
 	return r.file.Truncate(0)
 }
 
-func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-  // pseudo
+func (r *rawDisk) getNode(key Key, hasValue bool) (*dbNode, error) {
 
-  // match prefix of key to current node
-    // if doesn't match return
-    // if matches then match next byte to find children 
-      // if no matches then return
-      // if match then match children's compressedkey to current key
-        // read bytes from child's diskaddress, recurse
-  return nil, errors.New("not implemented")
+	var rootAddress [16]byte
+	_, err := r.file.ReadAt(rootAddress[:], 1)
+	if err != nil {
+		return nil, err
+	}
+
+  rootBytes := make([]byte, binary.BigEndian.Uint64(rootAddress[:8]))
+  offset := binary.BigEndian.Uint64(rootAddress[8:])
+  _ , err = r.file.ReadAt(rootBytes[:], int64(offset))
+  if err != nil {
+    return nil, err
+  }
+  
+	var (
+		// all node paths start at the root
+		currentDbNode = dbNode{}
+		// tokenSize   = t.getTokenSize()
+		tokenSize   = 8
+	)
+
+  err = decodeDBNode(rootBytes, &currentDbNode)
+  if err != nil {
+    return nil, err
+  }
+
+  // pseudo
+  var rootKeyBytes [16]byte // 16 bytes is assumption of root key size
+  _, err = r.file.ReadAt(rootBytes[:], 18)
+  currKey, err := decodeKey(rootKeyBytes[:])
+  if err != nil {
+    return nil, err
+  }
+
+	if !key.HasPrefix(currKey) {
+		return nil, errors.New("Key doesn't match rootkey")
+	}
+
+	// while the entire path hasn't been matched
+	for currKey.length < key.length {
+		// confirm that a child exists and grab its address before attempting to load it
+		nextChildEntry, hasChild := currentDbNode.children[key.Token(currKey.length, tokenSize)]
+
+		if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, currKey.length+tokenSize, tokenSize) {
+			// there was no child along the path or the child that was there doesn't match the remaining path
+			return nil, errors.New("Key not found in node's children")
+		}
+		// grab the next node along the path
+		// currentNode, err = t.getNode(key.Take(currentNode.key.length+tokenSize+nextChildEntry.compressedKey.length), nextChildEntry.hasValue)
+    nextBytes := make([]byte, nextChildEntry.diskAddr.size)
+    _ , err = r.file.ReadAt(nextBytes[:], nextChildEntry.diskAddr.offset)
+    if err != nil {
+      return nil, err
+    }
+    err = decodeDBNode(nextBytes, &currentDbNode)
+		if err != nil {
+			return nil, err
+		}
+	}
+    return &currentDbNode, nil
 }
 
 func (r *rawDisk) cacheSize() int {

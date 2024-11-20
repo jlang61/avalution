@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/ava-labs/avalanchego/utils/maybe"
 	"github.com/ava-labs/avalanchego/utils/perms"
@@ -173,14 +174,20 @@ func nextPowerOf2(n int) int {
 // diskaddress on node works probably for the best
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	// freelist is not initialized, need to initialize
-	log.Println("FreeList: ", r.free)
 	if r.free == nil {
 		log.Printf("Free list not initialized, creating new free list with size 1024")
-		// SIZE CAN BE CHANGED
-		r.free = newFreeList(1024)
+		r.free = newFreeList(1024) // SIZE CAN BE CHANGED
 	}
 	r.free.load()
-	for _, nodeChange := range changes.nodes {
+	var keys []Key
+	for k := range changes.nodes {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].value < keys[j].value
+	})
+	for _, k := range keys {
+		nodeChange := changes.nodes[k]
 		if nodeChange.after == nil {
 			continue
 		}
@@ -206,6 +213,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				log.Fatalf("failed to write data: %v", err)
 			}
 			log.Println("Data written successfully at free space.")
+		}
+		if err := r.file.Sync(); err != nil {
+			log.Fatalf("failed to sync data: %v", err)
 		}
 	}
 
@@ -233,6 +243,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			}
 			log.Println("Root node written successfully at free space.")
 		}
+		if err := r.file.Sync(); err != nil {
+			log.Fatalf("failed to sync data: %v", err)
+		}
 	}
 
 	// ensuring that there are two trees, then add old one to freelist
@@ -246,6 +259,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				}
 			}
 		}
+	}
+	if err := r.file.Sync(); err != nil {
+		log.Fatalf("failed to sync data at the end: %v", err)
 	}
 	return nil //r.file.Sync()
 }

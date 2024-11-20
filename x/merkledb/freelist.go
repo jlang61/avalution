@@ -4,43 +4,12 @@ import (
 	"log"
 	"math"
 	"os"
+	"path/filepath"
+
+	"github.com/ava-labs/avalanchego/utils/perms"
 )
 
 // power of 2 implementation managing single file
-type diskManager interface {
-	write([]byte) (diskAddress, error) // malloc()
-	putBack(diskAddress) error         // done working, should put a disk address back free()
-	get(diskAddress) ([]byte, error)   // read()
-	getHeader() ([]byte, error)        // get root node
-}
-
-func newDiskManager(metaData []byte) diskManager {
-	// metaData is fixed size of the header
-	if metaData == nil {
-	}
-
-	// if metadata always fixed in length, return error if not fixed
-
-	// create new file, new diskmanager
-	// with a certain size in the constructor, this is the size of the metadata
-	return nil
-}
-
-func getHeader() ([]byte, error) {
-	return nil, nil
-}
-
-func get(diskAddress) ([]byte, error) {
-	return nil, nil
-}
-
-func putBack(diskAddress) error {
-	return nil
-}
-
-func write([]byte) (diskAddress, error) {
-	return diskAddress{}, nil
-}
 
 // be able to write metadata - might need to modify
 // arbitray node can write to arbitrary location in disk store
@@ -85,17 +54,11 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 	return diskAddress{}, false
 }
 
-// 80 bytes
-// 128 bytes
-// 256
-
 // put adds a diskAddress to the freeList.
 func (f *freeList) put(space diskAddress) {
 	bucket := f.bucketIndex(space.size)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
-
-// 80 bytes -> 128 bytes
 
 // bucketIndex returns the index of the bucket that the size belongs to.
 func (f *freeList) bucketIndex(size int64) int {
@@ -103,12 +66,12 @@ func (f *freeList) bucketIndex(size int64) int {
 }
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.
-func (f *freeList) close() error {
-	r, err := newRawDisk(".", "freeList.db")
+func (f *freeList) close(dir string) error {
+	r, err := os.OpenFile(filepath.Join(dir, "freelist.db"), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		log.Fatalf("failed to create temp file: %v", err)
 	}
-	defer r.file.Close()
+	defer r.Close()
 
 	var offset int64 = 0
 
@@ -121,7 +84,7 @@ func (f *freeList) close() error {
 			// log.Print(space.bytes())
 
 			// Write the bytes at the current offset, returns number of bytes written
-			n, err := r.file.WriteAt(data[:], offset)
+			n, err := r.WriteAt(data[:], offset)
 			if err != nil {
 				panic(err)
 			}
@@ -134,7 +97,7 @@ func (f *freeList) close() error {
 	}
 	// ensures that the file is written to disk
 	// log.Println(os.ReadFile("freeList.db"))
-	err = r.file.Sync()
+	err = r.Sync()
 	if err != nil {
 		return err
 	}

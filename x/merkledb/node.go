@@ -19,6 +19,7 @@ type dbNode struct {
 type child struct {
 	compressedKey Key
 	id            ids.ID
+	diskAddr      diskAddress
 	hasValue      bool
   diskAddr      diskAddress
 }
@@ -28,6 +29,7 @@ type node struct {
 	dbNode
 	key         Key
 	valueDigest maybe.Maybe[[]byte]
+	diskAddr    diskAddress
 }
 
 // Returns a new node with the given [key] and no value.

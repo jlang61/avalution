@@ -11,13 +11,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 
-	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 	"github.com/ava-labs/avalanchego/utils/perms"
 )
-
-const fileName = "merkle.db"
 
 // diskAddress specifies a byte array stored on disk
 type diskAddress struct {
@@ -36,9 +34,13 @@ func (r diskAddress) bytes() [16]byte {
 	return bytes
 }
 
-func (r *diskAddress) decode(diskAddressBytes []byte) {
-	r.offset = int64(binary.BigEndian.Uint64(diskAddressBytes))
-	r.size = int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+func (r *diskAddress) decode(diskAddressBytes []byte) (int64, int64) {
+
+	offset := int64(binary.BigEndian.Uint64(diskAddressBytes))
+	size := int64(binary.BigEndian.Uint64(diskAddressBytes[8:]))
+	r.offset = offset
+	r.size = size
+	return offset, size
 }
 
 type rawDisk struct {
@@ -47,9 +49,10 @@ type rawDisk struct {
   // [18, 34] = rootKey
 	// [34,] = node store
 	file *os.File
+	free *freeList
 }
 
-func newRawDisk(dir string) (*rawDisk, error) {
+func newRawDisk(dir string, fileName string) (*rawDisk, error) {
 	file, err := os.OpenFile(filepath.Join(dir, fileName), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		return nil, err
@@ -101,144 +104,172 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 // simple test function to write to end of disk
 func (r *rawDisk) appendBytes(data []byte) error {
 	endOffset, err := r.endOfFile()
+}
 
-	// Write the data at the end of the file using WriteAt.
-	_, err = r.file.WriteAt(data, endOffset)
-	if err != nil {
-		// return err
-		log.Fatalf("failed to write data: %v", err)
+func (r *rawDisk) getRootKey() ([]byte, error) {
+	return nil, errors.New("not implemented")
+}
+
+func (n *node) raw_disk_bytes() []byte {
+	encodedBytes := encodeDBNode_disk(&n.dbNode)
+
+	// 80 bytes 128  129
+
+	// adding offset, size, capacity
+	// capacity would be 128 -> reading it would read out only 80 bytes
+
+	// 80 bytes 00000//next node
+	// 128 bytes // 80 bytes next node -> node
+	// 5 12345.12345678
+	// 6 123456.2345678
+	// 88 bytes // 8 bytes next node
+
+	// writing raw disk
+	// append
+	// 80 bytes // next node
+	// 88 bytes
+	// 128 bytes, append 48 bytes of padding to the end of 80 bytes
+
+	// node1 -> node2
+	// [ 00 0 00 0 ]
+	// [80] -> []
+	// 88 -> 88 89 90 so
+
+	// 0 children
+	// 1 children 32 bytes, 31 bytes of compressed key
+
+	// Calculate the next power of 2 size
+	currentSize := len(encodedBytes)
+	log.Printf("Current size: %v\n", currentSize)
+	nextPowerOf2Size := nextPowerOf2(currentSize)
+
+	// Add dummy bytes to reach the next power of 2 size
+	paddingSize := nextPowerOf2Size - currentSize
+	log.Printf("Padding size: %v\n", paddingSize)
+	if paddingSize > 0 {
+		padding := make([]byte, paddingSize)
+		encodedBytes = append(encodedBytes, padding...)
 	}
-
-	log.Println("Data written successfully at the end of the file.")
-	return nil
+	return encodedBytes
 }
 
-// simple test function to write to end of disk
-func (r *rawDisk) writeBytes(data []byte, offset int64) error {
-	// Write the data at the offset in the file using WriteAt.
-	_, err := r.file.WriteAt(data, offset)
-	if err != nil {
-		log.Fatalf("failed to write data: %v", err)
-		return err
+// Helper function to calculate the next power of 2 for a given size
+func nextPowerOf2(n int) int {
+	if n <= 0 {
+		return 1
 	}
-
-	log.Println("Data written successfully at the end of the file.")
-	return nil
+	n--
+	n |= n >> 1
+	n |= n >> 2
+	n |= n >> 4
+	n |= n >> 8
+	n |= n >> 16
+	n++
+	return n
 }
 
-func (r *rawDisk) writeNode(n *node, offset int64) error {
-	// Write the data at the offset in the file using WriteAt.
-	data := n.bytes()
-	_, err := r.file.WriteAt(data, offset)
-	if err != nil {
-		log.Fatalf("failed to write data node: %v", err)
-		return err
+// type assertion to ensure that
+// pointer to rawdisk implements disk interface
+// var _ Disk = &rawDisk{}
+// return new error for iterator
+
+// BUG CHEANGE FREELIST TO ONLY
+// add freelist to constructor (ensure that parameter types and names are the same)
+// add freelist to field on rawdisk
+// adding to freelist should be done AFTER iterations
+// diskaddress on node works probably for the best
+func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
+	// freelist is not initialized, need to initialize
+	if r.free == nil {
+		log.Printf("Free list not initialized, creating new free list with size 1024")
+		r.free = newFreeList(1024) // SIZE CAN BE CHANGED
 	}
-
-	log.Println("Data node written successfully at the end of the file.")
-	return nil
-}
-
-/*
-	func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-		for _, nodeChange := range changes.nodes {
-			if nodeChange.after == nil { //nodeChange.after
-				continue
-			}
-			nodeBytes := nodeChange.after.bytes()
-			//-------------------(beg)appendBytes-----------------------
-			endOffset, err := r.endOfFile()
-			// Write the data at the end of the file using WriteAt.
-			_, err = r.file.WriteAt(nodeBytes, endOffset)
-			if err != nil {
-				// return err
-				log.Fatalf("failed to write data: %v", err)
-			}
-
-			log.Println("Data written successfully at the end of the file BIG DUB.")
-		}
-		//-------------------(end)appendBytes-----------------------
-		/*
-				offset, err := r.file.Seek(0, os.SEEK_END)
-				if err != nil {
-					return err
-				}
-
-				_, err = r.file.Write(nodeBytes)
-				if err != nil {
-					return err
-				}
-
-				// Store disk address of the written node.
-				childDiskAddr := diskAddress{
-					offset: offset,
-					size:   int64(len(nodeBytes)),
-				}
-
-				// Add the disk address bytes to the node's serialized form.
-				diskAddrBytes := childDiskAddr.bytes()
-				_, err = r.file.Write(diskAddrBytes[:])
-				if err != nil {
-					return err
-				}
-			}
-
-			// Record the changes in the history to enable tracking of the state over time.
-			trieHistory := newTrieHistory(r.cacheSize())
-			trieHistory.record(changes)
-
-		return nil
-		//return errors.New("not implemented")
+	r.free.load()
+	var keys []Key
+	for k := range changes.nodes {
+		keys = append(keys, k)
 	}
-*/
-type diskNode struct {
-	node
-	diskAddr diskAddress
-}
-
-type diskChangeSummary struct {
-	// The ID of the trie after these changes.
-	rootID ids.ID
-	// The root before/after this change.
-	// Set in [applyValueChanges].
-	rootChange change[maybe.Maybe[*diskNode]]
-	nodes      map[Key]*change[*diskNode]
-	values     map[Key]*change[maybe.Maybe[[]byte]]
-}
-
-func (n *diskNode) bytes() []byte {
-	encodedBytes := encodeDBNode(&n.dbNode)
-	diskAddrBytes := n.diskAddr.bytes()
-	return append(encodedBytes, diskAddrBytes[:]...)
-}
-
-func (r *rawDisk) writeChanges(ctx context.Context, changes *diskChangeSummary) error {
-	for _, nodeChange := range changes.nodes {
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].value < keys[j].value
+	})
+	for _, k := range keys {
+		nodeChange := changes.nodes[k]
 		if nodeChange.after == nil {
 			continue
 		}
-		nodeBytes := nodeChange.after.bytes()
-		endOffset, err := r.endOfFile()
-		_, err = r.file.WriteAt(nodeBytes, endOffset)
-		if err != nil {
-			log.Fatalf("failed to write data: %v", err)
+		nodeBytes := nodeChange.after.raw_disk_bytes()
+		log.Printf("Length of Node bytes: %v\n", len(nodeBytes))
+		// Get a diskAddress from the freelist to write the data
+		freeSpace, ok := r.free.get(int64(len(nodeBytes)))
+		if !ok {
+			// If there is no free space, write at the end of the file
+			endOffset, err := r.endOfFile()
+			if err != nil {
+				log.Fatalf("failed to get end of file: %v", err)
+			}
+			_, err = r.file.WriteAt(nodeBytes, endOffset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Data written successfully at the end of the file.")
+		} else {
+			// If there is free space, write at the offset
+			_, err := r.file.WriteAt(nodeBytes, freeSpace.offset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Data written successfully at free space.")
 		}
-		log.Println("Data written successfully at the end of the file BIG DUB.")
+		if err := r.file.Sync(); err != nil {
+			log.Fatalf("failed to sync data: %v", err)
+		}
 	}
-	if changes.rootChange.after.HasValue() {
+
+	if changes.rootChange.after.HasValue() && r.file.Sync() == nil {
 		rootNode := changes.rootChange.after.Value()
-		rootNodeBytes := rootNode.bytes()
-		endOffset, err := r.endOfFile()
-		if err != nil {
-			log.Fatalf("failed to get end of file: %v", err)
+		rootNodeBytes := rootNode.raw_disk_bytes()
+		// Get a diskAddress from the freelist to write the data
+		freeSpace, ok := r.free.get(int64(len(rootNodeBytes)))
+		if !ok {
+			// If there is no free space, write at the end of the file
+			endOffset, err := r.endOfFile()
+			if err != nil {
+				log.Fatalf("failed to get end of file: %v", err)
+			}
+			_, err = r.file.WriteAt(rootNodeBytes, endOffset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Root node written successfully at the end of the file.")
+		} else {
+			// If there is free space, write at the offset
+			_, err := r.file.WriteAt(rootNodeBytes, freeSpace.offset)
+			if err != nil {
+				log.Fatalf("failed to write data: %v", err)
+			}
+			log.Println("Root node written successfully at free space.")
 		}
-		_, err = r.file.WriteAt(rootNodeBytes, endOffset)
-		if err != nil {
-			log.Fatalf("failed to write rootChange data: %v", err)
+		if err := r.file.Sync(); err != nil {
+			log.Fatalf("failed to sync data: %v", err)
 		}
-		log.Println("Root change written successfully at the end of the file.")
 	}
-	return nil
+
+	// ensuring that there are two trees, then add old one to freelist
+	if r.file.Sync() == nil {
+		for _, nodeChange := range changes.nodes {
+			if nodeChange.after == nil {
+				continue
+			} else {
+				if nodeChange.before != nil {
+					r.free.put(nodeChange.before.diskAddr)
+				}
+			}
+		}
+	}
+	if err := r.file.Sync(); err != nil {
+		log.Fatalf("failed to sync data at the end: %v", err)
+	}
+	return nil //r.file.Sync()
 }
 
 func (r *rawDisk) Clear() error {

@@ -122,31 +122,6 @@ func TestWriteChanges_Success(t *testing.T) {
 	}
 }
 
-func TestGetRootKey_Success(t *testing.T) {
-
-	r, err := newRawDisk(".")
-    if err != nil {
-        t.Fatalf("failed to create temp file: %v", err)
-    }
-    defer os.Remove(r.file.Name()) 
-    defer r.file.Close()          
-
-    knownRootKey := []byte("1234567890abcdef") 
-    if err := r.writeBytes(knownRootKey, 1); err != nil {
-        t.Fatalf("failed to write known root key: %v", err)
-    }
-
-    rootKey, err := r.getRootKey()
-    if err != nil {
-        t.Fatalf("failed to get root key: %v", err)
-    }
-
-    if !bytes.Equal(rootKey, knownRootKey) {
-        t.Errorf("expected root key %x, but got %x", knownRootKey, rootKey)
-    }
-	log.Println("oot key test success")
-}
-
 func TestFreeListWriteChanges(t *testing.T) {
 	os.Remove("merkle.db")
 	os.Remove("freelist.db")

@@ -21,7 +21,6 @@ type child struct {
 	id            ids.ID
 	diskAddr      diskAddress
 	hasValue      bool
-  diskAddr      diskAddress
 }
 
 // node holds additional information on top of the dbNode that makes calculations easier to do

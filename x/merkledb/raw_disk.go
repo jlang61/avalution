@@ -101,11 +101,6 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 	return errors.New("not implemented")
 }
 
-// simple test function to write to end of disk
-func (r *rawDisk) appendBytes(data []byte) error {
-	endOffset, err := r.endOfFile()
-}
-
 func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }

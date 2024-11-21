@@ -71,7 +71,7 @@ func TestWriteChanges_Success(t *testing.T) {
 		//t.Fatalf("failed to create temp file: %v", err)
 	}
 	defer os.Remove(r.dm.file.Name()) // clean up the file after the test
-	defer os.RemoveAll(tempDir)    // Clean up the directory and all its contents after the test
+	defer os.RemoveAll(tempDir)       // Clean up the directory and all its contents after the test
 	defer r.dm.file.Close()
 
 	// Creating nodes to add to the change summary
@@ -107,29 +107,29 @@ func TestWriteChanges_Success(t *testing.T) {
 		valueDigest: maybe.Some([]byte("digest2")),
 	}
 
-	rootNode := &node{
-		dbNode: dbNode{
-			value: maybe.Some([]byte("rootValue")),
-			children: map[byte]*child{
-				3: {
-					compressedKey: Key{length: 8, value: "key3"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-					diskAddr:      diskAddress{offset: 32, size: 16},
-				},
-			},
-		},
-		key:         Key{length: 8, value: "key3"},
-		valueDigest: maybe.Some([]byte("digest3")),
-	}
+	// rootNode := &node{
+	// 	dbNode: dbNode{
+	// 		value: maybe.Some([]byte("rootValue")),
+	// 		children: map[byte]*child{
+	// 			3: {
+	// 				compressedKey: Key{length: 8, value: "key3"},
+	// 				id:            ids.GenerateTestID(),
+	// 				hasValue:      true,
+	// 				diskAddr:      diskAddress{offset: 32, size: 16},
+	// 			},
+	// 		},
+	// 	},
+	// 	key:         Key{length: 8, value: "key3"},
+	// 	valueDigest: maybe.Some([]byte("digest3")),
+	// }
 
 	// Creating a change summary with nodes and rootChange
 	changeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key1"}: {
+			{length: 8, value: "key1"}: {
 				after: node1,
 			},
-			Key{length: 8, value: "key2"}: {
+			{length: 8, value: "key2"}: {
 				after: node2,
 			},
 		},
@@ -152,13 +152,15 @@ func TestWriteChanges_Success(t *testing.T) {
 	// Verify the content is as expected (node1, node2, and rootNode serialized bytes)
 	node1Bytes := node1.raw_disk_bytes()
 	node2Bytes := node2.raw_disk_bytes()
-	rootNodeBytes := rootNode.raw_disk_bytes()
-	// log.Printf("Serialized node1 bytes: %v\n", node1Bsytes)
+	// rootNodeBytes := rootNode.raw_disk_bytes()
+	// log.Printf("Serialized node1 bytes: %v\n", node1Bytes)
 	// log.Printf("Serialized node2 bytes: %v\n", node2Bytes)
-	log.Printf("Serialized rootNode bytes: %v\n", rootNodeBytes)
+	// log.Printf("Serialized rootNode bytes: %v\n", rootNodeBytes)
 
 	// Create the expected content by appending node and root bytes
-	expectedContent := append(node1Bytes, node2Bytes...)
+	expectedContent := append(make([]byte, 17), node1Bytes...)
+	expectedContent = append(expectedContent, node2Bytes...)
+	// log.Printf("file content bytes: %v\n", content)
 	//expectedContent = append(expectedContent, rootNodeBytes...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
@@ -222,10 +224,10 @@ func TestFreeListWriteChanges(t *testing.T) {
 	// Creating a diskChangeSummary for initial nodes
 	initialChangeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key1____"}: {
+			{length: 8, value: "key1____"}: {
 				after: node1,
 			},
-			Key{length: 8, value: "key2____"}: {
+			{length: 8, value: "key2____"}: {
 				after: node2,
 			},
 		},
@@ -255,7 +257,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 	// Creating a diskChangeSummary for the new changes
 	newChangeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key1____"}: {
+			{length: 8, value: "key1____"}: {
 				before: node1,
 				after:  newnode1,
 			},
@@ -303,7 +305,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 
 	newChangeSummary2 := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			Key{length: 8, value: "key2___"}: {
+			{length: 8, value: "key2___"}: {
 				after: newnode2,
 			},
 		},

@@ -93,7 +93,8 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 
 // type assertion to ensure that
 // pointer to rawdisk implements disk interface
-// var _ Disk = &rawDisk{}
+//var _ Disk = &rawDisk{}
+
 // return new error for iterator
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
@@ -105,27 +106,32 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		r.dm.write(nodeBytes)
 	}
-	if changes.rootChange.after.HasValue() && r.dm.file.Sync() == nil {
+	if err := r.dm.file.Sync(); err != nil {
+		return err
+	}
+	if changes.rootChange.after.HasValue() {
 		rootNode := changes.rootChange.after.Value()
 		rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
 		r.dm.write(rootNodeBytes)
 	}
+	if err := r.dm.file.Sync(); err != nil {
+		return err
+	}
 	// ensuring that there are two trees, then add old one to freelist
-	if r.dm.file.Sync() == nil {
-		for _, nodeChange := range changes.nodes {
-			if nodeChange.after == nil {
-				continue
-			} else {
-				if nodeChange.before != nil {
-					r.dm.free.put(nodeChange.before.diskAddr)
-				}
+	for _, nodeChange := range changes.nodes {
+		if nodeChange.after == nil {
+			continue
+		} else {
+			if nodeChange.before != nil {
+				r.dm.free.put(nodeChange.before.diskAddr)
 			}
 		}
 	}
+
 	// if err := r.file.Sync(); err != nil {
 	// 	log.Fatalf("failed to sync data at the end: %v", err)
 	// }
-	return nil //r.file.Sync()
+	return r.dm.file.Sync()
 }
 
 func (r *rawDisk) Clear() error {

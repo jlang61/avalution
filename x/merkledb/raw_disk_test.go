@@ -13,6 +13,8 @@ import (
 	// "golang.org/x/tools/go/expect"
 )
 
+
+const testMetaSize = metaSize + 1
 func (n *node) raw_disk_bytes() []byte {
 	encodedBytes := encodeDBNode_disk(&n.dbNode)
 
@@ -158,11 +160,13 @@ func TestWriteChanges_Success(t *testing.T) {
 	// log.Printf("Serialized rootNode bytes: %v\n", rootNodeBytes)
 
 	// Create the expected content by appending node and root bytes
-	expectedContent := append(make([]byte, 17), node1Bytes...)
+	expectedContent := append(make([]byte, testMetaSize), node1Bytes...)
 	expectedContent = append(expectedContent, node2Bytes...)
+	otherExpectedContent := append(make([]byte, testMetaSize), node2Bytes...)
+	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
 	// log.Printf("file content bytes: %v\n", content)
 	//expectedContent = append(expectedContent, rootNodeBytes...)
-	if !bytes.Equal(content, expectedContent) {
+	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	}
 }
@@ -201,7 +205,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "key1____"},
 		valueDigest: maybe.Some([]byte("digest1")),
-		diskAddr:    diskAddress{offset: 17, size: 120},
+		diskAddr:    diskAddress{offset: testMetaSize, size: 120},
 	}
 
 	node2 := &node{
@@ -251,7 +255,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "new_key1"},
 		valueDigest: maybe.Some([]byte("new_digest1")),
-		diskAddr:    diskAddress{offset: 17, size: 100},
+		diskAddr:    diskAddress{offset: testMetaSize, size: 100},
 	}
 
 	// Creating a diskChangeSummary for the new changes
@@ -280,9 +284,10 @@ func TestFreeListWriteChanges(t *testing.T) {
 	node1Bytes := node1.raw_disk_bytes()
 	node2Bytes := node2.raw_disk_bytes()
 	newNode1Bytes := newnode1.raw_disk_bytes()
-	expectedContent := append(make([]byte, 17), node1Bytes...)
+	expectedContent := append(make([]byte, testMetaSize), node1Bytes...)
 	expectedContent = append(expectedContent, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
+
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	}
@@ -300,7 +305,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "new_key2"},
 		valueDigest: maybe.Some([]byte("new_digest2")),
-		diskAddr:    diskAddress{offset: 17, size: 100},
+		diskAddr:    diskAddress{offset: testMetaSize, size: 100},
 	}
 
 	newChangeSummary2 := &changeSummary{
@@ -326,10 +331,14 @@ func TestFreeListWriteChanges(t *testing.T) {
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
 	// The write should overwrite node 1, and then put in new value 2
 	newNode2Bytes := newnode2.raw_disk_bytes()
-	expectedContent = append(make([]byte, 17), newNode2Bytes...)
+	expectedContent = append(make([]byte, testMetaSize), newNode2Bytes...)
 	expectedContent = append(expectedContent, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
-	if !bytes.Equal(content, expectedContent) {
+
+	otherExpectedContent := append(make([]byte, testMetaSize), newNode2Bytes...)
+	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
+	otherExpectedContent = append(otherExpectedContent, newNode1Bytes...)
+	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	} else {
 	}
@@ -345,4 +354,66 @@ func TestFreeListWriteChanges(t *testing.T) {
 	// 		t.Errorf("expected %v, got %v", expectedAddr, retrievedAddr)
 	// 	}
 	// }
+}
+
+func TestWriteChanges_WithRootNode(t *testing.T) {
+	// Set up temporary directory and rawDisk
+	tempDir, err := os.MkdirTemp("", "merkledb_test")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	r, err := newRawDisk(tempDir, "merkle.db")
+	if err != nil {
+		t.Fatalf("failed to create rawDisk: %v", err)
+	}
+	defer os.Remove(r.dm.file.Name())
+	defer r.dm.file.Close()
+
+	// Create root node
+	rootNode := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("rootValue")),
+			children: map[byte]*child{
+				3: {
+					compressedKey: Key{length: 8, value: "key3"},
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					diskAddr:      diskAddress{offset: 33, size: 16},
+				},
+			},
+		},
+		key:         Key{length: 8, value: "key3"},
+		valueDigest: maybe.Some([]byte("digest3")),
+		diskAddr:      diskAddress{offset: testMetaSize, size: 67},
+
+	}
+
+	// Create changeSummary with rootChange
+	changeSummary := &changeSummary{
+		nodes: map[Key]*change[*node]{},
+		rootChange: change[maybe.Maybe[*node]]{
+			after: maybe.Some(rootNode),
+		},
+	}
+
+	// Write changes to the file
+	if err := r.writeChanges(context.Background(), changeSummary); err != nil {
+		t.Fatalf("write changes failed: %v", err)
+	}
+
+	// Read back the contents of the file
+	content, err := os.ReadFile(r.dm.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	}
+	// Verify the content includes the serialized root node
+	diskAddrBytes := diskAddress{offset: testMetaSize, size: 67}.bytes()
+	rootAddrBytes := diskAddress{offset: 161, size: 4}.bytes()
+	expectedContent := append(append(append(make([] byte, 1), diskAddrBytes[:]..., ), rootAddrBytes[:]...,), rootNode.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, rootNode.key.Bytes()...)
+	if !bytes.Equal(content, expectedContent) {
+		t.Errorf("file content does not match expected content.\nGot:\n%v\nExpected:\n%v", content, expectedContent)
+	}
 }

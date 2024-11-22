@@ -162,17 +162,18 @@ func (r *rawDisk) Clear() error {
 	return r.dm.file.Truncate(0)
 }
 
-func (r *rawDisk) getNode(key Key, hasValue bool) (*dbNode, error) {
-
-  var rootAddress [16]byte
-  _, err := r.file.ReadAt(rootAddress[:], 1)
+func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
+  metadata, err := r.dm.getHeader()
   if err != nil {
     return nil, err
   }
 
-  rootBytes := make([]byte, binary.BigEndian.Uint64(rootAddress[:8]))
-  offset := binary.BigEndian.Uint64(rootAddress[8:])
-  _ , err = r.file.ReadAt(rootBytes[:], int64(offset))
+  rootAddress := diskAddress{
+    offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
+    size: int64(binary.BigEndian.Uint64(metadata[8:16])),
+  }
+
+  rootBytes, err := r.dm.get(rootAddress)
   if err != nil {
     return nil, err
   }
@@ -189,9 +190,11 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*dbNode, error) {
     return nil, err
   }
 
-  // pseudo
-  var rootKeyBytes [16]byte // 16 bytes is assumption of root key size
-  _, err = r.file.ReadAt(rootBytes[:], 18)
+  rootKeyAddr := diskAddress{
+    offset: int64(binary.BigEndian.Uint64(rootBytes[16:24])),
+    size: int64(binary.BigEndian.Uint64(rootBytes[24:32])),
+  }
+  rootKeyBytes, err := r.dm.get(rootKeyAddr)
   currKey, err := decodeKey(rootKeyBytes[:])
   if err != nil {
     return nil, err
@@ -201,21 +204,23 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*dbNode, error) {
     return nil, errors.New("Key doesn't match rootkey")
   }
 
+  keylen := currKey.length+tokenSize // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
   // while the entire path hasn't been matched
   for currKey.length < key.length {
     // confirm that a child exists and grab its address before attempting to load it
     nextChildEntry, hasChild := currentDbNode.children[key.Token(currKey.length, tokenSize)]
 
-    if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, currKey.length+tokenSize, tokenSize) {
+    if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
       // there was no child along the path or the child that was there doesn't match the remaining path
       return nil, errors.New("Key not found in node's children")
     }
 
     // get the next key from the current child
     currKey = nextChildEntry.compressedKey
+    keylen += currKey.length
+
     // grab the next node along the path
-    nextBytes := make([]byte, nextChildEntry.diskAddr.size)
-    _ , err = r.file.ReadAt(nextBytes[:], nextChildEntry.diskAddr.offset)
+    nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
     if err != nil {
       return nil, err
     }
@@ -224,7 +229,11 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*dbNode, error) {
       return nil, err
     }
   }
-  return &currentDbNode, nil
+  return &node{
+    dbNode:      currentDbNode,
+    key:         key,
+    valueDigest: currentDbNode.value,
+  }, nil
 }
 
 func (r *rawDisk) cacheSize() int {

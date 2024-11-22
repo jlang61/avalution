@@ -87,7 +87,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 	// start freelist
 	maxSize := 1024
 	f := newFreeList(maxSize)
-	f.load()
+	f.load(dir)
 
 	// create new file, new diskmanager
 	// with a certain size in the constructor, this is the size of the metadata

@@ -135,7 +135,7 @@ func TestFreeListLoad(t *testing.T) {
 	// Create a new freeList and load the addresses from the file
 	f2 := newFreeList(1024)
 
-	f2.load()
+	f2.load(".")
 
 	// Verify that the loaded addresses match the original addresses
 	for _, addr := range addresses {

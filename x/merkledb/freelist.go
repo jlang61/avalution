@@ -108,8 +108,8 @@ func (f *freeList) close(dir string) error {
 // merkle.db, freelist
 
 // load reads the diskAddresses from a file and populates the freeList.
-func (f *freeList) load() error {
-	file, err := os.Open("freelist.db")
+func (f *freeList) load(dir string) error {
+	file, err := os.Open(filepath.Join(dir, "freelist.db"))
 	if err != nil {
 		return err
 	}

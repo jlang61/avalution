@@ -392,7 +392,11 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 
 	// Create changeSummary with rootChange
 	changeSummary := &changeSummary{
-		nodes: map[Key]*change[*node]{},
+		nodes: map[Key]*change[*node]{
+			{length: 8, value: "key1____"}: {
+				after: rootNode,
+			},
+		},
 		rootChange: change[maybe.Maybe[*node]]{
 			after: maybe.Some(rootNode),
 		},

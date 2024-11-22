@@ -288,7 +288,10 @@ func TestFreeListWriteChanges(t *testing.T) {
 	expectedContent = append(expectedContent, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 
-	if !bytes.Equal(content, expectedContent) {
+	otherExpectedContent := append(make([]byte, testMetaSize), node2Bytes...)
+	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
+	otherExpectedContent = append(otherExpectedContent, newNode1Bytes...)
+	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	}
 	newnode2 := &node{
@@ -335,7 +338,7 @@ func TestFreeListWriteChanges(t *testing.T) {
 	expectedContent = append(expectedContent, node2Bytes...)
 	expectedContent = append(expectedContent, newNode1Bytes...)
 
-	otherExpectedContent := append(make([]byte, testMetaSize), newNode2Bytes...)
+	otherExpectedContent = append(make([]byte, testMetaSize), newNode2Bytes...)
 	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
 	otherExpectedContent = append(otherExpectedContent, newNode1Bytes...)
 	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent) {

@@ -9,7 +9,7 @@ import (
 )
 
 // Metadata size constant
-const metaSize = 16
+const metaSize = 32
 
 type DiskManager interface {
 	write([]byte) (diskAddress, error) // malloc()

@@ -2,7 +2,6 @@ package merkledb
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"testing"
 )
@@ -34,7 +33,6 @@ func TestFreeList(t *testing.T) {
 	// Get addresses from the freeList and ensure they come from the right bucket
 	for _, addr := range addresses {
 		retrievedAddr, ok := f.get(addr.size)
-		log.Println(retrievedAddr)
 		if !ok {
 			t.Fatalf("failed to get address of size %d", addr.size)
 		}
@@ -70,8 +68,6 @@ func TestFreeListClose(t *testing.T) {
 		expectedBytes := expected.bytes()
 
 		readBytes := make([]byte, 16)
-		log.Println("Expected: ", expected.bytes())
-		log.Println("Read: ", readBytes)
 		n, err := file.ReadAt(readBytes, offset)
 		if err != nil {
 			t.Fatalf("failed to read data: %v", err)

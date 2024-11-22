@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
@@ -104,6 +105,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			continue
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
+		log.Println("Wrote to disk")
 		r.dm.write(nodeBytes)
 	}
 	if err := r.dm.file.Sync(); err != nil {
@@ -112,7 +114,24 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	if changes.rootChange.after.HasValue() {
 		rootNode := changes.rootChange.after.Value()
 		rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
-		r.dm.write(rootNodeBytes)
+		rootDiskAddr, err := r.dm.write(rootNodeBytes)	
+		if err != nil {
+			return err
+		}
+		// writing root to header 
+		rootDiskAddrBytes := rootDiskAddr.bytes()
+		r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
+		// writing root key to header
+		
+		rootKey := rootNode.key.Bytes()
+		rootKeyDiskAddr, err := r.dm.write(rootKey[:])
+		if err != nil {
+			return err
+		}
+		// writing root key to hea
+		rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
+		r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
+
 	}
 	if err := r.dm.file.Sync(); err != nil {
 		return err

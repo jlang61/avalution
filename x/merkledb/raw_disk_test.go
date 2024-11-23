@@ -13,8 +13,8 @@ import (
 	// "golang.org/x/tools/go/expect"
 )
 
-
 const testMetaSize = metaSize + 1
+
 func (n *node) raw_disk_bytes() []byte {
 	encodedBytes := encodeDBNode_disk(&n.dbNode)
 
@@ -389,8 +389,7 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "key3"},
 		valueDigest: maybe.Some([]byte("digest3")),
-		diskAddr:      diskAddress{offset: testMetaSize, size: 67},
-
+		diskAddr:    diskAddress{offset: testMetaSize, size: 67},
 	}
 
 	// Create changeSummary with rootChange
@@ -418,9 +417,132 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 	// Verify the content includes the serialized root node
 	diskAddrBytes := diskAddress{offset: testMetaSize, size: 67}.bytes()
 	rootAddrBytes := diskAddress{offset: 161, size: 4}.bytes()
-	expectedContent := append(append(append(make([] byte, 1), diskAddrBytes[:]..., ), rootAddrBytes[:]...,), rootNode.raw_disk_bytes()...)
+	expectedContent := append(append(append(make([]byte, 1), diskAddrBytes[:]...), rootAddrBytes[:]...), rootNode.raw_disk_bytes()...)
 	expectedContent = append(expectedContent, rootNode.key.Bytes()...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%v\nExpected:\n%v", content, expectedContent)
 	}
+}
+
+func TestWriteChange_MultipleNodes(t *testing.T) {
+	// .
+// ..existing code...
+
+	tempDir, err := os.MkdirTemp("", "merkledb_test")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	r, err := newRawDisk(tempDir, "merkle.db")
+	if err != nil {
+		t.Fatalf("failed to create rawDisk: %v", err)
+	}
+	defer os.Remove(r.dm.file.Name())
+	defer r.dm.file.Close()
+
+	childNode1 := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("value1")),
+		},
+		key: 	   Key{length: 8, value: "125"},
+		valueDigest: maybe.Some([]byte("digest5")),
+	}
+
+	compressedKey4 := Key{length: 8, value: childNode1.key.value[len(childNode1.key.value)-1:]}
+	// Create three child nodes
+	node1 := &node{
+		dbNode: dbNode{
+			children : map[byte]*child{
+				1: {
+					compressedKey: compressedKey4,
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+			},
+			// ...existing code...
+		},
+		key:         Key{length: 8, value: "12"},
+		valueDigest: maybe.Some([]byte("digest1")),
+		// ...existing code...
+	}
+
+	node2 := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("value2")),
+			// ...existing code...
+		},
+		key:         Key{length: 8, value: "13"},
+		valueDigest: maybe.Some([]byte("digest2")),
+		// ...existing code...
+	}
+
+	node3 := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("value3")),
+			// ...existing code...
+		},
+		key:         Key{length: 8, value: "14"},
+		valueDigest: maybe.Some([]byte("digest3")),
+		// ...existing code...
+	}
+
+
+	// Create root node with references to child nodes
+	compressedKey1 := Key{length: 8, value: node1.key.value[len(node1.key.value)-1:]}
+	compressedKey2 := Key{length: 8, value: node2.key.value[len(node2.key.value)-1:]}
+	compressedKey3 := Key{length: 8, value: node3.key.value[len(node3.key.value)-1:]}
+
+
+	rootNode := &node{
+		dbNode: dbNode{
+			children: map[byte]*child{
+				1: {
+					compressedKey: compressedKey1,
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+				2: {
+					compressedKey: compressedKey2,
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+				3: {
+					compressedKey: compressedKey3,
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+			},
+			// ...existing code...
+		},
+		key: Key{length: 8, value: "1"},
+		// ...existing code...
+	}
+
+	// Build changeSummary with rootChange and nodes
+	changeSummary := &changeSummary{
+		nodes: map[Key]*change[*node]{
+			rootNode.key: {after: rootNode},
+			node1.key: {after: node1},
+			node2.key: {after: node2},
+			node3.key: {after: node3},
+			childNode1.key: {after: childNode1},
+		},
+		rootChange: change[maybe.Maybe[*node]]{
+			after: maybe.Some(rootNode),
+		},
+	}
+
+	// Write changes to disk
+	if err := r.writeChanges(context.Background(), changeSummary); err != nil {
+		t.Fatalf("write changes failed: %v", err)
+	}
+
+	// WriteChanges should write the children first, then their parent nodes
+
+	// expectedContent := 
 }

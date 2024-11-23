@@ -8,6 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
+
 	// "log"
 	"sort"
 
@@ -100,27 +102,77 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 // return new error for iterator
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-	// freelist is not initialized, need to initialize
 	var keys []Key
 
 	for k := range changes.nodes {
 		keys = append(keys, k)
 	}
+
+	// sort the keys by length, then start at the longest keys (leaf nodes)
 	sort.Slice(keys, func(i, j int) bool {
-		return keys[i].value < keys[j].value
+		return len(keys[i].value) > len(keys[j].value)
 	})
+
+	//0x1
+	//0x12
+	// start longest key
+	// every one after that, committed this child -here is disk address
+
+	// Create a temporary map of children to store the disk address and compressed key of the children
+	tempChildren := make(map[Key]map[Key]diskAddress)
+
 	for _, k := range keys {
 		nodeChange := changes.nodes[k]
 		if nodeChange.after == nil {
 			continue
 		}
+
+		// DELETE: test the key compressed key
+		// log.Printf("Key is %v", nodeChange.after.key)
+		// if len(nodeChange.after.children) > 0 {
+		// 	log.Printf("Enter children")
+		// 	for _, child := range nodeChange.after.children {
+		// 		log.Printf("Compressed key is %v", child.compressedKey)
+		// 	}
+
+		// }
+
+		// Ensure root is not being written twice
 		if changes.rootChange.after.HasValue() {
 			if nodeChange.after.key == changes.rootChange.after.Value().key {
 				continue
 			}
 		}
+
+		// Check with existing map of children to see if this node is a parent
+		if tempChildren[k] != nil {
+			// Iterate through the children in the node
+			for _, child := range nodeChange.after.children {
+				// Ensure that there is a diskaddress for the child
+				if tempChildren[k][child.compressedKey] != (diskAddress{}) {
+					child.diskAddr = tempChildren[k][child.compressedKey]
+				} else {
+					log.Fatalf("Child disk address not found")
+				}
+			}
+
+		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
-		r.dm.write(nodeBytes)
+		diskAddr, err := r.dm.write(nodeBytes)
+		if err != nil {
+			return err
+		}
+
+		if tempChildren[k] == nil {
+			// If the node is a leaf node, compress the key and store the disk address
+			// log.Printf("Key is %v", k)
+			compressedKey := Key{length: k.length, value: k.value[len(k.value)-1:]}
+			// log.Printf("Compressed key is %v", compressedKey)
+			// log.Printf("Disk address is %v", diskAddr)
+			tempChildren[k] = make(map[Key]diskAddress)
+			tempChildren[k][compressedKey] = diskAddr
+		}
+
 	}
 	if err := r.dm.file.Sync(); err != nil {
 		return err
@@ -161,9 +213,19 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 	}
 
-	// if err := r.file.Sync(); err != nil {
-	// 	log.Fatalf("failed to sync data at the end: %v", err)
+	if err := r.dm.file.Sync(); err != nil {
+		log.Fatalf("failed to sync data at the end: %v", err)
+	}
+
+	// Iterate through tempChildren and print the compressed key and disk address
+	// for k, v := range tempChildren {
+	// 	log.Printf("Key is %v", k)
+	// 	for key, diskAddr := range v {
+	// 		log.Printf("Compressed key is %v", key)
+	// 		log.Printf("Disk address is %v", diskAddr)
+	// 	}
 	// }
+
 	return r.dm.file.Sync()
 }
 

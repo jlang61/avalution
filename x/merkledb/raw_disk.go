@@ -185,7 +185,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
     tokenSize   = 8
   )
 
-  err = decodeDBNode(rootBytes, &currentDbNode)
+  err = decodeDBNode_disk(rootBytes, &currentDbNode)
   if err != nil {
     return nil, err
   }
@@ -224,7 +224,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
     if err != nil {
       return nil, err
     }
-    err = decodeDBNode(nextBytes, &currentDbNode)
+    err = decodeDBNode_disk(nextBytes, &currentDbNode)
     if err != nil {
       return nil, err
     }

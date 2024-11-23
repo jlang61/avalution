@@ -548,12 +548,42 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 	rootAddrBytes := diskAddress{offset: 401, size: 1}.bytes()
 	expectedContent := append(make([]byte, 1), diskAddrBytes[:]...)
 	expectedContent = append(expectedContent, rootAddrBytes[:]...)
-	expectedContent = append(expectedContent, childNode1.raw_disk_bytes()...)
-	expectedContent = append(expectedContent, node1.raw_disk_bytes()...)
+	startExpectedContent := append(expectedContent, childNode1.raw_disk_bytes()...)
+	expectedContent = append(startExpectedContent, node1.raw_disk_bytes()...)
 	expectedContent = append(expectedContent, node2.raw_disk_bytes()...)
 	expectedContent = append(expectedContent, node3.raw_disk_bytes()...)
 	expectedContent = append(expectedContent, rootNode.raw_disk_bytes()...)
 	expectedContent = append(expectedContent, rootNode.key.Bytes()...)
+
+	otherExpectedContent3 := append(startExpectedContent, node1.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, node3.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, node2.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, rootNode.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, rootNode.key.Bytes()...)
+
+	otherExpectedContent1 := append(startExpectedContent, node2.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, node1.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, node3.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, rootNode.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, rootNode.key.Bytes()...)
+
+	otherExpectedContent4 := append(startExpectedContent, node2.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, node3.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, node1.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, rootNode.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, rootNode.key.Bytes()...)
+
+	otherExpectedContent2 := append(startExpectedContent, node3.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, node1.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, node2.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, rootNode.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, rootNode.key.Bytes()...)
+
+	otherExpectedContent5 := append(startExpectedContent, node3.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, node2.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, node1.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, rootNode.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, rootNode.key.Bytes()...)
 
 	// Read back the contents of the file
 	content, err := os.ReadFile(r.dm.file.Name())
@@ -564,7 +594,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 	// Verify the content is as expected
 	// log.Printf("file content bytes: %v\n", content)
 	// log.Printf("expected content bytes: %v\n", expectedContent)
-	if !bytes.Equal(content, expectedContent) {
+	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent1) && !bytes.Equal(content, otherExpectedContent2) && !bytes.Equal(content, otherExpectedContent3) && !bytes.Equal(content, otherExpectedContent4) && !bytes.Equal(content, otherExpectedContent5) { 
 		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
 	}
 

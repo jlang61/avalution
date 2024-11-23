@@ -159,6 +159,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
+		// log.Printf("Wrote node to disk: %v", nodeChange.after.key)
 		if err != nil {
 			return err
 		}

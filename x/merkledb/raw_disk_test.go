@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	// "github.com/ava-labs/avalanchego/app"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 	// "golang.org/x/tools/go/expect"
@@ -543,6 +544,28 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 	}
 
 	// WriteChanges should write the children first, then their parent nodes
+	diskAddrBytes := diskAddress{offset: 145, size: 158}.bytes()
+	rootAddrBytes := diskAddress{offset: 401, size: 1}.bytes()
+	expectedContent := append(make([]byte, 1), diskAddrBytes[:]...)
+	expectedContent = append(expectedContent, rootAddrBytes[:]...)
+	expectedContent = append(expectedContent, childNode1.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, node1.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, node2.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, node3.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, rootNode.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, rootNode.key.Bytes()...)
 
-	// expectedContent := 
+	// Read back the contents of the file
+	content, err := os.ReadFile(r.dm.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	}
+
+	// Verify the content is as expected
+	// log.Printf("file content bytes: %v\n", content)
+	// log.Printf("expected content bytes: %v\n", expectedContent)
+	if !bytes.Equal(content, expectedContent) {
+		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+	}
+
 }

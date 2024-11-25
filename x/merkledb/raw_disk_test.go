@@ -446,7 +446,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 		dbNode: dbNode{
 			value: maybe.Some([]byte("value1")),
 		},
-		key: 	   Key{length: 8, value: "125"},
+		key: 	   Key{length: 24, value: "125"},
 		valueDigest: maybe.Some([]byte("digest5")),
 	}
 
@@ -464,7 +464,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 			},
 			// ...existing code...
 		},
-		key:         Key{length: 8, value: "12"},
+		key:         Key{length: 16, value: "12"},
 		valueDigest: maybe.Some([]byte("digest1")),
 		// ...existing code...
 	}
@@ -474,7 +474,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 			value: maybe.Some([]byte("value2")),
 			// ...existing code...
 		},
-		key:         Key{length: 8, value: "13"},
+		key:         Key{length: 16, value: "13"},
 		valueDigest: maybe.Some([]byte("digest2")),
 		// ...existing code...
 	}
@@ -484,7 +484,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 			value: maybe.Some([]byte("value3")),
 			// ...existing code...
 		},
-		key:         Key{length: 8, value: "14"},
+		key:         Key{length: 16, value: "14"},
 		valueDigest: maybe.Some([]byte("digest3")),
 		// ...existing code...
 	}

@@ -39,6 +39,12 @@ As we work on the project, we have a core set of assumptions made about the proj
 ![Architecture 1](images/arch1.png)
 ![Architecture 2](images/arch2.png)
 
+### Sequence Diagram:
+
+![Deleting a Node](images/delete_node.png)
+![Adding a Node Using Freelist](images/add_node_freelist.png)
+![Adding a Node Manually](images/adding_node_no_space.png)
+![Changing a Node](images/changing_node.png)
 
 ### Technologies Employed:
 

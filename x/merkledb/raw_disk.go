@@ -124,7 +124,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// every one after that, committed this child -here is disk address
 
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
-	tempremainingNodes := make(map[Key]diskAddress)
+	childrenNodes := make(map[Key]diskAddress)
 
 	for _, k := range keys {
 		nodeChange := changes.nodes[k]
@@ -155,10 +155,10 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 			log.Printf("Creating completekey %v for parent %v", completeKey, k)
 			// Check whether or not there exists a value for the child in the map
-			if tempremainingNodes[completeKey] != (diskAddress{}) {
+			if childrenNodes[completeKey] != (diskAddress{}) {
 				log.Printf("Adding a diskaddress from map to remainingNodes")
 				// If there is a value, set the disk address of the child to the value in the map
-				child.diskAddr = tempremainingNodes[completeKey]
+				child.diskAddr = childrenNodes[completeKey]
 			}
 		}
 
@@ -170,14 +170,14 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 
 		// If there is not a node with the key in the map, create a new map with the key being the ch
-		if tempremainingNodes[k] == (diskAddress{}) {
+		if childrenNodes[k] == (diskAddress{}) {
 			// If the node is a leaf node, compress the key and store the disk address
 			key := Key{length: k.length, value: k.value}
-			tempremainingNodes[key] = diskAddr
+			childrenNodes[key] = diskAddr
 
-			log.Printf("Writing child to disk:")
-			log.Printf("Key is %v", key)
-			log.Printf("Disk address is %v", diskAddr)
+			// log.Printf("Writing child to disk:")
+			// log.Printf("Key is %v", key)
+			// log.Printf("Disk address is %v", diskAddr)
 		}
 
 	}
@@ -193,9 +193,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 			log.Printf("Creating completekey %v for parent %v", completeKey, k)
 			// Check whether or not there exists a value for the child in the map
-			if tempremainingNodes[completeKey] != (diskAddress{}) {
+			if childrenNodes[completeKey] != (diskAddress{}) {
 				// If there is a value, set the disk address of the child to the value in the map
-				child.diskAddr = tempremainingNodes[completeKey]
+				child.diskAddr = childrenNodes[completeKey]
 			}
 		}
 		for _, child := range changes.rootChange.after.Value().children {

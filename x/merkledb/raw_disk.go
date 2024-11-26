@@ -100,8 +100,7 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-
-func (r * rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) error {
+func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) error {
 	// Iterate through the tree and print out the keys and disk addresses
 	var remainingNodes []diskAddressWithKey
 	newRootNodeBytes, _ := r.dm.get(rootDiskAddr)
@@ -111,7 +110,7 @@ func (r * rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) e
 	parentKey := changes.rootChange.after.Value().key
 	for _, child := range newRootNode.children {
 		// log.Printf("Err? %v", index)
-		// add the child diskaddr to the array remainingNodes 
+		// add the child diskaddr to the array remainingNodes
 		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: changes.rootChange.after.Value().key.length + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + child.compressedKey.value}}
 		remainingNodes = append(remainingNodes, diskAddressKey)
 		totalKey := Key{length: changes.rootChange.after.Value().key.length + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + child.compressedKey.value}
@@ -134,13 +133,14 @@ func (r * rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) e
 			totalKey := Key{length: parentKey.length + child.compressedKey.length, value: parentKey.value + child.compressedKey.value}
 			log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
 		}
-		// remove the node from remainingNodes array 
+		// remove the node from remainingNodes array
 		remainingNodes = remainingNodes[1:]
 
 	}
 	return nil
 
 }
+
 // type assertion to ensure that
 // pointer to rawdisk implements disk interface
 //var _ Disk = &rawDisk{}
@@ -247,8 +247,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
 		r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
 
-
-
 		// print the tree
 		err = r.printTree(rootDiskAddr, changes)
 		if err != nil {
@@ -260,12 +258,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	}
 	// ensuring that there are two trees, then add old one to freelist
 	for _, nodeChange := range changes.nodes {
-		if nodeChange.after == nil {
-			continue
-		} else {
-			if nodeChange.before != nil {
-				r.dm.free.put(nodeChange.before.diskAddr)
-			}
+		if nodeChange.before != nil {
+			r.dm.free.put(nodeChange.before.diskAddr)
 		}
 	}
 

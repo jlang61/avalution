@@ -100,6 +100,47 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
+
+func (r * rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) error {
+	// Iterate through the tree and print out the keys and disk addresses
+	var remainingNodes []diskAddressWithKey
+	newRootNodeBytes, _ := r.dm.get(rootDiskAddr)
+	newRootNode := &dbNode{}
+	decodeDBNode_disk(newRootNodeBytes, newRootNode)
+	log.Printf("Root node %v with key %v", rootDiskAddr, changes.rootChange.after.Value().key)
+	parentKey := changes.rootChange.after.Value().key
+	for _, child := range newRootNode.children {
+		// log.Printf("Err? %v", index)
+		// add the child diskaddr to the array remainingNodes 
+		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: changes.rootChange.after.Value().key.length + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + child.compressedKey.value}}
+		remainingNodes = append(remainingNodes, diskAddressKey)
+		totalKey := Key{length: changes.rootChange.after.Value().key.length + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + child.compressedKey.value}
+		log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
+	}
+	for _, diskAddressKey := range remainingNodes {
+		// iterate through the first instance of the remainingNodes
+		// and print out the key and disk address
+		diskAddress := diskAddressKey.addr
+		parentKey := diskAddressKey.key
+		childBytes, err := r.dm.get(*diskAddress)
+		if err != nil {
+			return err
+		}
+		childNode := &dbNode{}
+		decodeDBNode_disk(childBytes, childNode)
+		for _, child := range childNode.children {
+			diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: parentKey.length + child.compressedKey.length, value: parentKey.value + child.compressedKey.value}}
+			remainingNodes = append(remainingNodes, diskAddressKey)
+			totalKey := Key{length: parentKey.length + child.compressedKey.length, value: parentKey.value + child.compressedKey.value}
+			log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
+		}
+		// remove the node from remainingNodes array 
+		remainingNodes = remainingNodes[1:]
+
+	}
+	return nil
+
+}
 // type assertion to ensure that
 // pointer to rawdisk implements disk interface
 //var _ Disk = &rawDisk{}
@@ -208,43 +249,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 
 
-		// Iterate through the tree and print out the keys and disk addresses
-		var remainingNodes []diskAddressWithKey
-		newRootNodeBytes, _ := r.dm.get(rootDiskAddr)
-		newRootNode := &dbNode{}
-		decodeDBNode_disk(newRootNodeBytes, newRootNode)
-		log.Printf("Root node %v with key %v", rootDiskAddr, changes.rootChange.after.Value().key)
-		parentKey := changes.rootChange.after.Value().key
-		for _, child := range newRootNode.children {
-			// log.Printf("Err? %v", index)
-			// add the child diskaddr to the array remainingNodes 
-			diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: changes.rootChange.after.Value().key.length + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + child.compressedKey.value}}
-			remainingNodes = append(remainingNodes, diskAddressKey)
-			totalKey := Key{length: changes.rootChange.after.Value().key.length + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + child.compressedKey.value}
-			log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
+		// print the tree
+		err = r.printTree(rootDiskAddr, changes)
+		if err != nil {
+			return err
 		}
-		for _, diskAddressKey := range remainingNodes {
-			// iterate through the first instance of the remainingNodes
-			// and print out the key and disk address
-			diskAddress := diskAddressKey.addr
-			parentKey := diskAddressKey.key
-			childBytes, err := r.dm.get(*diskAddress)
-			if err != nil {
-				return err
-			}
-			childNode := &dbNode{}
-			decodeDBNode_disk(childBytes, childNode)
-			for _, child := range childNode.children {
-				diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: parentKey.length + child.compressedKey.length, value: parentKey.value + child.compressedKey.value}}
-				remainingNodes = append(remainingNodes, diskAddressKey)
-				totalKey := Key{length: parentKey.length + child.compressedKey.length, value: parentKey.value + child.compressedKey.value}
-				log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
-			}
-			// remove the node from remainingNodes array 
-			remainingNodes = remainingNodes[1:]
-
-		}
-
 	}
 	if err := r.dm.file.Sync(); err != nil {
 		return err

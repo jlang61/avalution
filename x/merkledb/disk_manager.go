@@ -9,7 +9,7 @@ import (
 )
 
 // Metadata size constant
-const metaSize = 16
+const metaSize = 32
 
 type DiskManager interface {
 	write([]byte) (diskAddress, error) // malloc()
@@ -72,7 +72,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 		}
 
 		// If metadata is found and is correct, we assume it is loaded successfully.
-		log.Printf("Existing metadata loaded successfully.")
+		// log.Printf("Existing metadata loaded successfully.")
 	} else {
 		// The file is new; write the provided metadata
 		_, err := file.WriteAt(metaData, 1)
@@ -81,13 +81,13 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 			log.Fatalf("failed to write metadata %v", err)
 			return nil, err
 		}
-		log.Printf("Metadata written successfully to new file.")
+		// log.Printf("Metadata written successfully to new file.")
 	}
 
 	// start freelist
 	maxSize := 1024
 	f := newFreeList(maxSize)
-	f.load()
+	f.load(dir)
 
 	// create new file, new diskmanager
 	// with a certain size in the constructor, this is the size of the metadata
@@ -133,7 +133,6 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 		padding := make([]byte, paddingSize)
 		bytes = append(bytes, padding...)
 	}
-
 	// log.Println("Initial Get: ", freeSpace)
 	if !ok {
 		// If there is no free space, write at the end of the file
@@ -162,7 +161,6 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 	// log.Println("Freespace: ", freeSpace)
 	return freeSpace, nil
 }
-
 // Helper function for Disk Manager
 func (dm *diskMgr) endOfFile() (int64, error) {
 	fileInfo, err := dm.file.Stat()
@@ -170,4 +168,20 @@ func (dm *diskMgr) endOfFile() (int64, error) {
 		log.Fatalf("failed to get file info: %v", err)
 	}
 	return fileInfo.Size(), err
+}
+
+
+// Helper function to calculate the next power of 2 for a given size
+func nextPowerOf2(n int) int {
+	if n <= 0 {
+		return 1
+	}
+	n--
+	n |= n >> 1
+	n |= n >> 2
+	n |= n >> 4
+	n |= n >> 8
+	n |= n >> 16
+	n++
+	return n
 }

@@ -118,11 +118,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		return len(keys[i].value) > len(keys[j].value)
 	})
 
-	//0x1
-	//0x12
-	// start longest key
-	// every one after that, committed this child -here is disk address
-
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
 	childrenNodes := make(map[Key]diskAddress)
 
@@ -132,22 +127,13 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			continue
 		}
 
-		// DELETE: test the key compressed key
-		// log.Printf("Key is %v", nodeChange.after.key)
-		// if len(nodeChange.after.remainingNodes) > 0 {
-		// 	log.Printf("Enter remainingNodes")
-		// 	for _, child := range nodeChange.after.remainingNodes {
-		// 		log.Printf("Compressed key is %v", child.compressedKey)
-		// 	}
-
-		// }
 		// Ensure root is not being written twice
 		if changes.rootChange.after.HasValue() {
 			if nodeChange.after.key == changes.rootChange.after.Value().key {
 				continue
 			}
 		}
-		// Check with existing map of remainingNodes to see if this node has remainingNodes
+
 		// Iterate through remainingNodes in the node
 		for _, child := range nodeChange.after.children {
 			// Create the complete key (current key + compressed key of the child)
@@ -164,7 +150,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
-		// log.Printf("Wrote node to disk: %v", nodeChange.after.key)
 		if err != nil {
 			return err
 		}
@@ -174,10 +159,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// If the node is a leaf node, compress the key and store the disk address
 			key := Key{length: k.length, value: k.value}
 			childrenNodes[key] = diskAddr
-
-			// log.Printf("Writing child to disk:")
-			// log.Printf("Key is %v", key)
-			// log.Printf("Disk address is %v", diskAddr)
 		}
 
 	}

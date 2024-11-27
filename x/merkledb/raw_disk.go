@@ -8,11 +8,13 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	// "log"
 	"sort"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
+
+var _ Disk = &rawDisk{}
 
 // diskAddress specifies a byte array stored on disk
 type diskAddress struct {
@@ -93,12 +95,6 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
 
-// type assertion to ensure that
-// pointer to rawdisk implements disk interface
-//var _ Disk = &rawDisk{}
-
-// return new error for iterator
-
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	// freelist is not initialized, need to initialize
 	var keys []Key
@@ -172,21 +168,99 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-	// 	rootKey, err := r.getRootKey()
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
-	// 	// check if its what you're looking for
-	// 	// if not, either check children or return error
+	metadata, err := r.dm.getHeader()
+	if err != nil {
+		return nil, err
+	}
 
-	// 	// compare key and if prefix matches key of
+	rootAddress := diskAddress{
+		offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
+		size:   int64(binary.BigEndian.Uint64(metadata[8:16])),
+	}
 
-	// 	// truncate key, if we have a match, check children of current node
+	rootBytes, err := r.dm.get(rootAddress)
+	if err != nil {
+		return nil, err
+	}
 
-	// 	// check all children of current node, if we have a match, check children of current node
-	return nil, errors.New("not implemented")
+	var (
+		// all node paths start at the root
+		currentDbNode = dbNode{}
+		// tokenSize   = t.getTokenSize()
+		tokenSize = 8
+	)
+
+	err = decodeDBNode_disk(rootBytes, &currentDbNode)
+	if err != nil {
+		return nil, err
+	}
+
+	rootKeyAddr := diskAddress{
+		offset: int64(binary.BigEndian.Uint64(rootBytes[16:24])),
+		size:   int64(binary.BigEndian.Uint64(rootBytes[24:32])),
+	}
+	rootKeyBytes, err := r.dm.get(rootKeyAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	currKey, err := decodeKey(rootKeyBytes[:])
+	if err != nil {
+		return nil, err
+	}
+
+	if !key.HasPrefix(currKey) {
+		return nil, errors.New("Key doesn't match rootkey")
+	}
+
+	keylen := currKey.length + tokenSize // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
+	// while the entire path hasn't been matched
+	for currKey.length < key.length {
+		// confirm that a child exists and grab its address before attempting to load it
+		nextChildEntry, hasChild := currentDbNode.children[key.Token(currKey.length, tokenSize)]
+
+		if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
+			// there was no child along the path or the child that was there doesn't match the remaining path
+			return nil, errors.New("Key not found in node's children")
+		}
+
+		// get the next key from the current child
+		currKey = nextChildEntry.compressedKey
+		keylen += currKey.length
+
+		// grab the next node along the path
+		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
+		if err != nil {
+			return nil, err
+		}
+		err = decodeDBNode_disk(nextBytes, &currentDbNode)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &node{
+		dbNode:      currentDbNode,
+		key:         key,
+		valueDigest: currentDbNode.value,
+	}, nil
 }
 
 func (r *rawDisk) cacheSize() int {
 	return 0 // TODO add caching layer
+}
+
+func (r *rawDisk) NewIterator() database.Iterator {
+	return nil
+}
+
+func (r *rawDisk) NewIteratorWithStart(start []byte) database.Iterator {
+	return nil
+}
+
+func (r *rawDisk) NewIteratorWithPrefix(prefix []byte) database.Iterator {
+	return nil
+}
+
+func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.Iterator {
+	return nil
 }

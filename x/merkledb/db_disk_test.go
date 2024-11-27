@@ -1,7 +1,10 @@
 package merkledb
 
 import (
+	"bytes"
 	"context"
+	"log"
+	"runtime"
 	"slices"
 	"strconv"
 	"testing"
@@ -10,6 +13,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/hashing"
+	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
 func getBasicDB_disk(dir string) (*merkleDB, error) {
@@ -19,6 +23,83 @@ func getBasicDB_disk(dir string) (*merkleDB, error) {
 		newDefaultConfig(),
 		&mockMetrics{},
 	)
+}
+
+// New returns a new merkle database.
+func New_disk(ctx context.Context, dir string, config Config) (MerkleDB, error) {
+	metrics, err := newMetrics("merkledb", config.Reg)
+	if err != nil {
+		return nil, err
+	}
+	return newDatabase_disk(ctx, dir, config, metrics)
+}
+
+func newDatabase_disk(
+	ctx context.Context,
+	dir string,
+	config Config,
+	metrics metrics,
+) (*merkleDB, error) {
+	if err := config.BranchFactor.Valid(); err != nil {
+		return nil, err
+	}
+
+	hasher := config.Hasher
+	if hasher == nil {
+		hasher = DefaultHasher
+	}
+
+	rootGenConcurrency := runtime.NumCPU()
+	if config.RootGenConcurrency != 0 {
+		rootGenConcurrency = int(config.RootGenConcurrency)
+	}
+
+	// disk := newDBDisk(db, hasher, config, metrics)
+	disk, err := newRawDisk(dir, "merkle.db")
+	if err != nil {
+		return nil, err
+	}
+
+	trieDB := &merkleDB{
+		metrics:          metrics,
+		disk:             disk,
+		history:          newTrieHistory(int(config.HistoryLength)),
+		debugTracer:      getTracerIfEnabled(config.TraceLevel, DebugTrace, config.Tracer),
+		infoTracer:       getTracerIfEnabled(config.TraceLevel, InfoTrace, config.Tracer),
+		childViews:       make([]*view, 0, defaultPreallocationSize),
+		hashNodesKeyPool: newBytesPool(rootGenConcurrency),
+		tokenSize:        BranchFactorToTokenSize[config.BranchFactor],
+		hasher:           hasher,
+	}
+
+	shutdownType, err := trieDB.disk.getShutdownType()
+	if err != nil {
+		return nil, err
+	}
+	if bytes.Equal(shutdownType, didNotHaveCleanShutdown) {
+		// if err := trieDB.rebuild(ctx, int(config.ValueNodeCacheSize)); err != nil {
+		// 	return nil, err
+		// }
+	} else {
+		if err := trieDB.initializeRoot(); err != nil {
+			log.Println("here")
+			return nil, err
+		}
+	}
+
+	// add current root to history (has no changes)
+	trieDB.history.record(&changeSummary{
+		rootID: trieDB.rootID,
+		rootChange: change[maybe.Maybe[*node]]{
+			after: trieDB.root,
+		},
+		values: map[Key]*change[maybe.Maybe[[]byte]]{},
+		nodes:  map[Key]*change[*node]{},
+	})
+
+	// mark that the db has not yet been cleanly closed
+	//err = trieDB.disk.setShutdownType(didNotHaveCleanShutdown)
+	return trieDB, err
 }
 
 func Test_MerkleDB_Get_Safety_disk(t *testing.T) {

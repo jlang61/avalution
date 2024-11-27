@@ -55,7 +55,7 @@ func newDatabase_disk(
 	}
 
 	// disk := newDBDisk(db, hasher, config, metrics)
-	disk, err := newRawDisk(dir, "merkle.db")
+	disk, err := newRawDisk(dir, "merkle.db", hasher)
 	if err != nil {
 		return nil, err
 	}

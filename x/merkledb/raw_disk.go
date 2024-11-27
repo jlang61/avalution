@@ -46,15 +46,16 @@ type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
-	dm *diskMgr
+	dm     *diskMgr
+	hasher Hasher
 }
 
-func newRawDisk(dir string, fileName string) (*rawDisk, error) {
+func newRawDisk(dir string, fileName string, hasher Hasher) (*rawDisk, error) {
 	dm, err := newDiskManager(nil, dir, fileName)
 	if err != nil {
 		return nil, err
 	}
-	return &rawDisk{dm: dm}, nil
+	return &rawDisk{dm: dm, hasher: hasher}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {

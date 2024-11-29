@@ -1,7 +1,6 @@
 package merkledb
 
 import (
-	"log"
 	"os"
 	"reflect"
 	"testing"
@@ -118,7 +117,7 @@ func TestDiskMgrGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read data: %v", err)
 	}
-	log.Printf("Read bytes 1: %v\n", string(readData))
+	// log.Printf("Read bytes 1: %v\n", string(readData))
 	// Verify the read data matches what was written
 	if string(readData) != string(writeData) {
 		t.Errorf("data mismatch: expected %s, got %s", writeData, readData)
@@ -137,7 +136,7 @@ func TestDiskMgrGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read data: %v", err)
 	}
-	log.Printf("Read bytes 2: %v\n", string(readData))
+	// log.Printf("Read bytes 2: %v\n", string(readData))
 	// Verify the read data matches what was written
 	if string(readData) != string(writeData) {
 		t.Errorf("data mismatch: expected %s, got %s", writeData, readData)
@@ -176,7 +175,7 @@ func TestGetHeader_Success(t *testing.T) {
 	}
 
 	// Log the retrieved metadata for verification purposes
-	log.Printf("Metadata successfully written and verified: %v", header)
+	// log.Printf("Metadata successfully written and verified: %v", header)
 }
 
 func TestGetHeader_EmptyMetadata(t *testing.T) {
@@ -205,7 +204,7 @@ func TestGetHeader_EmptyMetadata(t *testing.T) {
 	}
 
 	// Log the retrieved metadata for verification purposes
-	log.Printf("Empty metadata successfully written and verified: %v", header)
+	// log.Printf("Empty metadata successfully written and verified: %v", header)
 }
 
 func TestNewDiskManager_WithExistingMetadata(t *testing.T) {
@@ -249,5 +248,5 @@ func TestNewDiskManager_WithExistingMetadata(t *testing.T) {
 			t.Errorf("metadata mismatch: expected %v, got %v", metaData, header)
 		}
 	}
-	log.Printf("Metadata successfully verified: %v", header)
+	// log.Printf("Metadata successfully verified: %v", header)
 }

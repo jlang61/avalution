@@ -72,7 +72,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 		}
 
 		// If metadata is found and is correct, we assume it is loaded successfully.
-		log.Printf("Existing metadata loaded successfully.")
+		// log.Printf("Existing metadata loaded successfully.")
 	} else {
 		// The file is new; write the provided metadata
 		_, err := file.WriteAt(metaData, 1)
@@ -81,13 +81,13 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 			log.Fatalf("failed to write metadata %v", err)
 			return nil, err
 		}
-		log.Printf("Metadata written successfully to new file.")
+		// log.Printf("Metadata written successfully to new file.")
 	}
 
 	// start freelist
 	maxSize := 1024
 	f := newFreeList(maxSize)
-	f.load()
+	f.load(dir)
 
 	// create new file, new diskmanager
 	// with a certain size in the constructor, this is the size of the metadata

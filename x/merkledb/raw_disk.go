@@ -8,7 +8,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
+	// "log"
+	"sort"
 
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
@@ -100,7 +101,16 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	// freelist is not initialized, need to initialize
-	for _, nodeChange := range changes.nodes {
+	var keys []Key
+
+	for k := range changes.nodes {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].value < keys[j].value
+	})
+	for _, k := range keys {
+		nodeChange := changes.nodes[k]
 		if nodeChange.after == nil {
 			continue
 		}
@@ -110,7 +120,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			}
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
-		log.Println("Wrote to disk")
 		r.dm.write(nodeBytes)
 	}
 	if err := r.dm.file.Sync(); err != nil {

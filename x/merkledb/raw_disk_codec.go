@@ -6,6 +6,7 @@ package merkledb
 import (
 	"encoding/binary"
 	"errors"
+	"log"
 	"math"
 	"slices"
 
@@ -160,6 +161,7 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 		}
 	}
 	if len(r.b) != 0 {
+		log.Printf("occured in raw disk codec")
 		return errExtraSpace
 	}
 	return nil

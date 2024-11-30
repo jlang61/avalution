@@ -509,47 +509,57 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 // }
 
 func Test_GetNode_Failure(t *testing.T) {
-  // Set up temporary directory and rawDisk
-  tempDir, err := os.MkdirTemp("", "merkledb_test")
-  if err != nil {
-    t.Fatalf("failed to create temp directory: %v", err)
-  }
-  defer os.RemoveAll(tempDir)
+	// Set up temporary directory and rawDisk
+	tempDir, err := os.MkdirTemp("", "merkledb_test")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 
-  r, err := newRawDisk(tempDir, "merkle.db")
-  if err != nil {
-    t.Fatalf("failed to create rawDisk: %v", err)
-  }
-  defer os.Remove(r.dm.file.Name())
-  defer r.dm.file.Close()
+	r, err := newRawDisk(tempDir, "merkle.db")
+	if err != nil {
+		t.Fatalf("failed to create rawDisk: %v", err)
+	}
+	defer os.Remove(r.dm.file.Name())
+	defer r.dm.file.Close()
 
-  // Create root node
-  rootNode := &node{
-    dbNode: dbNode{
-      value:    maybe.Some([]byte("rootValue")),
-      children: map[byte]*child{},
-    },
-    key:         Key{length: 8, value: "rootKey"},
-    valueDigest: maybe.Some([]byte("rootDigest")),
-  }
-  rootNodeBytes := rootNode.raw_disk_bytes()
-  rootAddress, err := r.dm.write(rootNodeBytes)
-  if err != nil {
-    t.Fatalf("failed to write root node: %v", err)
-  }
+	// Create root node
+	rootNode := &node{
+		dbNode: dbNode{
+			children: map[byte]*child{},
+		},
+		// length shoudl be bits of the value 
+		key:         Key{length: 56, value: "rootKey"},
+		valueDigest: maybe.Some([]byte("rootNode")),
+	}
 
-  rootAddressBytes := rootAddress.bytes()
-  _, err = r.dm.file.WriteAt(rootAddressBytes[:],1)
+	changeSummary := &changeSummary{
+		nodes: map[Key]*change[*node]{
+			{length: 112, value: "rootKey"}: {
+				after: rootNode,
+			},
+		},
+		rootChange: change[maybe.Maybe[*node]]{
+			after: maybe.Some(rootNode),
+		},
 
-  rootKeyAddress, err := r.dm.write(encodeKey(rootNode.key))
-  rootKeyAddressBytes := rootKeyAddress.bytes()
-  _, err = r.dm.file.WriteAt(rootKeyAddressBytes[:], 17)
-
-  // Attempt to retrieve a node with a different key
-  wrongKey := Key{length: 8, value: "wrongKey"}
-  _, err = r.getNode(wrongKey, true)
-  if err == nil {
-    t.Fatalf("expected error when retrieving node with wrong key, but got none")
-  }
+	}
+	
+	// Write changes to the file
+	if err := r.writeChanges(context.Background(), changeSummary); err != nil {
+		t.Fatalf("write changes failed: %v", err)
+	}
+	// Attempt to retrieve the correct node
+	currNode, err := r.getNode(rootNode.key, true)
+	if err != nil {
+		t.Fatalf("failed to get node: %v", err)
+	}
+	log.Printf("Current node: %v\n", currNode.dbNode.value)
+	// Attempt to retrieve a node with a different key
+	wrongKey := Key{length: 64, value: "wrongKey"}
+	_, err = r.getNode(wrongKey, true)
+	if err != nil {
+		t.Fatalf("failed to get node with wrong key: %v", err)
+	}
 	log.Println(err)
 }

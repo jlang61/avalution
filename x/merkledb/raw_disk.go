@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	// "log"
+
+	// "log"
 	"sort"
 
 	"github.com/ava-labs/avalanchego/utils/maybe"
@@ -20,7 +22,7 @@ type diskAddress struct {
 	size   int64
 }
 
-func (r diskAddress) end() int64 { // i think its the end idx for root root might b here ? at 
+func (r diskAddress) end() int64 { // i think its the end idx for root root might b here ? at
 	return r.offset + r.size
 }
 
@@ -172,79 +174,84 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-  metadata, err := r.dm.getHeader()
-  if err != nil {
-    return nil, err
-  }
+	metadata, err := r.dm.getHeader()
+	if err != nil {
+		return nil, err
+	}
 
-  rootAddress := diskAddress{
-    offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
-    size: int64(binary.BigEndian.Uint64(metadata[8:16])),
-  }
+	rootAddress := diskAddress{
+		offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
+		size:   int64(binary.BigEndian.Uint64(metadata[8:16])),
+	}
 
-  rootBytes, err := r.dm.get(rootAddress)
-  if err != nil {
-    return nil, err
-  }
+	rootBytes, err := r.dm.get(rootAddress)
+	if err != nil {
+		return nil, err
+	}
 
-  var (
-    // all node paths start at the root
-    currentDbNode = dbNode{}
-    // tokenSize   = t.getTokenSize()
-    tokenSize   = 8
-  )
+	var (
+		// all node paths start at the root
+		currentDbNode = dbNode{}
+		// tokenSize   = t.getTokenSize()
+		tokenSize = 8
+	)
 
-  err = decodeDBNode_disk(rootBytes, &currentDbNode)
-  if err != nil {
-    return nil, err
-  }
+	err = decodeDBNode_disk(rootBytes, &currentDbNode)
+	if err != nil {
+		return nil, err
+	}
+	rootKeyAddr := diskAddress{
+		offset: int64(binary.BigEndian.Uint64(metadata[16:24])),
+		size:   int64(binary.BigEndian.Uint64(metadata[24:32])),
+	}
 
-  rootKeyAddr := diskAddress{
-    offset: int64(binary.BigEndian.Uint64(rootBytes[16:24])),
-    size: int64(binary.BigEndian.Uint64(rootBytes[24:32])),
-  }
-  rootKeyBytes, err := r.dm.get(rootKeyAddr)
-  currKey, err := decodeKey(rootKeyBytes[:])
-  if err != nil {
-    return nil, err
-  }
+	rootKeyBytes, err := r.dm.get(rootKeyAddr)
+	if err != nil {
+		return nil, err
+	}
 
-  if !key.HasPrefix(currKey) {
-    return nil, errors.New("Key doesn't match rootkey")
-  }
+	currKeyString := string(rootKeyBytes[:])
+	currKey := Key{length: len(currKeyString), value: currKeyString}
+	if err != nil {
+		return nil, err
+	}
 
-  keylen := currKey.length+tokenSize // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
-  // while the entire path hasn't been matched
-  for keylen < key.length {
-    // confirm that a child exists and grab its address before attempting to load it
-    nextChildEntry, hasChild := currentDbNode.children[key.Token(currKey.length, tokenSize)]
+	if !key.HasPrefix(currKey) {
+		return nil, errors.New("Key doesn't match rootkey")
+	}
 
-    if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
-      // there was no child along the path or the child that was there doesn't match the remaining path
-      return nil, errors.New("Key not found in node's children")
-    }
+	keylen := currKey.length + tokenSize // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
 
-    // get the next key from the current child
-    currKey = nextChildEntry.compressedKey
-    keylen += currKey.length
+	// while the entire path hasn't been matched
+	for keylen < (key.length) {
+		// confirm that a child exists and grab its address before attempting to load it
+		nextChildEntry, hasChild := currentDbNode.children[key.Token(keylen, tokenSize)]
+		if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
+			// there was no child along the path or the child that was there doesn't match the remaining path
+			return nil, errors.New("Key not found in node's children")
+		}
 
-    // grab the next node along the path
-    nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
-    if err != nil {
-      return nil, err
-    }
-    err = decodeDBNode_disk(nextBytes, &currentDbNode)
-    if err != nil {
-      return nil, err
-    }
-  }
-  return &node{
-    dbNode:      currentDbNode,
-    key:         key,
-    valueDigest: currentDbNode.value,
-  }, nil
+		// get the next key from the current child
+		currKey = nextChildEntry.compressedKey
+		keylen += currKey.length
+
+		// grab the next node along the path
+		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
+		if err != nil {
+			return nil, err
+		}
+		err = decodeDBNode_disk(nextBytes, &currentDbNode)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &node{
+		dbNode:      currentDbNode,
+		key:         key,
+		valueDigest: currentDbNode.value,
+	}, nil
 }
 
 func (r *rawDisk) cacheSize() int {
-  return 0 // TODO add caching layer
+	return 0 // TODO add caching layer
 }

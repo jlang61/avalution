@@ -215,7 +215,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
   keylen := currKey.length+tokenSize // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
   // while the entire path hasn't been matched
-  for currKey.length < key.length {
+  for keylen < key.length {
     // confirm that a child exists and grab its address before attempting to load it
     nextChildEntry, hasChild := currentDbNode.children[key.Token(currKey.length, tokenSize)]
 

@@ -13,8 +13,8 @@ import (
 	// "golang.org/x/tools/go/expect"
 )
 
-
 const testMetaSize = metaSize + 1
+
 func (n *node) raw_disk_bytes() []byte {
 	encodedBytes := encodeDBNode_disk(&n.dbNode)
 
@@ -389,8 +389,7 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 		},
 		key:         Key{length: 8, value: "key3"},
 		valueDigest: maybe.Some([]byte("digest3")),
-		diskAddr:      diskAddress{offset: testMetaSize, size: 67},
-
+		diskAddr:    diskAddress{offset: testMetaSize, size: 67},
 	}
 
 	// Create changeSummary with rootChange
@@ -418,9 +417,139 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 	// Verify the content includes the serialized root node
 	diskAddrBytes := diskAddress{offset: testMetaSize, size: 67}.bytes()
 	rootAddrBytes := diskAddress{offset: 161, size: 4}.bytes()
-	expectedContent := append(append(append(make([] byte, 1), diskAddrBytes[:]..., ), rootAddrBytes[:]...,), rootNode.raw_disk_bytes()...)
+	expectedContent := append(append(append(make([]byte, 1), diskAddrBytes[:]...), rootAddrBytes[:]...), rootNode.raw_disk_bytes()...)
 	expectedContent = append(expectedContent, rootNode.key.Bytes()...)
 	if !bytes.Equal(content, expectedContent) {
 		t.Errorf("file content does not match expected content.\nGot:\n%v\nExpected:\n%v", content, expectedContent)
 	}
+}
+
+// func Test_GetNode(t *testing.T) {
+// 	// Set up temporary directory and rawDisk
+// 	tempDir, err := os.MkdirTemp("", "merkledb_test")
+// 	if err != nil {
+// 		t.Fatalf("failed to create temp directory: %v", err)
+// 	}
+// 	defer os.RemoveAll(tempDir)
+
+// 	r, err := newRawDisk(tempDir, "merkle.db")
+// 	if err != nil {
+// 		t.Fatalf("failed to create rawDisk: %v", err)
+// 	}
+// 	defer os.Remove(r.dm.file.Name())
+// 	defer r.dm.file.Close()
+
+// 	// Create nodes to add to the tree
+// 	// When creaing nodes, a parent node needs to have the addresses of its children, so build children node first, then encode them to figure out its size, then write it to the file to figure out its location, then use the size and offset to create the dis address and add it to the parent node
+
+// }
+
+// func Test_GetNode(t *testing.T) {
+// 	// Set up temporary directory and rawDisk
+// 	tempDir, err := os.MkdirTemp("", "merkledb_test")
+// 	if err != nil {
+// 		t.Fatalf("failed to create temp directory: %v", err)
+// 	}
+// 	defer os.RemoveAll(tempDir)
+//
+// 	r, err := newRawDisk(tempDir, "merkle.db")
+// 	if err != nil {
+// 		t.Fatalf("failed to create rawDisk: %v", err)
+// 	}
+// 	defer os.Remove(r.dm.file.Name())
+// 	defer r.dm.file.Close()
+//
+// 	// Create child node
+// 	childNode := &node{
+// 		dbNode: dbNode{
+// 			value:    maybe.Some([]byte("childValue")),
+// 			children: map[byte]*child{},
+// 		},
+// 		key:         Key{length: 8, value: "childKey"},
+// 		valueDigest: maybe.Some([]byte("childDigest")),
+// 	}
+// 	childNodeBytes := childNode.raw_disk_bytes()
+// 	childDiskAddr, err := r.dm.write(childNodeBytes)
+// 	if err != nil {
+// 		t.Fatalf("failed to write child node: %v", err)
+// 	}
+//
+// 	// Create parent node with the address of the child node
+// 	parentNode := &node{
+// 		dbNode: dbNode{
+// 			value: maybe.Some([]byte("parentValue")),
+// 			children: map[byte]*child{
+// 				1: {
+// 					compressedKey: Key{length: 8, value: "childKey"},
+// 					id:            ids.GenerateTestID(),
+// 					hasValue:      true,
+// 					diskAddr:      childDiskAddr,
+// 				},
+// 			},
+// 		},
+// 		key:         Key{length: 8, value: "parentKey"},
+// 		valueDigest: maybe.Some([]byte("parentDigest")),
+// 	}
+// 	parentNodeBytes := parentNode.raw_disk_bytes()
+// 	parentDiskAddr, err := r.dm.write(parentNodeBytes)
+// 	if err != nil {
+// 		t.Fatalf("failed to write parent node: %v", err)
+// 	}
+//
+// 	// Test getNode function
+// 	retrievedNode, err := r.getNode(parentNode.key, true)
+// 	if err != nil {
+// 		t.Fatalf("failed to get node: %v", err)
+// 	}
+//
+// 	// Verify the retrieved node matches the parent node
+// 	if !bytes.Equal(retrievedNode.raw_disk_bytes(), parentNode.raw_disk_bytes()) {
+// 		t.Errorf("retrieved node does not match parent node.\nGot:\n%v\nExpected:\n%v", retrievedNode, parentNode)
+// 	}
+// }
+
+func Test_GetNode_Failure(t *testing.T) {
+  // Set up temporary directory and rawDisk
+  tempDir, err := os.MkdirTemp("", "merkledb_test")
+  if err != nil {
+    t.Fatalf("failed to create temp directory: %v", err)
+  }
+  defer os.RemoveAll(tempDir)
+
+  r, err := newRawDisk(tempDir, "merkle.db")
+  if err != nil {
+    t.Fatalf("failed to create rawDisk: %v", err)
+  }
+  defer os.Remove(r.dm.file.Name())
+  defer r.dm.file.Close()
+
+  // Create root node
+  rootNode := &node{
+    dbNode: dbNode{
+      value:    maybe.Some([]byte("rootValue")),
+      children: map[byte]*child{},
+    },
+    key:         Key{length: 8, value: "rootKey"},
+    valueDigest: maybe.Some([]byte("rootDigest")),
+  }
+  rootNodeBytes := rootNode.raw_disk_bytes()
+  rootAddress, err := r.dm.write(rootNodeBytes)
+  if err != nil {
+    t.Fatalf("failed to write root node: %v", err)
+  }
+
+  rootAddressBytes := rootAddress.bytes()
+  _, err = r.dm.file.WriteAt(rootAddressBytes[:],1)
+
+  rootKeyAddress, err := r.dm.write(encodeKey(rootNode.key))
+  rootKeyAddressBytes := rootKeyAddress.bytes()
+  _, err = r.dm.file.WriteAt(rootKeyAddressBytes[:], 17)
+
+  // Attempt to retrieve a node with a different key
+  wrongKey := Key{length: 8, value: "wrongKey"}
+  _, err = r.getNode(wrongKey, true)
+  if err == nil {
+    t.Fatalf("expected error when retrieving node with wrong key, but got none")
+  }
+	log.Println(err)
 }

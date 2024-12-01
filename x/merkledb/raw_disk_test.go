@@ -425,7 +425,7 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 	}
 }
 
-func TestWriteChange_MultipleNodes(t *testing.T) {
+func TestWriteChanges_MultipleNodes(t *testing.T) {
 	// .
 // ..existing code...
 
@@ -450,13 +450,12 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 		valueDigest: maybe.Some([]byte("digest5")),
 	}
 
-	compressedKey4 := Key{length: 8, value: childNode1.key.value[len(childNode1.key.value)-1:]}
 	// Create three child nodes
 	node1 := &node{
 		dbNode: dbNode{
 			children : map[byte]*child{
-				1: {
-					compressedKey: compressedKey4,
+				5: {
+					compressedKey: Key{length: 0, value: ""},
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
@@ -489,30 +488,23 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 		// ...existing code...
 	}
 
-
-	// Create root node with references to child nodes
-	compressedKey1 := Key{length: 8, value: node1.key.value[len(node1.key.value)-1:]}
-	compressedKey2 := Key{length: 8, value: node2.key.value[len(node2.key.value)-1:]}
-	compressedKey3 := Key{length: 8, value: node3.key.value[len(node3.key.value)-1:]}
-
-
 	rootNode := &node{
 		dbNode: dbNode{
 			children: map[byte]*child{
-				1: {
-					compressedKey: compressedKey1,
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-					// ...existing code...
-				},
 				2: {
-					compressedKey: compressedKey2,
+					compressedKey: Key{length:0, value: ""},
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
 				},
 				3: {
-					compressedKey: compressedKey3,
+					compressedKey: Key{length: 0, value: ""},
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+				4: {
+					compressedKey: Key{length: 0, value: ""},
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
@@ -544,7 +536,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 	}
 
 	// WriteChanges should write the children first, then their parent nodes
-	diskAddrBytes := diskAddress{offset: 145, size: 158}.bytes()
+	diskAddrBytes := diskAddress{offset: 145, size: 155}.bytes()
 	rootAddrBytes := diskAddress{offset: 401, size: 1}.bytes()
 	expectedContent := append(make([]byte, 1), diskAddrBytes[:]...)
 	expectedContent = append(expectedContent, rootAddrBytes[:]...)
@@ -595,7 +587,7 @@ func TestWriteChange_MultipleNodes(t *testing.T) {
 	// log.Printf("file content bytes: %v\n", content)
 	// log.Printf("expected content bytes: %v\n", expectedContent)
 	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent1) && !bytes.Equal(content, otherExpectedContent2) && !bytes.Equal(content, otherExpectedContent3) && !bytes.Equal(content, otherExpectedContent4) && !bytes.Equal(content, otherExpectedContent5) { 
-		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+		t.Errorf("file content does not match expected content.\nGot:\n%v\nExpected:\n%v", content, expectedContent)
 	}
 
 }

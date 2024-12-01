@@ -9,6 +9,7 @@ import (
 	"time"
   "errors"
 
+	// "github.com/ava-labs/avalanchego/app"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 	// "golang.org/x/tools/go/expect"
@@ -425,25 +426,172 @@ func TestWriteChanges_WithRootNode(t *testing.T) {
 	}
 }
 
-// func Test_GetNode(t *testing.T) {
-// 	// Set up temporary directory and rawDisk
-// 	tempDir, err := os.MkdirTemp("", "merkledb_test")
-// 	if err != nil {
-// 		t.Fatalf("failed to create temp directory: %v", err)
-// 	}
-// 	defer os.RemoveAll(tempDir)
+func TestWriteChanges_MultipleNodes(t *testing.T) {
+	// .
+// ..existing code...
 
-// 	r, err := newRawDisk(tempDir, "merkle.db")
-// 	if err != nil {
-// 		t.Fatalf("failed to create rawDisk: %v", err)
-// 	}
-// 	defer os.Remove(r.dm.file.Name())
-// 	defer r.dm.file.Close()
+	tempDir, err := os.MkdirTemp("", "merkledb_test")
+	if err != nil {
+		t.Fatalf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
 
-// 	// Create nodes to add to the tree
-// 	// When creaing nodes, a parent node needs to have the addresses of its children, so build children node first, then encode them to figure out its size, then write it to the file to figure out its location, then use the size and offset to create the dis address and add it to the parent node
+	r, err := newRawDisk(tempDir, "merkle.db")
+	if err != nil {
+		t.Fatalf("failed to create rawDisk: %v", err)
+	}
+	defer os.Remove(r.dm.file.Name())
+	defer r.dm.file.Close()
 
-// }
+	childNode1 := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("value1")),
+		},
+		key: 	   Key{length: 24, value: "125"},
+		valueDigest: maybe.Some([]byte("digest5")),
+	}
+
+	// Create three child nodes
+	node1 := &node{
+		dbNode: dbNode{
+			children : map[byte]*child{
+				5: {
+					compressedKey: Key{length: 0, value: ""},
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+			},
+			// ...existing code...
+		},
+		key:         Key{length: 16, value: "12"},
+		valueDigest: maybe.Some([]byte("digest1")),
+		// ...existing code...
+	}
+
+	node2 := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("value2")),
+			// ...existing code...
+		},
+		key:         Key{length: 16, value: "13"},
+		valueDigest: maybe.Some([]byte("digest2")),
+		// ...existing code...
+	}
+
+	node3 := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("value3")),
+			// ...existing code...
+		},
+		key:         Key{length: 16, value: "14"},
+		valueDigest: maybe.Some([]byte("digest3")),
+		// ...existing code...
+	}
+
+	rootNode := &node{
+		dbNode: dbNode{
+			children: map[byte]*child{
+				2: {
+					compressedKey: Key{length:0, value: ""},
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+				3: {
+					compressedKey: Key{length: 0, value: ""},
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+				4: {
+					compressedKey: Key{length: 0, value: ""},
+					id:            ids.GenerateTestID(),
+					hasValue:      true,
+					// ...existing code...
+				},
+			},
+			// ...existing code...
+		},
+		key: Key{length: 8, value: "1"},
+		// ...existing code...
+	}
+
+	// Build changeSummary with rootChange and nodes
+	changeSummary := &changeSummary{
+		nodes: map[Key]*change[*node]{
+			rootNode.key: {after: rootNode},
+			node1.key: {after: node1},
+			node2.key: {after: node2},
+			node3.key: {after: node3},
+			childNode1.key: {after: childNode1},
+		},
+		rootChange: change[maybe.Maybe[*node]]{
+			after: maybe.Some(rootNode),
+		},
+	}
+
+	// Write changes to disk
+	if err := r.writeChanges(context.Background(), changeSummary); err != nil {
+		t.Fatalf("write changes failed: %v", err)
+	}
+
+	// WriteChanges should write the children first, then their parent nodes
+	diskAddrBytes := diskAddress{offset: 145, size: 155}.bytes()
+	rootAddrBytes := diskAddress{offset: 401, size: 1}.bytes()
+	expectedContent := append(make([]byte, 1), diskAddrBytes[:]...)
+	expectedContent = append(expectedContent, rootAddrBytes[:]...)
+	startExpectedContent := append(expectedContent, childNode1.raw_disk_bytes()...)
+	expectedContent = append(startExpectedContent, node1.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, node2.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, node3.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, rootNode.raw_disk_bytes()...)
+	expectedContent = append(expectedContent, rootNode.key.Bytes()...)
+
+	otherExpectedContent3 := append(startExpectedContent, node1.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, node3.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, node2.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, rootNode.raw_disk_bytes()...)
+	otherExpectedContent3 = append(otherExpectedContent3, rootNode.key.Bytes()...)
+
+	otherExpectedContent1 := append(startExpectedContent, node2.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, node1.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, node3.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, rootNode.raw_disk_bytes()...)
+	otherExpectedContent1 = append(otherExpectedContent1, rootNode.key.Bytes()...)
+
+	otherExpectedContent4 := append(startExpectedContent, node2.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, node3.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, node1.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, rootNode.raw_disk_bytes()...)
+	otherExpectedContent4 = append(otherExpectedContent4, rootNode.key.Bytes()...)
+
+	otherExpectedContent2 := append(startExpectedContent, node3.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, node1.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, node2.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, rootNode.raw_disk_bytes()...)
+	otherExpectedContent2 = append(otherExpectedContent2, rootNode.key.Bytes()...)
+
+	otherExpectedContent5 := append(startExpectedContent, node3.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, node2.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, node1.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, rootNode.raw_disk_bytes()...)
+	otherExpectedContent5 = append(otherExpectedContent5, rootNode.key.Bytes()...)
+
+	// Read back the contents of the file
+	content, err := os.ReadFile(r.dm.file.Name())
+	if err != nil {
+		t.Fatalf("failed to read back file contents: %v", err)
+	}
+
+	// Verify the content is as expected
+	// log.Printf("file content bytes: %v\n", content)
+	// log.Printf("expected content bytes: %v\n", expectedContent)
+	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent1) && !bytes.Equal(content, otherExpectedContent2) && !bytes.Equal(content, otherExpectedContent3) && !bytes.Equal(content, otherExpectedContent4) && !bytes.Equal(content, otherExpectedContent5) { 
+		t.Errorf("file content does not match expected content.\nGot:\n%v\nExpected:\n%v", content, expectedContent)
+	}
+
+}
 
 func Test_GetNode(t *testing.T) {
 	// Set up temporary directory and rawDisk
@@ -464,9 +612,8 @@ func Test_GetNode(t *testing.T) {
 	childNode := &node{
 		dbNode: dbNode{
 			value: maybe.Some([]byte("1234")),
-			// children: map[byte]*child{},
 		},
-		key:         Key{length: 24, value: "1234"},
+		key:         ToKey([]byte{1,2,3,4}),
 		valueDigest: maybe.Some([]byte("1234")),
 	}
 
@@ -475,24 +622,24 @@ func Test_GetNode(t *testing.T) {
 		dbNode: dbNode{
 			value: maybe.Some([]byte("12")),
 			children: map[byte]*child{
-				3: {
-					compressedKey: Key{length: 8, value: "34"},
+				byte(3): {
+					compressedKey: ToKey([]byte{4}),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 				},
 			},
 		},
-		key:         Key{length: 16, value: "12"},
+		key:         ToKey([]byte{1,2}),
 		valueDigest: maybe.Some([]byte("12")),
 	}
 
 	// write changes
 	changeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			{length: 16, value: "12"}: {
+			parentNode.key: {
 				after: parentNode,
 			},
-			{length: 24, value: "1234"}: {
+			childNode.key: {
 				after: childNode,
 			},
 		},

@@ -220,12 +220,13 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		return nil, errors.New("Key doesn't match rootkey")
 	}
 
-	keylen := currKey.length + tokenSize // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
+	keylen := currKey.length// keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
 
 	// while the entire path hasn't been matched
 	for keylen < (key.length) {
 		// confirm that a child exists and grab its address before attempting to load it
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keylen, tokenSize)]
+    keylen += tokenSize
 		if !hasChild || !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
 			return nil, errors.New("Key not found in node's children")

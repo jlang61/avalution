@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 	"time"
+  "errors"
 
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/maybe"
@@ -462,11 +463,11 @@ func Test_GetNode(t *testing.T) {
 	// Create child node
 	childNode := &node{
 		dbNode: dbNode{
-			value: maybe.Some([]byte("123")),
+			value: maybe.Some([]byte("1234")),
 			// children: map[byte]*child{},
 		},
-		key:         Key{length: 24, value: "123"},
-		valueDigest: maybe.Some([]byte("123")),
+		key:         Key{length: 24, value: "1234"},
+		valueDigest: maybe.Some([]byte("1234")),
 	}
 
 	// Create parent node with the address of the child node
@@ -475,7 +476,7 @@ func Test_GetNode(t *testing.T) {
 			value: maybe.Some([]byte("12")),
 			children: map[byte]*child{
 				3: {
-					compressedKey: Key{length: 8, value: "3"},
+					compressedKey: Key{length: 8, value: "34"},
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 				},
@@ -491,7 +492,7 @@ func Test_GetNode(t *testing.T) {
 			{length: 16, value: "12"}: {
 				after: parentNode,
 			},
-			{length: 24, value: "123"}: {
+			{length: 24, value: "1234"}: {
 				after: childNode,
 			},
 		},
@@ -506,11 +507,11 @@ func Test_GetNode(t *testing.T) {
 	// Test getNode function
 	retrievedNode, err := r.getNode(parentNode.key, true)
 	if err != nil {
-		t.Fatalf("failed to get node: %v", err)
+		t.Fatalf("failed to get root node: %v", err)
 	}
-	retrivedChildNode, err := r.getNode(childNode.key, true)
+	retrievedChildNode, err := r.getNode(childNode.key, true)
 	if err != nil {
-		t.Fatalf("failed to get node: %v", err)
+		t.Fatalf("failed to get child node: %v", err)
 	}
 
 	// Verify the retrieved node matches the parent node
@@ -518,8 +519,8 @@ func Test_GetNode(t *testing.T) {
 		t.Errorf("retrieved node does not match parent node.\nGot:\n%v\nExpected:\n%v", retrievedNode, parentNode)
 	}
 
-	if !bytes.Equal(retrivedChildNode.raw_disk_bytes(), childNode.raw_disk_bytes()) {
-		t.Errorf("retrieved node does not match child node.\nGot:\n%v\nExpected:\n%v", retrivedChildNode, childNode)
+	if !bytes.Equal(retrievedChildNode.raw_disk_bytes(), childNode.raw_disk_bytes()) {
+		t.Errorf("retrieved node does not match child node.\nGot:\n%v\nExpected:\n%v", retrievedChildNode, childNode)
 	}
 
 }
@@ -574,8 +575,7 @@ func Test_GetNode_Failure(t *testing.T) {
 	// Attempt to retrieve a node with a different key
 	wrongKey := Key{length: 64, value: "wrongKey"}
 	_, err = r.getNode(wrongKey, true)
-	if err != nil {
-		t.Fatalf("failed to get node with wrong key: %v", err)
+	if errors.Is(err, errors.New("Key doesn't match rootkey")){
+		t.Fatalf("failed to fail when getting node with wrong key: %v", err)
 	}
-	log.Println(err)
 }

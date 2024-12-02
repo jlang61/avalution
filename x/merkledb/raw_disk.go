@@ -50,12 +50,12 @@ type rawDisk struct {
 	hasher Hasher
 }
 
-func newRawDisk(dir string, fileName string, hasher Hasher) (*rawDisk, error) {
+func newRawDisk(dir string, fileName string) (*rawDisk, error) {
 	dm, err := newDiskManager(nil, dir, fileName)
 	if err != nil {
 		return nil, err
 	}
-	return &rawDisk{dm: dm, hasher: hasher}, nil
+	return &rawDisk{dm: dm}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {

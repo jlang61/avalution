@@ -110,8 +110,8 @@ func TestWriteChanges_Success(t *testing.T) {
 	node1Bytes := node1.raw_disk_bytes()
 	node2Bytes := node2.raw_disk_bytes()
 	rootNodeBytes := rootNode.raw_disk_bytes()
-	// log.Printf("Serialized node1 bytes: %v\n", node1Bsytes)
-	// log.Printf("Serialized node2 bytes: %v\n", node2Bytes)
+	log.Printf("Serialized node1 bytes: %v\n", node1Bytes)
+	log.Printf("Serialized node2 bytes: %v\n", node2Bytes)
 	log.Printf("Serialized rootNode bytes: %v\n", rootNodeBytes)
 
 	// Create the expected content by appending node and root bytes

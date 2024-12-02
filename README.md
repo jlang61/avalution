@@ -69,21 +69,21 @@ LMDBX - LMDB used by Erigon and Reth Ethereum Execution Clients
 1. Clone the Repository
 First, clone the project repository to your local machine using Git:
 
-'''
+```
 git clone https://github.com/yourusername/project-name.git
-'''
+```
 This will create a local copy of the repository in a folder named project-name.
 
 2. Navigate to the Project Folder
 Once the repository is cloned, navigate into the project directory:
 
-'''
+```
 cd .\merkledb\x
-'''
+```
 3. Run Tests
 To run the tests for the project, execute the following command:
 
-'''
+```
 go test
-'''
+```
 This will run all the test files in the current directory and its subdirectories. You should see output indicating whether the tests passed or failed.

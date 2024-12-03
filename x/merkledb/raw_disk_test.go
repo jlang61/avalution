@@ -447,7 +447,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 		dbNode: dbNode{
 			value: maybe.Some([]byte("value1")),
 		},
-		key: 	   Key{length: 24, value: "125"},
+    key:     ToKey([]byte{1,2,5}),
 		valueDigest: maybe.Some([]byte("digest5")),
 	}
 
@@ -455,8 +455,8 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 	node1 := &node{
 		dbNode: dbNode{
 			children : map[byte]*child{
-				5: {
-					compressedKey: Key{length: 0, value: ""},
+				byte(5): {
+					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
@@ -464,7 +464,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			},
 			// ...existing code...
 		},
-		key:         Key{length: 16, value: "12"},
+    key:         ToKey([]byte{1,2}),
 		valueDigest: maybe.Some([]byte("digest1")),
 		// ...existing code...
 	}
@@ -474,7 +474,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			value: maybe.Some([]byte("value2")),
 			// ...existing code...
 		},
-		key:         Key{length: 16, value: "13"},
+    key:         ToKey([]byte{1,3}),
 		valueDigest: maybe.Some([]byte("digest2")),
 		// ...existing code...
 	}
@@ -484,7 +484,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			value: maybe.Some([]byte("value3")),
 			// ...existing code...
 		},
-		key:         Key{length: 16, value: "14"},
+    key:         ToKey([]byte{1,4}),
 		valueDigest: maybe.Some([]byte("digest3")),
 		// ...existing code...
 	}
@@ -492,20 +492,20 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 	rootNode := &node{
 		dbNode: dbNode{
 			children: map[byte]*child{
-				2: {
-					compressedKey: Key{length:0, value: ""},
+				byte(2): {
+					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
 				},
-				3: {
-					compressedKey: Key{length: 0, value: ""},
+				byte(3): {
+					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
 				},
-				4: {
-					compressedKey: Key{length: 0, value: ""},
+				byte(4): {
+					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
@@ -513,7 +513,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			},
 			// ...existing code...
 		},
-		key: Key{length: 8, value: "1"},
+    key: ToKey([]byte{1}),
 		// ...existing code...
 	}
 
@@ -613,7 +613,7 @@ func Test_GetNode(t *testing.T) {
 		dbNode: dbNode{
 			value: maybe.Some([]byte("1234")),
 		},
-		key:         ToKey([]byte{1,2,3,4}),
+		key:        ToKey([]byte("1234")), 
 		valueDigest: maybe.Some([]byte("1234")),
 	}
 
@@ -622,14 +622,14 @@ func Test_GetNode(t *testing.T) {
 		dbNode: dbNode{
 			value: maybe.Some([]byte("12")),
 			children: map[byte]*child{
-				byte(3): {
-					compressedKey: ToKey([]byte{4}),
+				'3': {
+					compressedKey: ToKey([]byte("4")),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 				},
 			},
 		},
-		key:         ToKey([]byte{1,2}),
+		key:         ToKey([]byte("12")),
 		valueDigest: maybe.Some([]byte("12")),
 	}
 

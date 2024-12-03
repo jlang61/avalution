@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"strconv"
+	// "strconv"
 
 	// "log"
 
@@ -109,15 +109,17 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 	newRootNodeBytes, _ := r.dm.get(rootDiskAddr)
 	newRootNode := &dbNode{}
 	decodeDBNode_disk(newRootNodeBytes, newRootNode)
-	log.Printf("Root node %v with key %v", rootDiskAddr, changes.rootChange.after.Value().key)
+	log.Printf("Root node %v with key {%v, %s}", rootDiskAddr, changes.rootChange.after.Value().key.length, changes.rootChange.after.Value().key.value)
 	parentKey := changes.rootChange.after.Value().key
 	for token, child := range newRootNode.children {
-		tokenInt := int(token)
-		tokenSize := len(string(token)) * 8
+    totalKeyBytes := append(parentKey.Bytes(), token)
+    totalKeyBytes = append(totalKeyBytes, child.compressedKey.Bytes()...)
+    totalKey := ToKey(totalKeyBytes)
+
 		// add the child diskaddr to the array remainingNodes
-		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: changes.rootChange.after.Value().key.length + tokenSize + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + strconv.Itoa(tokenInt) +child.compressedKey.value}}
+		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
 		remainingNodes = append(remainingNodes, diskAddressKey)
-		totalKey := Key{length: changes.rootChange.after.Value().key.length + tokenSize + child.compressedKey.length, value: changes.rootChange.after.Value().key.value + strconv.Itoa(tokenInt) + child.compressedKey.value}
+
     log.Printf("Token of %v with child compressed key %v", token, child.compressedKey)
 		log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
 	}
@@ -133,12 +135,13 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 		childNode := &dbNode{}
 		decodeDBNode_disk(childBytes, childNode)
 		for token, child := range childNode.children {
-			tokenInt := int(token)
-			tokenSize := len(string(token)) * 8
+      totalKeyBytes := append(parentKey.Bytes(), token)
+      totalKeyBytes = append(totalKeyBytes, child.compressedKey.Bytes()...)
+      totalKey := ToKey(totalKeyBytes)
 
-			diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: Key{length: parentKey.length + tokenSize + child.compressedKey.length, value: parentKey.value + strconv.Itoa(tokenInt) + child.compressedKey.value}}
+			diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
 			remainingNodes = append(remainingNodes, diskAddressKey)
-			totalKey := Key{length: parentKey.length + tokenSize + child.compressedKey.length, value: parentKey.value + strconv.Itoa(tokenInt) + child.compressedKey.value}
+
 			log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
 		}
 		// remove the node from remainingNodes array
@@ -185,11 +188,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 		// Iterate through remainingNodes in the node
 		for token, child := range nodeChange.after.children {
-			tokenInt := int(token)
-			tokenSize := len(string(token)) * 8
 			// Create the complete key (current key + compressed key of the child)
-			completeKey := Key{length: k.length + tokenSize + child.compressedKey.length, value: k.value + strconv.Itoa(tokenInt) +child.compressedKey.value}
-			log.Printf("Creating completekey %v for parent %v", completeKey, k)
+      completeKeyBytes := append(k.Bytes(), token)
+      completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
+      completeKey := ToKey(completeKeyBytes)
+			log.Printf("Creating child's completekey %v for parent %v", completeKey, k)
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				log.Printf("Adding a diskaddress from map to remainingNodes")
@@ -219,11 +222,14 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		// Adding remainingNodes to the root node
 		k := changes.rootChange.after.Value().key
 		for token, child := range changes.rootChange.after.Value().children {
-			tokenInt := int(token)
-			tokenSize := len(string(token)) * 8
-			// Create the complete key (current key + compressed key of the child)
-			completeKey := Key{length: k.length + tokenSize + child.compressedKey.length, value: k.value + strconv.Itoa(tokenInt) +child.compressedKey.value}
-			log.Printf("Creating completekey %v for parent %v", completeKey, k)
+			// tokenInt := int(token)
+			// tokenSize := len(string(token))
+			// // Create the complete key (current key + compressed key of the child)
+			// completeKey := Key{length: k.length + tokenSize + child.compressedKey.length, value: k.value + strconv.Itoa(tokenInt) +child.compressedKey.value}
+      completeKeyBytes := append(k.Bytes(), token)
+      completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
+      completeKey := ToKey(completeKeyBytes)
+			log.Printf("Creating root node's child's completekey %v for parent %v", completeKey, k)
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				// If there is a value, set the disk address of the child to the value in the map
@@ -347,11 +353,11 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	// while the entire path hasn't been matched
 	for keylen < (key.length) {
 		// confirm that a child exists and grab its address before attempting to load it
-    log.Printf("Token: %d",int(key.Token(keylen, tokenSize)))
+    log.Printf("Token: %v",key.Token(keylen, tokenSize))
     log.Printf("currentDbNode value %s", currentDbNode.value.Value())
     log.Printf("num of children %d", len(currentDbNode.children))
 		for token, child := range currentDbNode.children {
-      log.Printf("Token: %d for Child: %s", int(token), child.compressedKey.value)
+      log.Printf("Token: %v for Child: %s", (token), child.compressedKey.value)
     }
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keylen, tokenSize)]
 

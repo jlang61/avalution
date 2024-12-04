@@ -10,19 +10,19 @@ Adyah Rastogi, Hao Lee, Jiahua Ren, Justin Lang, Wesley Truong
 - Follow instructions at the [official Go website download & install page](https://go.dev/doc/install) for your machine. 
 - Download Git here: [Git install](https://git-scm.com/downloads)
 
-1. Clone the Repository using the editor of your choice or the Terminal <br>
+1. Clone the Repository using the editor of your choice or Terminal <br>
 First, clone the project repository to your local machine using Git:
 
 ```
 git clone git@github.com:jlang61/avalution.git
 ```
-This will create a local copy of the repository in a folder named project-name.
+This will create a local copy of the repository in a folder named avalution.
 
 2. Navigate to the Project Folder <br>
 Once the repository is cloned, navigate into the project directory:
 
 ```
-cd ./x/merkledb
+cd avalution/x/merkledb
 ```
 3. Run Tests <br>
 To run the tests for the project, execute the following command:

@@ -66,6 +66,7 @@ LMDB - B+ Tree Based Database
 LMDBX - LMDB used by Erigon and Reth Ethereum Execution Clients
 
 ### How to Build and Run Tests
+0. Download Golang & Git : Follow instructions at the [official Go website download & install page](https://go.dev/doc/install) for your machine. Download Git here: [Git install](https://git-scm.com/downloads)
 1. Clone the Repository
 First, clone the project repository to your local machine using Git:
 

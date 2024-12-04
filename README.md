@@ -9,6 +9,7 @@ Adyah Rastogi, Hao Lee, Jiahua Ren, Justin Lang, Wesley Truong
 0. Download Golang & Git:
 - Follow instructions at the [official Go website download & install page](https://go.dev/doc/install) for your machine. 
 - Download Git here: [Git install](https://git-scm.com/downloads)
+
 1. Clone the Repository <br>
 First, clone the project repository to your local machine using Git:
 

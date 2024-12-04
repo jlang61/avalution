@@ -10,7 +10,7 @@ Adyah Rastogi, Hao Lee, Jiahua Ren, Justin Lang, Wesley Truong
 - Follow instructions at the [official Go website download & install page](https://go.dev/doc/install) for your machine. 
 - Download Git here: [Git install](https://git-scm.com/downloads)
 
-1. Clone the Repository <br>
+1. Clone the Repository using the editor of your choice or the Terminal <br>
 First, clone the project repository to your local machine using Git:
 
 ```

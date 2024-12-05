@@ -9,15 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	// "strconv"
-
-	// "log"
-
-	// "log"
 	"sort"
 
+	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
+
+var _ Disk = &rawDisk{}
 
 // diskAddress specifies a byte array stored on disk
 type diskAddress struct {
@@ -54,7 +52,8 @@ type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
-	dm *diskMgr
+	dm     *diskMgr
+	hasher Hasher
 }
 
 func newRawDisk(dir string, fileName string) (*rawDisk, error) {
@@ -322,11 +321,12 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	if err != nil {
 		return nil, err
 	}
+  
 	rootKeyAddr := diskAddress{
 		offset: int64(binary.BigEndian.Uint64(metadata[16:24])),
 		size:   int64(binary.BigEndian.Uint64(metadata[24:32])),
 	}
-
+  
 	rootKeyBytes, err := r.dm.get(rootKeyAddr)
 	if err != nil {
 		return nil, err
@@ -336,7 +336,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	currKeyString := string(rootKeyBytes[:])
 	currKey := Key{length: len(currKeyString)*8, value: currKeyString}
   // currKey, err := decodeKey(rootKeyBytes[:])
-  // log.Printf(currKey.value)
+  // log.Printf(currKey.value
 	if err != nil {
 		return nil, err
 	}
@@ -344,6 +344,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	if !key.HasPrefix(currKey) {
 		return nil, errors.New("Key doesn't match rootkey")
 	}
+
 
 	keylen := currKey.length// keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
   // log.Printf("Key length %d", currKey.length)
@@ -369,6 +370,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
 			return nil, errors.New("Key doesn't match an existing node")
+
 		}
 
 		// get the next key from the current child
@@ -394,4 +396,20 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 func (r *rawDisk) cacheSize() int {
 	return 0 // TODO add caching layer
+}
+
+func (r *rawDisk) NewIterator() database.Iterator {
+	return nil
+}
+
+func (r *rawDisk) NewIteratorWithStart(start []byte) database.Iterator {
+	return nil
+}
+
+func (r *rawDisk) NewIteratorWithPrefix(prefix []byte) database.Iterator {
+	return nil
+}
+
+func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.Iterator {
+	return nil
 }

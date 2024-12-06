@@ -5,8 +5,9 @@
 Adyah Rastogi, Hao Lee, Jiahua Ren, Justin Lang, Wesley Truong
 
 
-### How to Build and Run Tests
-- Note: Works on Mac and Windows systems. Use editor of your choice, or use built in terminal application.
+### How to Build and Run Tests <br>
+* Note: Works on Mac and Windows systems. Use editor of your choice, or use built in terminal application. <br>
+
 **0. Download Golang(Version 1.23.4 Tested and Verified) & Git:**
 - Follow instructions at the [official Go website download & install page](https://go.dev/doc/install) for your machine. 
 - Download Git here: [Git install](https://git-scm.com/downloads)

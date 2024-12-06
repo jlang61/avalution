@@ -1,0 +1,4 @@
+digraph {
+	node [color=lightblue fillcolor=lightblue fontcolor=black shape=record style="filled, rounded"]
+	824634289216 [label="<l>|<v> 118361|<r>" ]
+}

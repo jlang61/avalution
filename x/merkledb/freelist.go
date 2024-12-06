@@ -34,10 +34,6 @@ func newFreeList(maxSize int) *freeList {
 	}
 }
 
-// Buckets should be initialized as follows:
-// max size of buckets[0] = 1 -> 1 byte
-// max size of buckets[1] = 2 -> 2 byes
-// max size of buckets[2] = 4 -> 4 bytes,
 
 // get retrieves a diskAddress from the freeList that can accommodate the specified size.
 // It returns the diskAddress and a boolean indicating whether a suitable address was found.
@@ -56,6 +52,7 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 
 // put adds a diskAddress to the freeList.
 func (f *freeList) put(space diskAddress) {
+	log.Printf("size of space: %d", space.size)
 	bucket := f.bucketIndex(space.size)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }

@@ -78,6 +78,7 @@ func TestWriteChanges_Success(t *testing.T) {
 	defer os.RemoveAll(tempDir)       // Clean up the directory and all its contents after the test
 	defer r.dm.file.Close()
 
+	
 	// Creating nodes to add to the change summary
 	node1 := &node{
 		dbNode: dbNode{
@@ -163,6 +164,7 @@ func TestWriteChanges_Success(t *testing.T) {
 
 	// Create the expected content by appending node and root bytes
 	expectedContent := append(make([]byte, testMetaSize), node1Bytes...)
+
 	expectedContent = append(expectedContent, node2Bytes...)
 	otherExpectedContent := append(make([]byte, testMetaSize), node2Bytes...)
 	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
@@ -193,87 +195,101 @@ func TestFreeListWriteChanges(t *testing.T) {
 
 	// Creating initial diskNodes to add to the change summary
 
-	node1 := &node{
+
+	boss := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("rootValue")),
+			children: map[byte]*child{
+				'2' : {
+					compressedKey: ToKey([]byte("0")),
+					id: ids.GenerateTestID(),
+					hasValue: true,
+				},
+				'3' : {
+					compressedKey: ToKey([]byte("0")),
+					id: ids.GenerateTestID(),
+					hasValue: true,
+				},
+			},
+		},
+		key: ToKey([] byte("1")),
+		valueDigest: maybe.Some([]byte("digest")),
+	}
+
+	henchMan1 := &node{
 		dbNode: dbNode{
 			value: maybe.Some([]byte("value1")),
-			children: map[byte]*child{
-				1: {
-					compressedKey: Key{length: 8, value: "key1____"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-					diskAddr:      diskAddress{offset: 0, size: 120},
-				},
-			},
+			children: map[byte]*child{},
 		},
-		key:         Key{length: 8, value: "key1____"},
+		key: ToKey([] byte ("120")),
 		valueDigest: maybe.Some([]byte("digest1")),
-		diskAddr:    diskAddress{offset: testMetaSize, size: 120},
 	}
 
-	node2 := &node{
+	henchMan2 := &node{
 		dbNode: dbNode{
 			value: maybe.Some([]byte("value2")),
-			children: map[byte]*child{
-				2: {
-					compressedKey: Key{length: 8, value: "key2____"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-					diskAddr:      diskAddress{offset: 100, size: 150},
-				},
-			},
+			children: map[byte]*child{},
 		},
-		key:         Key{length: 8, value: "key2____"},
+		key: ToKey([] byte ("130")),
 		valueDigest: maybe.Some([]byte("digest2")),
-		diskAddr:    diskAddress{offset: 100, size: 150},
 	}
 
-	// Creating a diskChangeSummary for initial nodes
 	initialChangeSummary := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			{length: 8, value: "key1____"}: {
-				after: node1,
+			boss.key: {
+				after: boss,
 			},
-			{length: 8, value: "key2____"}: {
-				after: node2,
+			henchMan1.key: {
+				after: henchMan1,
 			},
+			henchMan2.key: {
+				after: henchMan2,
+			},
+		},
+		rootChange: change[maybe.Maybe[*node]]{
+			after: maybe.Some(boss),
 		},
 	}
 	// Write initial changes to the file
 	if err := r.writeChanges(context.Background(), initialChangeSummary); err != nil {
 		t.Fatalf("write initial changes failed: %v", err)
 	}
-	// Creating a new node to replace node1
-	newnode1 := &node{
-		dbNode: dbNode{
-			value: maybe.Some([]byte("new_value1")),
-			children: map[byte]*child{
-				1: {
-					compressedKey: Key{length: 8, value: "new_key1"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-					diskAddr:      diskAddress{offset: 0, size: 100},
-				},
+
+	removed := &changeSummary{	
+		nodes: map[Key]*change[*node]{
+			henchMan1.key: {
+				before: henchMan1,
 			},
 		},
-		key:         Key{length: 8, value: "new_key1"},
+	}
+
+	if err := r.writeChanges(context.Background(), removed); err != nil {
+		t.Fatalf("write removed changes failed: %v", err)
+	}
+
+	// Creating a new node to replace henchman
+	secretAgent := &node{
+		dbNode: dbNode{
+			value: maybe.Some([]byte("new_value1")),
+			children: map[byte]*child{},
+		},
+		key:         ToKey([] byte ("140")),
 		valueDigest: maybe.Some([]byte("new_digest1")),
-		diskAddr:    diskAddress{offset: testMetaSize, size: 100},
 	}
 
 	// Creating a diskChangeSummary for the new changes
-	newChangeSummary := &changeSummary{
+	replacement := &changeSummary{
 		nodes: map[Key]*change[*node]{
-			{length: 8, value: "key1____"}: {
-				before: node1,
-				after:  newnode1,
+			secretAgent.key: {
+				after: secretAgent,
 			},
 		},
 	}
 
-	// Write new changes to the file
-	if err := r.writeChanges(context.Background(), newChangeSummary); err != nil {
-		t.Fatalf("write new changes failed: %v", err)
+	if err := r.writeChanges(context.Background(), replacement); err != nil {
+		t.Fatalf("write replacement changes failed: %v", err)
 	}
+
 
 	// Read back the contents of the file to verify
 	content, err := os.ReadFile(r.dm.file.Name())
@@ -281,84 +297,37 @@ func TestFreeListWriteChanges(t *testing.T) {
 		t.Fatalf("failed to read back file contents: %v", err)
 	} else {
 		log.Println("Read back file contents successfully.")
-	}
+	}	
 	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
-	node1Bytes := node1.raw_disk_bytes()
-	node2Bytes := node2.raw_disk_bytes()
-	newNode1Bytes := newnode1.raw_disk_bytes()
-	expectedContent := append(make([]byte, testMetaSize), node1Bytes...)
-	expectedContent = append(expectedContent, node2Bytes...)
-	expectedContent = append(expectedContent, newNode1Bytes...)
+	bossBytes := boss.raw_disk_bytes()
+	
+	henchMan2Bytes := henchMan2.raw_disk_bytes()
+	henchMan1Bytes := henchMan1.raw_disk_bytes()
 
-	otherExpectedContent := append(make([]byte, testMetaSize), node2Bytes...)
-	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
-	otherExpectedContent = append(otherExpectedContent, newNode1Bytes...)
+
+	secretAgentBytes := secretAgent.raw_disk_bytes()
+
+	rootNodeAddrBytes := diskAddress{offset: 65, size: 116}.bytes()
+	rootKeyAddrBytes := diskAddress{offset: 193, size: 1}.bytes() 
+	metaData := append(rootNodeAddrBytes[:], rootKeyAddrBytes[:]...)
+	rootKeyBytes, err := r.getRootKey()
+	log.Printf("root key bytes: %v\n", rootKeyBytes)
+	expectedContent := append(make([]byte, 1), metaData...)
+	expectedContent = append(expectedContent, secretAgentBytes...)
+	expectedContent = append(expectedContent, henchMan2Bytes...)
+	expectedContent = append(expectedContent, bossBytes...)
+	expectedContent = append(expectedContent, rootKeyBytes...)
+	otherExpectedContent := append(make([]byte, testMetaSize), henchMan2Bytes...)
+	otherExpectedContent = append(otherExpectedContent, henchMan1Bytes...)
+	otherExpectedContent = append(otherExpectedContent, bossBytes...)
+	otherExpectedContent = append(otherExpectedContent, rootKeyBytes...)
+
+	log.Printf("secret agent bytes: %v\n", secretAgentBytes)
 	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent) {
-		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
+		t.Errorf("file content does not match expected content.\nGot:\n%v\nExpected:\n%v", content, expectedContent)
 	}
-	newnode2 := &node{
-		dbNode: dbNode{
-			value: maybe.Some([]byte("new_value2")),
-			children: map[byte]*child{
-				1: {
-					compressedKey: Key{length: 8, value: "new_key2"},
-					id:            ids.GenerateTestID(),
-					hasValue:      true,
-					diskAddr:      diskAddress{offset: 0, size: 100},
-				},
-			},
-		},
-		key:         Key{length: 8, value: "new_key2"},
-		valueDigest: maybe.Some([]byte("new_digest2")),
-		diskAddr:    diskAddress{offset: testMetaSize, size: 100},
-	}
-
-	newChangeSummary2 := &changeSummary{
-		nodes: map[Key]*change[*node]{
-			{length: 8, value: "key2___"}: {
-				after: newnode2,
-			},
-		},
-	}
-
-	// Write new changes to the file
-	if err := r.writeChanges(context.Background(), newChangeSummary2); err != nil {
-		t.Fatalf("write new changes failed: %v", err)
-	}
-
-	// Read back the contents of the file to verify
-	content, err = os.ReadFile(r.dm.file.Name())
-	if err != nil {
-		t.Fatalf("failed to read back file contents: %v", err)
-	} else {
-		log.Println("Read back file contents successfully.")
-	}
-	// Verify the content is as expected (newDiskNode1 and diskNode2 serialized bytes)
-	// The write should overwrite node 1, and then put in new value 2
-	newNode2Bytes := newnode2.raw_disk_bytes()
-	expectedContent = append(make([]byte, testMetaSize), newNode2Bytes...)
-	expectedContent = append(expectedContent, node2Bytes...)
-	expectedContent = append(expectedContent, newNode1Bytes...)
-
-	otherExpectedContent = append(make([]byte, testMetaSize), newNode2Bytes...)
-	otherExpectedContent = append(otherExpectedContent, node1Bytes...)
-	otherExpectedContent = append(otherExpectedContent, newNode1Bytes...)
-	if !bytes.Equal(content, expectedContent) && !bytes.Equal(content, otherExpectedContent) {
-		t.Errorf("file content does not match expected content.\nGot:\n%s\nExpected:\n%s", content, expectedContent)
-	} else {
-	}
-
-	// Verify that the freelist contains the expected diskAddresses
-	// expectedFreeList := []diskAddress{diskNode1.diskAddr}
-	// for _, expectedAddr := range expectedFreeList {
-	// 	retrievedAddr, ok := freelist.get(expectedAddr.size)
-	// 	if !ok {
-	// 		t.Fatalf("failed to get address of size %d from freelist", expectedAddr.size)
-	// 	}
-	// 	if retrievedAddr != expectedAddr {
-	// 		t.Errorf("expected %v, got %v", expectedAddr, retrievedAddr)
-	// 	}
-	// }
+	
+	
 }
 
 func TestWriteChanges_WithRootNode(t *testing.T) {

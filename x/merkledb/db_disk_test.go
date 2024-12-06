@@ -3,7 +3,7 @@ package merkledb
 import (
 	"bytes"
 	"context"
-	"log"
+	"fmt"
 	"runtime"
 	"slices"
 	"strconv"
@@ -12,18 +12,39 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/database/dbtest"
+	"github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
 
-func getBasicDB_disk(dir string) (*merkleDB, error) {
-	temp, _ := newDatabase_disk(
+func newDB_disk(ctx context.Context, dir string, config Config) (*merkleDB, error) {
+	db, err := New_disk(ctx, dir, config)
+	if err != nil {
+		return nil, err
+	}
+	return db.(*merkleDB), nil
+}
+
+func getBasicDBWithBranchFactor_disk(bf BranchFactor, dir string) (*merkleDB, error) {
+	config := newDefaultConfig()
+	config.BranchFactor = bf
+	return newDatabase_disk(
 		context.Background(),
 		dir,
-		newDefaultConfig(),
+		config,
 		&mockMetrics{},
 	)
-	log.Printf("type of merkle db %T", temp.disk)
+}
+
+func getBasicDB_disk(dir string) (*merkleDB, error) {
+	// temp, _ := newDatabase_disk(
+	// 	context.Background(),
+	// 	dir,
+	// 	newDefaultConfig(),
+	// 	&mockMetrics{},
+	// )
+	// log.Printf("type of merkle db %T", temp.disk)
 	return newDatabase_disk(
 		context.Background(),
 		dir,
@@ -91,7 +112,6 @@ func newDatabase_disk(
 		// }
 	} else {
 		if err := trieDB.initializeRoot(); err != nil {
-			log.Println("here")
 			return nil, err
 		}
 	}
@@ -108,7 +128,7 @@ func newDatabase_disk(
 
 	// mark that the db has not yet been cleanly closed
 	//err = trieDB.disk.setShutdownType(didNotHaveCleanShutdown)
-	log.Printf("disk type: %T", trieDB.disk)
+	// log.Printf("disk type: %T", trieDB.disk)
 	return trieDB, err
 }
 
@@ -119,18 +139,18 @@ func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	db, err := getBasicDB_disk(dir)
 	require.NoError(err)
 
-	log.Printf("type of db %T", db.disk)
-	defer db.disk.(*rawDisk).close()
-	defer db.disk.(*rawDisk).dm.free.close(dir)
+	// // log.Printf("type of db %T", db.disk)
+	// defer db.disk.(*rawDisk).close()
+	// defer db.disk.(*rawDisk).dm.free.close(dir)
 
 	keyBytes := []byte{0}
 	require.NoError(db.Put(keyBytes, []byte{0, 1, 2}))
 
-	log.Printf("getting key %x", keyBytes)
+	// log.Printf("getting key %x", keyBytes)
 	val, err := db.Get(keyBytes)
 	require.NoError(err)
 
-	log.Printf("getting node")
+	// log.Printf("getting node")
 	n, err := db.getNode(ToKey(keyBytes), true)
 	require.NoError(err)
 
@@ -140,10 +160,77 @@ func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	require.Equal(originalVal, n.value.Value())
 
 	t.Cleanup(func() {
-		runtime.GC()	
+		runtime.GC()
 	})
-	
-	log.Printf("after everything")
+
+	// log.Printf("after everything")
+}
+
+func Test_MerkleDB_GetValues_Safety_disk(t *testing.T) {
+	require := require.New(t)
+	dir := t.TempDir()
+
+	db, err := getBasicDB_disk(dir)
+	require.NoError(err)
+
+	keyBytes := []byte{0}
+	value := []byte{0, 1, 2}
+	require.NoError(db.Put(keyBytes, value))
+
+	gotValues, errs := db.GetValues(context.Background(), [][]byte{keyBytes})
+	require.Len(errs, 1)
+	require.NoError(errs[0])
+	require.Equal(value, gotValues[0])
+	gotValues[0][0]++
+
+	// editing the value array shouldn't affect the db
+	gotValues, errs = db.GetValues(context.Background(), [][]byte{keyBytes})
+	require.Len(errs, 1)
+	require.NoError(errs[0])
+	require.Equal(value, gotValues[0])
+
+	t.Cleanup(func() {
+		runtime.GC()
+	})
+}
+
+func Test_MerkleDB_DB_Interface_disk(t *testing.T) {
+	dir := t.TempDir()
+
+	for _, bf := range validBranchFactors {
+		for name, test := range dbtest.Tests {
+			t.Run(fmt.Sprintf("%s_%d", name, bf), func(t *testing.T) {
+				db, err := getBasicDBWithBranchFactor_disk(bf, dir)
+				require.NoError(t, err)
+				test(t, db)
+			})
+		}
+	}
+
+	t.Cleanup(func() {
+		runtime.GC()
+	})
+}
+
+func Benchmark_MerkleDB_DBInterface_disk(b *testing.B) {
+	dir := b.TempDir()
+
+	for _, size := range dbtest.BenchmarkSizes {
+		keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
+		for _, bf := range validBranchFactors {
+			for name, bench := range dbtest.Benchmarks {
+				b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
+					db, err := getBasicDBWithBranchFactor_disk(bf, dir)
+					require.NoError(b, err)
+					bench(b, db, keys, values)
+				})
+			}
+		}
+	}
+
+	b.Cleanup(func() {
+		runtime.GC()
+	})
 }
 
 func Test_MerkleDB_DB_Load_Root_From_DB_disk(t *testing.T) {
@@ -188,4 +275,94 @@ func Test_MerkleDB_DB_Load_Root_From_DB_disk(t *testing.T) {
 	reloadedRoot, err := db.GetMerkleRoot(context.Background())
 	require.NoError(err)
 	require.Equal(root, reloadedRoot)
+
+	t.Cleanup(func() {
+		runtime.GC()
+	})
+}
+
+func Test_MerkleDB_DB_Rebuild_disk(t *testing.T) {
+	require := require.New(t)
+	dir := t.TempDir()
+
+	initialSize := 5_000
+
+	config := newDefaultConfig()
+	config.ValueNodeCacheSize = uint(initialSize)
+	config.IntermediateNodeCacheSize = uint(initialSize)
+
+	db, err := newDB_disk(
+		context.Background(),
+		dir,
+		config,
+	)
+	require.NoError(err)
+
+	// Populate initial set of keys
+	ops := make([]database.BatchOp, 0, initialSize)
+	require.NoError(err)
+	for i := 0; i < initialSize; i++ {
+		k := []byte(strconv.Itoa(i))
+		ops = append(ops, database.BatchOp{
+			Key:   k,
+			Value: hashing.ComputeHash256(k),
+		})
+	}
+	view, err := db.NewView(context.Background(), ViewChanges{BatchOps: ops})
+	require.NoError(err)
+	require.NoError(view.CommitToDB(context.Background()))
+
+	// Get root
+	root, err := db.GetMerkleRoot(context.Background())
+	require.NoError(err)
+
+	// Rebuild
+	require.NoError(db.rebuild(context.Background(), initialSize))
+
+	// Assert root is the same after rebuild
+	rebuiltRoot, err := db.GetMerkleRoot(context.Background())
+	require.NoError(err)
+	require.Equal(root, rebuiltRoot)
+
+	// add variation where root has a value
+	require.NoError(db.Put(nil, []byte{}))
+
+	root, err = db.GetMerkleRoot(context.Background())
+	require.NoError(err)
+
+	require.NoError(db.rebuild(context.Background(), initialSize))
+
+	rebuiltRoot, err = db.GetMerkleRoot(context.Background())
+	require.NoError(err)
+	require.Equal(root, rebuiltRoot)
+
+	t.Cleanup(func() {
+		runtime.GC()
+	})
+}
+
+func Test_MerkleDB_Failed_Batch_Commit_disk(t *testing.T) {
+	require := require.New(t)
+	dir := t.TempDir()
+
+	memDB := memdb.New()
+	db, err := New_disk(
+		context.Background(),
+		dir,
+		newDefaultConfig(),
+	)
+	require.NoError(err)
+
+	_ = memDB.Close()
+
+	batch := db.NewBatch()
+	require.NoError(batch.Put([]byte("key1"), []byte("1")))
+	require.NoError(batch.Put([]byte("key2"), []byte("2")))
+	require.NoError(batch.Put([]byte("key3"), []byte("3")))
+	err = batch.Write()
+	require.ErrorIs(err, database.ErrClosed)
+
+	t.Cleanup(func() {
+		runtime.GC()
+	})
 }

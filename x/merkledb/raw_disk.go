@@ -9,12 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"sort"
 	"math"
 	"os"
+	"sort"
 
 	"gopkg.in/dnaeon/go-binarytree.v1"
-
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
@@ -113,7 +112,7 @@ func byteToInt(b []byte) int {
 		i += int(b) * int(math.Pow(10, float64(c)))
 		c--
 	}
-	return i 
+	return i
 }
 
 func insertToTree(root *binarytree.Node[int], parentKeyBytes []byte, childKeyBytes []byte) error {
@@ -134,7 +133,7 @@ func insertToTree(root *binarytree.Node[int], parentKeyBytes []byte, childKeyByt
 	} else {
 		parent.Right = binarytree.NewNode(childKeyInt)
 	}
-	return nil 
+	return nil
 }
 func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) error {
 	// Initialize a slice to keep track of nodes that need to be processed
@@ -168,7 +167,7 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 		totalKeyBytes = append(totalKeyBytes, child.compressedKey.Bytes()...)
 		totalKey := ToKey(totalKeyBytes)
 
-		 // Add the child disk address and key to the list of remaining nodes
+		// Add the child disk address and key to the list of remaining nodes
 		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
 
 		// Insert the child node into the binary tree
@@ -246,6 +245,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	sort.Slice(keys, func(i, j int) bool {
 		return len(keys[i].value) > len(keys[j].value)
 	})
+	// print first ten keys of the sorted keys
+	for i := 0; i < 10; i++ {
+		log.Printf("Key is %v", keys[i])
+	}
+	
 
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
 	childrenNodes := make(map[Key]diskAddress)
@@ -273,7 +277,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			completeKeyBytes := append(k.Bytes(), token)
 			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
 			completeKey := ToKey(completeKeyBytes)
-	
+
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				log.Printf("Adding a diskaddress from map to remainingNodes")
@@ -281,6 +285,15 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				child.diskAddr = childrenNodes[completeKey]
 			}
 		}
+			for _, child := range nodeChange.after.children {
+				// Check remainingNodes actually have disk addresses
+				log.Printf("child values %v", child.compressedKey)
+				if child.diskAddr == (diskAddress{}) {
+					return errors.New("child disk address missing")
+				} else {
+					log.Printf("Child disk address is %v", child.diskAddr)
+				}
+			}
 
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
@@ -298,7 +311,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 	}
 
-	// Make sure file is synced 
+	// Make sure file is synced
 	if err := r.dm.file.Sync(); err != nil {
 		return err
 	}
@@ -510,10 +523,10 @@ func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.I
 	return nil
 }
 
-func (r * rawDisk) close() error {
-	if err := r.dm.file.Close() ; err != nil {
+func (r *rawDisk) close() error {
+	if err := r.dm.file.Close(); err != nil {
 		return err
 	}
-	
+
 	return nil
 }

@@ -282,10 +282,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		log.Fatalf("failed to sync data at the end: %v", err)
 	}
 
-	// for k, d := range tempremainingNodes {
-	// 	log.Printf("Key is %v", k)
-	// 	log.Printf("Disk address is %v", d)
-	// }
 
 	return r.dm.file.Sync()
 }
@@ -295,6 +291,7 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
+	log.Printf("Getting node for key %v", key)
 	metadata, err := r.dm.getHeader()
 	if err != nil {
 		return nil, err
@@ -305,6 +302,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		size:   int64(binary.BigEndian.Uint64(metadata[8:16])),
 	}
 
+	// log.Printf("Root address %v", rootAddress)
 	rootBytes, err := r.dm.get(rootAddress)
 	if err != nil {
 		return nil, err
@@ -319,7 +317,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 	err = decodeDBNode_disk(rootBytes, &currentDbNode)
 	if err != nil {
-		return nil, err
+		return nil, database.ErrNotFound
 	}
 
 	rootKeyAddr := diskAddress{
@@ -410,5 +408,13 @@ func (r *rawDisk) NewIteratorWithPrefix(prefix []byte) database.Iterator {
 }
 
 func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.Iterator {
+	return nil
+}
+
+func (r * rawDisk) close() error {
+	if err := r.dm.file.Close() ; err != nil {
+		return err
+	}
+	
 	return nil
 }

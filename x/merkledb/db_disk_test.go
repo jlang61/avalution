@@ -17,6 +17,13 @@ import (
 )
 
 func getBasicDB_disk(dir string) (*merkleDB, error) {
+	temp, _ := newDatabase_disk(
+		context.Background(),
+		dir,
+		newDefaultConfig(),
+		&mockMetrics{},
+	)
+	log.Printf("type of merkle db %T", temp.disk)
 	return newDatabase_disk(
 		context.Background(),
 		dir,
@@ -101,6 +108,7 @@ func newDatabase_disk(
 
 	// mark that the db has not yet been cleanly closed
 	//err = trieDB.disk.setShutdownType(didNotHaveCleanShutdown)
+	log.Printf("disk type: %T", trieDB.disk)
 	return trieDB, err
 }
 
@@ -111,12 +119,18 @@ func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	db, err := getBasicDB_disk(dir)
 	require.NoError(err)
 
+	log.Printf("type of db %T", db.disk)
+	defer db.disk.(*rawDisk).close()
+	defer db.disk.(*rawDisk).dm.free.close(dir)
+
 	keyBytes := []byte{0}
 	require.NoError(db.Put(keyBytes, []byte{0, 1, 2}))
 
+	log.Printf("getting key %x", keyBytes)
 	val, err := db.Get(keyBytes)
 	require.NoError(err)
 
+	log.Printf("getting node")
 	n, err := db.getNode(ToKey(keyBytes), true)
 	require.NoError(err)
 
@@ -124,6 +138,12 @@ func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	originalVal := slices.Clone(val)
 	val[0]++
 	require.Equal(originalVal, n.value.Value())
+
+	t.Cleanup(func() {
+		runtime.GC()	
+	})
+	
+	log.Printf("after everything")
 }
 
 func Test_MerkleDB_DB_Load_Root_From_DB_disk(t *testing.T) {

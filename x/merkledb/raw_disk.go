@@ -251,7 +251,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	childrenNodes := make(map[Key]diskAddress)
 
 	for _, k := range keys {
+		log.Printf("Key is %v", k)
+		// set current nodechange as the nodechange for the key
 		nodeChange := changes.nodes[k]
+
+		// if there is no node to add, continue
 		if nodeChange.after == nil {
 			continue
 		}
@@ -267,12 +271,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		for token, child := range nodeChange.after.children {
 			// Create the complete key (current key + compressed key of the child)
 			completeKeyBytes := append(k.Bytes(), token)
-			
 			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
-
 			completeKey := ToKey(completeKeyBytes)
-
-			log.Printf("Creating child's completekey %v for parent %v", completeKey, k)
+	
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				log.Printf("Adding a diskaddress from map to remainingNodes")
@@ -296,24 +297,31 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 
 	}
+
+	// Make sure file is synced 
 	if err := r.dm.file.Sync(); err != nil {
 		return err
 	}
+	log.Printf("children nodes %v", childrenNodes)
+	// Iterate through the root and add the remainingNodes to the root node
 	if changes.rootChange.after.HasValue() {
 		// Adding remainingNodes to the root node
 		k := changes.rootChange.after.Value().key
 		for token, child := range changes.rootChange.after.Value().children {
 			// Create the complete key (current key + compressed key of the child)
 			completeKeyBytes := append(k.Bytes(), token)
+
+			testKey := ToKey(k.Bytes())
+			log.Printf("test key %v", testKey)
 			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
 			completeKey := ToKey(completeKeyBytes)
-
-						log.Printf("parent bytes %v", k.Bytes())
-			log.Printf("token bytes %v", token)
-			log.Printf("child compressed key bytes %v", child.compressedKey.Bytes())
-			log.Printf("complete key bytes %v", completeKeyBytes)
+			log.Printf("k.value + token %s %v %v", k.value, token, child.compressedKey.value)
+			log.Printf("Creating child's completekey %v for parent %v", completeKey, k)
+			// log.Printf("parent bytes %v", k.Bytes())
+			// log.Printf("token bytes %v", token)
+			// log.Printf("child compressed key bytes %v", child.compressedKey.Bytes())
+			// log.Printf("complete key bytes %v", completeKeyBytes)
 			log.Printf("Creating root node's child's completekey %v for parent %v", completeKey, k)
-			
 			// Check whether or not there exists a value for the child in the map
 			// If there is a value in the map then assign the disk address to the child
 			if childrenNodes[completeKey] != (diskAddress{}) {

@@ -8,17 +8,17 @@ Adyah Rastogi, Hao Lee, Jiahua Ren, Justin Lang, Wesley Truong
 ### How to Build and Run Tests <br>
 * Note: Works on Mac and Windows systems. Use editor of your choice, or use built in terminal application. <br>
 
-**0. Download Golang(Version 1.23.4 Tested and Verified) & Git:**
+**0. Download Golang (Version 1.23.4 Tested and Verified) & Git:**
 - Follow instructions at the [official Go website download & install page](https://go.dev/doc/install) for your machine. 
 - Download Git here: [Git install](https://git-scm.com/downloads)
 
 **1. Clone the Repository using the editor of your choice or Terminal** <br>
-First, clone the project repository to your local machine using Git:
+Clone the project repository to your local machine in the folder you'd like to, using Git:
 
 ```
 git clone git@github.com:jlang61/avalution.git
 ```
-This will create a local copy of the repository in a folder named avalution.
+This will create a local copy of the repository in a folder named **avalution**.
 
 **2. Navigate to the Project Folder** <br>
 Once the repository is cloned, navigate into the project directory:
@@ -32,7 +32,7 @@ To run the tests for the project, execute the following command:
 ```
 go test
 ```
-This will run all the test files in the current directory and its subdirectories. You should see output indicating whether the tests passed or failed.
+This will run all of the test files in the current directory and its subdirectories. You should see output indicating whether the tests passed or failed, and logging messages corresponding to the tests.
 
 
 ## Introduction:

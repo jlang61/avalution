@@ -10,6 +10,11 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"math"
+	"os"
+
+	"gopkg.in/dnaeon/go-binarytree.v1"
+
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
@@ -101,61 +106,134 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 func (r *rawDisk) getRootKey() ([]byte, error) {
 	return nil, errors.New("not implemented")
 }
+func byteToInt(b []byte) int {
+	i := 0
+	c := len(b) - 1
+	for _, b := range b {
+		i += int(b) * int(math.Pow(10, float64(c)))
+		c--
+	}
+	return i 
+}
 
+func insertToTree(root *binarytree.Node[int], parentKeyBytes []byte, childKeyBytes []byte) error {
+	keyInt := byteToInt(parentKeyBytes)
+	goodPredicate := func(n *binarytree.Node[int]) bool {
+		return n.Value == keyInt
+	}
+	var parent *binarytree.Node[int]
+	var ok bool
+
+	parent, ok = root.FindNode(goodPredicate)
+	if !ok {
+		return errors.New("parent not found")
+	}
+	childKeyInt := byteToInt(childKeyBytes)
+	if parent.Left == nil {
+		parent.Left = binarytree.NewNode(childKeyInt)
+	} else {
+		parent.Right = binarytree.NewNode(childKeyInt)
+	}
+	return nil 
+}
 func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) error {
-	// Iterate through the tree and print out the keys and disk addresses
+	// Initialize a slice to keep track of nodes that need to be processed
 	var remainingNodes []diskAddressWithKey
+
+	// Retrieve the root node from disk using its address
 	newRootNodeBytes, _ := r.dm.get(rootDiskAddr)
 	newRootNode := &dbNode{}
 	decodeDBNode_disk(newRootNodeBytes, newRootNode)
-	log.Printf("Root node %v with key {%v, %s}", rootDiskAddr, changes.rootChange.after.Value().key.length, changes.rootChange.after.Value().key.value)
-	parentKey := changes.rootChange.after.Value().key
+
+	// Get the root key from the changes
+	rootKey := changes.rootChange.after.Value().key
+	log.Println(changes.rootChange.after.Value().key)
+
+	// Retrieve the root key bytes from disk
+	rootKeyBytes, err := r.getRootKey()
+	if err != nil {
+		return err
+	}
+
+	// Convert the root key bytes to an integer for the binary tree node
+	keyInt := byteToInt(rootKeyBytes)
+
+	// Create the root node of the binary tree for visualization
+	root := binarytree.NewNode(keyInt)
+
+	// Iterate over the children of the root node
 	for token, child := range newRootNode.children {
-		totalKeyBytes := append(parentKey.Bytes(), token)
+		// Construct the total key by appending the token and compressed key
+		totalKeyBytes := append(rootKey.Bytes(), token)
 		totalKeyBytes = append(totalKeyBytes, child.compressedKey.Bytes()...)
 		totalKey := ToKey(totalKeyBytes)
 
-		// add the child diskaddr to the array remainingNodes
+		 // Add the child disk address and key to the list of remaining nodes
 		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
+
+		// Insert the child node into the binary tree
+		err := insertToTree(root, rootKeyBytes, totalKeyBytes)
+		if err != nil {
+			return err
+		}
+
 		remainingNodes = append(remainingNodes, diskAddressKey)
 
+		// Log information about the child node
 		log.Printf("Token of %v with child compressed key %v", token, child.compressedKey)
-		log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
+		log.Printf("Child with key %v with parent key %v", totalKey, rootKey)
 	}
+
+	// Iterate over the remaining nodes to process the entire tree
 	for _, diskAddressKey := range remainingNodes {
-		// iterate through the first instance of the remainingNodes
-		// and print out the key and disk address
+		// Retrieve the parent key and disk address
 		diskAddress := diskAddressKey.addr
 		parentKey := diskAddressKey.key
+
+		// Read the child node data from disk
 		childBytes, err := r.dm.get(*diskAddress)
 		if err != nil {
 			return err
 		}
 		childNode := &dbNode{}
 		decodeDBNode_disk(childBytes, childNode)
+
+		// Iterate over the children of the current node
 		for token, child := range childNode.children {
+			// Construct the total key for the child node
 			totalKeyBytes := append(parentKey.Bytes(), token)
 			totalKeyBytes = append(totalKeyBytes, child.compressedKey.Bytes()...)
 			totalKey := ToKey(totalKeyBytes)
 
+			// Insert the child node into the binary tree
+			err := insertToTree(root, parentKey.Bytes(), totalKeyBytes)
+			if err != nil {
+				return err
+			}
+
+			// Add the child node to the list of remaining nodes
 			diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
 			remainingNodes = append(remainingNodes, diskAddressKey)
 
+			// Log information about the child node
 			log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
 		}
-		// remove the node from remainingNodes array
+
+		// Remove the processed node from the list
 		remainingNodes = remainingNodes[1:]
-
 	}
+
+	// Write the binary tree structure to a DOT file for visualization
+	file, err := os.Create("tree.dot")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Output the binary tree in DOT format
+	root.WriteDot(file)
 	return nil
-
 }
-
-// type assertion to ensure that
-// pointer to rawdisk implements disk interface
-//var _ Disk = &rawDisk{}
-
-// return new error for iterator
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	var keys []Key
@@ -189,8 +267,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		for token, child := range nodeChange.after.children {
 			// Create the complete key (current key + compressed key of the child)
 			completeKeyBytes := append(k.Bytes(), token)
+			
 			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
+
 			completeKey := ToKey(completeKeyBytes)
+
 			log.Printf("Creating child's completekey %v for parent %v", completeKey, k)
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
@@ -209,7 +290,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		// If there is not a node with the key in the map, create a new map with the key being the ch
 		if childrenNodes[k] == (diskAddress{}) {
 			// If the node is a leaf node, compress the key and store the disk address
-			key := Key{length: k.length, value: k.value}
+			key := ToKey(k.Bytes())
+			log.Printf("Creating a new disk address %v for key %v", diskAddr, key)
 			childrenNodes[key] = diskAddr
 		}
 
@@ -221,16 +303,21 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		// Adding remainingNodes to the root node
 		k := changes.rootChange.after.Value().key
 		for token, child := range changes.rootChange.after.Value().children {
-			// tokenInt := int(token)
-			// tokenSize := len(string(token))
-			// // Create the complete key (current key + compressed key of the child)
-			// completeKey := Key{length: k.length + tokenSize + child.compressedKey.length, value: k.value + strconv.Itoa(tokenInt) +child.compressedKey.value}
+			// Create the complete key (current key + compressed key of the child)
 			completeKeyBytes := append(k.Bytes(), token)
 			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
 			completeKey := ToKey(completeKeyBytes)
+
+						log.Printf("parent bytes %v", k.Bytes())
+			log.Printf("token bytes %v", token)
+			log.Printf("child compressed key bytes %v", child.compressedKey.Bytes())
+			log.Printf("complete key bytes %v", completeKeyBytes)
 			log.Printf("Creating root node's child's completekey %v for parent %v", completeKey, k)
+			
 			// Check whether or not there exists a value for the child in the map
+			// If there is a value in the map then assign the disk address to the child
 			if childrenNodes[completeKey] != (diskAddress{}) {
+				log.Printf("child %v assigned disk address %v", completeKey, childrenNodes[completeKey])
 				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
 			}
@@ -282,6 +369,10 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		log.Fatalf("failed to sync data at the end: %v", err)
 	}
 
+	// for k, d := range tempremainingNodes {
+	// 	log.Printf("Key is %v", k)
+	// 	log.Printf("Disk address is %v", d)
+	// }
 
 	return r.dm.file.Sync()
 }

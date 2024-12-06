@@ -106,7 +106,6 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 	if err != nil {
 		return err
 	}
-
 	numChildren, err := r.Uvarint()
 	if err != nil {
 		return err
@@ -114,7 +113,6 @@ func decodeDBNode_disk(b []byte, n *dbNode) error {
 	if numChildren > uint64(BranchFactorLargest) {
 		return errTooManyChildren
 	}
-
 	n.children = make(map[byte]*child, numChildren)
 	var previousChild uint64
 	for i := uint64(0); i < numChildren; i++ {

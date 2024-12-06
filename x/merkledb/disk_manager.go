@@ -146,7 +146,7 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 			log.Fatalf("failed to write data: %v", err)
 			return diskAddress{}, err
 		}
-		log.Println("Data written successfully at the end of the file.")
+		// log.Println("Data written successfully at the end of the file.")
 		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
 	} else {
 		// If there is free space, write at the offset

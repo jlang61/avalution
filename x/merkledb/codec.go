@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"log"
 	"math"
 	"math/bits"
 	"slices"
@@ -262,6 +263,7 @@ type codecReader struct {
 }
 
 func (r *codecReader) Bool() (bool, error) {
+	log.Printf("len and boolen %d %d", len(r.b), boolLen)
 	if len(r.b) < boolLen {
 		return false, io.ErrUnexpectedEOF
 	}
@@ -329,6 +331,7 @@ func (r *codecReader) Bytes() ([]byte, error) {
 // based on r.Bool(), read the bytes and wrap it around an option type
 func (r *codecReader) MaybeBytes() (maybe.Maybe[[]byte], error) {
 	if hasValue, err := r.Bool(); err != nil || !hasValue {
+		log.Printf("error: %v", err)
 		return maybe.Nothing[[]byte](), err
 	}
 

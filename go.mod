@@ -181,6 +181,8 @@ require (
 	golang.org/x/tools v0.17.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240123012728-ef4313101c80 // indirect
+	gopkg.in/dnaeon/go-binarytree.v1 v1.0.0-20220927164914-d17480f968b9 // indirect
+	gopkg.in/dnaeon/go-deque.v1 v1.0.0-20220924123127-c8d2565cae45 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

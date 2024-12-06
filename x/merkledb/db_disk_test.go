@@ -142,7 +142,7 @@ func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	t.Cleanup(func() {
 		runtime.GC()	
 	})
-	
+
 	log.Printf("after everything")
 }
 
@@ -188,4 +188,9 @@ func Test_MerkleDB_DB_Load_Root_From_DB_disk(t *testing.T) {
 	reloadedRoot, err := db.GetMerkleRoot(context.Background())
 	require.NoError(err)
 	require.Equal(root, reloadedRoot)
+
+	
+	t.Cleanup(func() {
+		runtime.GC()	
+	})
 }

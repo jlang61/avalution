@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"runtime"
 	"slices"
 	"sync"
@@ -928,6 +929,8 @@ func (db *merkleDB) commitView(ctx context.Context, trieToCommit *view) error {
 		return nil
 	}
 
+	log.Printf("changes: %v", changes.rootChange)
+	log.Printf("changes: %v", changes.rootChange.after.Value().children)
 	if err := db.disk.writeChanges(ctx, changes); err != nil {
 		return err
 	}
@@ -1227,6 +1230,11 @@ func (db *merkleDB) getNode(key Key, hasValue bool) (*node, error) {
 	case db.root.HasValue() && key == db.root.Value().key:
 		return db.root.Value(), nil
 	default:
+		node, err := db.disk.getNode(key, hasValue)
+		if err != nil {
+			log.Printf("db.disk.getNode %v", node)
+		}
+		log.Printf("err %v", err)
 		return db.disk.getNode(key, hasValue)
 	}
 }

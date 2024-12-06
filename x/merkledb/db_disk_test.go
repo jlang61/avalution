@@ -194,6 +194,7 @@ func Test_MerkleDB_GetValues_Safety_disk(t *testing.T) {
 	})
 }
 
+// Fixed(not really, just need an edit to commit)
 func Test_MerkleDB_DB_Interface_disk(t *testing.T) {
 	dir := t.TempDir()
 

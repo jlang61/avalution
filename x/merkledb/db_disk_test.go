@@ -37,7 +37,7 @@ func getBasicDBWithBranchFactor_disk(bf BranchFactor, dir string) (*merkleDB, er
 	)
 }
 
-func getBasicDB_disk(dir string) (*merkleDB, error) {
+func getBasicDB_disk(t testing.TB) (*merkleDB, error) {
 	// temp, _ := newDatabase_disk(
 	// 	context.Background(),
 	// 	dir,
@@ -45,12 +45,28 @@ func getBasicDB_disk(dir string) (*merkleDB, error) {
 	// 	&mockMetrics{},
 	// )
 	// log.Printf("type of merkle db %T", temp.disk)
-	return newDatabase_disk(
+	dir := t.TempDir()
+	database, err := newDatabase_disk(
 		context.Background(),
 		dir,
 		newDefaultConfig(),
 		&mockMetrics{},
 	)
+	if err != nil {
+		return nil, err
+	}
+	t.Cleanup(func() {
+		err = database.disk.(*rawDisk).close()
+		if err != nil {
+			t.Errorf("error closing disk: %v", err)
+		}
+		err = database.disk.(*rawDisk).dm.free.close(dir)
+		if err != nil {
+			t.Errorf("error closing disk: %v", err)
+		}
+
+	})
+	return database, nil
 }
 
 // New returns a new merkle database.
@@ -134,23 +150,22 @@ func newDatabase_disk(
 
 func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	require := require.New(t)
-	dir := t.TempDir()
 
-	db, err := getBasicDB_disk(dir)
+	// generate file, meant to cleanup after itself 
+	// doesnt work on windows 
+	// manually delete tempdir 
+	// file descriptor - handle that gives access to file
+	// under the hood of file management
+	// close file descriptor
+	db, err := getBasicDB_disk(t)
 	require.NoError(err)
-
-	// // log.Printf("type of db %T", db.disk)
-	// defer db.disk.(*rawDisk).close()
-	// defer db.disk.(*rawDisk).dm.free.close(dir)
 
 	keyBytes := []byte{0}
 	require.NoError(db.Put(keyBytes, []byte{0, 1, 2}))
 
-	// log.Printf("getting key %x", keyBytes)
 	val, err := db.Get(keyBytes)
 	require.NoError(err)
 
-	// log.Printf("getting node")
 	n, err := db.getNode(ToKey(keyBytes), true)
 	require.NoError(err)
 
@@ -158,19 +173,12 @@ func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	originalVal := slices.Clone(val)
 	val[0]++
 	require.Equal(originalVal, n.value.Value())
-
-	t.Cleanup(func() {
-		runtime.GC()
-	})
-
-	// log.Printf("after everything")
 }
 
 func Test_MerkleDB_GetValues_Safety_disk(t *testing.T) {
 	require := require.New(t)
-	dir := t.TempDir()
 
-	db, err := getBasicDB_disk(dir)
+	db, err := getBasicDB_disk(t)
 	require.NoError(err)
 
 	keyBytes := []byte{0}

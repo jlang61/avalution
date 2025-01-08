@@ -166,7 +166,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 	// sort the keys by length, then start at the longest keys (leaf nodes)
 	sort.Slice(keys, func(i, j int) bool {
-		return len(keys[i].value) > len(keys[j].value)
+		return keys[i].length > keys[j].length
 	})
 
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
@@ -199,8 +199,18 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				child.diskAddr = childrenNodes[completeKey]
 			}
 		}
-
+		// check to ensure that all of its children have disk addresses
+		for _, child := range nodeChange.after.children{
+			log.Printf("dbnode children %v", changes.rootChange.after.Value().dbNode.children)
+			// Check remainingNodes actually have disk addresses
+			if child.diskAddr == (diskAddress{}) {
+				return errors.New("child disk address missing")
+			} else {
+				log.Printf("Child disk address is %v", child.diskAddr)
+			}
+		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
+		log.Printf("Wrote key %v to disk", k)
 		diskAddr, err := r.dm.write(nodeBytes)
 		if err != nil {
 			return err
@@ -291,7 +301,6 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-	log.Printf("Getting node for key %v", key)
 	metadata, err := r.dm.getHeader()
 	if err != nil {
 		return nil, err

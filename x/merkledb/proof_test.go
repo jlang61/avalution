@@ -30,7 +30,7 @@ func Test_Proof_Empty(t *testing.T) {
 func Test_Proof_Simple(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	ctx := context.Background()
@@ -108,7 +108,7 @@ func Test_Proof_Verify_Bad_Data(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
 
-			db, err := getBasicDB()
+			db, err := getBasicDB(t)
 			require.NoError(err)
 
 			writeBasicBatch(t, db)
@@ -141,7 +141,7 @@ func Test_Proof_ValueOrHashMatches(t *testing.T) {
 func Test_RangeProof_Extra_Value(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 	writeBasicBatch(t, db)
 
@@ -231,7 +231,7 @@ func Test_RangeProof_Verify_Bad_Data(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
 
-			db, err := getBasicDB()
+			db, err := getBasicDB(t)
 			require.NoError(err)
 			writeBasicBatch(t, db)
 
@@ -250,7 +250,7 @@ func Test_RangeProof_Verify_Bad_Data(t *testing.T) {
 func Test_RangeProof_MaxLength(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 	trie, err := dbTrie.NewView(context.Background(), ViewChanges{})
@@ -266,7 +266,7 @@ func Test_RangeProof_MaxLength(t *testing.T) {
 func Test_Proof(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 	trie, err := dbTrie.NewView(
@@ -494,7 +494,7 @@ func Test_RangeProof_Syntactic_Verify(t *testing.T) {
 func Test_RangeProof(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 	writeBasicBatch(t, db)
 
@@ -532,7 +532,7 @@ func Test_RangeProof(t *testing.T) {
 func Test_RangeProof_BadBounds(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	require.NoError(db.Put(nil, nil))
@@ -546,7 +546,7 @@ func Test_RangeProof_BadBounds(t *testing.T) {
 func Test_RangeProof_NilStart(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 	batch := db.NewBatch()
 	require.NoError(batch.Put([]byte("key1"), []byte("value1")))
@@ -587,7 +587,7 @@ func Test_RangeProof_NilStart(t *testing.T) {
 func Test_RangeProof_NilEnd(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	writeBasicBatch(t, db)
@@ -628,7 +628,7 @@ func Test_RangeProof_NilEnd(t *testing.T) {
 func Test_RangeProof_EmptyValues(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 	batch := db.NewBatch()
 	require.NoError(batch.Put([]byte("key1"), nil))
@@ -675,7 +675,7 @@ func Test_ChangeProof_Missing_History_For_EndRoot(t *testing.T) {
 	t.Logf("Seed: %d", seed)
 	rand := rand.New(rand.NewSource(seed)) // #nosec G404
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	roots := []ids.ID{}
@@ -724,7 +724,7 @@ func Test_ChangeProof_Missing_History_For_EndRoot(t *testing.T) {
 func Test_ChangeProof_BadBounds(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	startRoot, err := db.GetMerkleRoot(context.Background())
@@ -744,7 +744,7 @@ func Test_ChangeProof_BadBounds(t *testing.T) {
 func Test_ChangeProof_Verify(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 	batch := db.NewBatch()
 	require.NoError(batch.Put([]byte("key20"), []byte("value0")))
@@ -757,7 +757,7 @@ func Test_ChangeProof_Verify(t *testing.T) {
 	require.NoError(err)
 
 	// create a second db that has "synced" to the start root
-	dbClone, err := getBasicDB()
+	dbClone, err := getBasicDB(t)
 	require.NoError(err)
 	batch = dbClone.NewBatch()
 	require.NoError(batch.Put([]byte("key20"), []byte("value0")))
@@ -864,7 +864,7 @@ func Test_ChangeProof_Verify_Bad_Data(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
 
-			db, err := getBasicDB()
+			db, err := getBasicDB(t)
 			require.NoError(err)
 
 			startRoot, err := db.GetMerkleRoot(context.Background())
@@ -876,7 +876,7 @@ func Test_ChangeProof_Verify_Bad_Data(t *testing.T) {
 			require.NoError(err)
 
 			// create a second db that will be synced to the first db
-			dbClone, err := getBasicDB()
+			dbClone, err := getBasicDB(t)
 			require.NoError(err)
 
 			proof, err := db.GetChangeProof(
@@ -1054,7 +1054,7 @@ func Test_ChangeProof_Syntactic_Verify(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
 
-			db, err := getBasicDB()
+			db, err := getBasicDB(t)
 			require.NoError(err)
 			err = db.VerifyChangeProof(context.Background(), tt.proof, tt.start, tt.end, ids.Empty)
 			require.ErrorIs(err, tt.expectedErr)
@@ -1714,7 +1714,7 @@ func FuzzRangeProofInvariants(f *testing.F) {
 
 		rand := rand.New(rand.NewSource(randSeed)) // #nosec G404
 
-		db, err := getBasicDB()
+		db, err := getBasicDB(t)
 		require.NoError(err)
 
 		// Insert a bunch of random key values.
@@ -1833,7 +1833,7 @@ func FuzzProofVerification(f *testing.F) {
 	) {
 		rand := rand.New(rand.NewSource(randSeed)) // #nosec G404
 		require := require.New(t)
-		db, err := getBasicDB()
+		db, err := getBasicDB(t)
 		require.NoError(err)
 
 		// Insert a bunch of random key values.
@@ -1894,7 +1894,7 @@ func FuzzChangeProofVerification(f *testing.F) {
 		require := require.New(t)
 		rand := rand.New(rand.NewSource(randSeed)) // #nosec G404
 
-		db, err := getBasicDB()
+		db, err := getBasicDB(t)
 		require.NoError(err)
 
 		startRootID, err := db.GetMerkleRoot(context.Background())

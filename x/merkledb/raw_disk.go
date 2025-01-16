@@ -162,11 +162,12 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 	for k := range changes.nodes {
 		keys = append(keys, k)
+
 	}
 
 	// sort the keys by length, then start at the longest keys (leaf nodes)
 	sort.Slice(keys, func(i, j int) bool {
-		return len(keys[i].value) > len(keys[j].value)
+		return keys[i].length > keys[j].length
 	})
 
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
@@ -197,6 +198,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				log.Printf("Adding a diskaddress from map to remainingNodes")
 				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
+			}
+			if child.diskAddr == (diskAddress{}) {
+				log.Printf("child diskaddr is nonexistent %v", child.diskAddr)
 			}
 		}
 
@@ -274,6 +278,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// ensuring that there are two trees, then add old one to freelist
 	for _, nodeChange := range changes.nodes {
 		if nodeChange.before != nil {
+			/*oldDiskAddr := nodeChange.before.diskAddr
+			if oldDiskAddr.offset >= 0 && oldDiskAddr.size > 0 {
+				r.dm.free.put(oldDiskAddr)
+			}*/
+			//log.Printf("Getting size %v", nodeChange.before.diskAddr.size)
 			r.dm.free.put(nodeChange.before.diskAddr)
 		}
 	}
@@ -281,7 +290,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	if err := r.dm.file.Sync(); err != nil {
 		log.Fatalf("failed to sync data at the end: %v", err)
 	}
-
 
 	return r.dm.file.Sync()
 }
@@ -340,7 +348,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	// }
 
 	if !key.HasPrefix(currKey) {
-		return nil, errors.New("Key doesn't match rootkey")
+		return nil, database.ErrNotFound //errors.New("Key doesn't match rootkey")
 	}
 
 	keylen := currKey.length // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
@@ -411,10 +419,10 @@ func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.I
 	return nil
 }
 
-func (r * rawDisk) close() error {
-	if err := r.dm.file.Close() ; err != nil {
+func (r *rawDisk) close() error {
+	if err := r.dm.file.Close(); err != nil {
 		return err
 	}
-	
+
 	return nil
 }

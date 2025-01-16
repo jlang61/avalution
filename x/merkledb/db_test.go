@@ -82,7 +82,6 @@ func Test_MerkleDB_GetValues_Safety(t *testing.T) {
 	db, err := getBasicDB(t)
 	require.NoError(err)
 
-
 	keyBytes := []byte{0}
 	value := []byte{0, 1, 2}
 	require.NoError(db.Put(keyBytes, value))
@@ -144,7 +143,7 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 	require.NoError(err)
 	// Populate initial set of key-value pairs
 	// Goes from 1-99
-	// string is just 1-99 in string form 
+	// string is just 1-99 in string form
 	for i := 0; i < keyCount; i++ {
 		k := []byte(strconv.Itoa(i))
 		log.Printf("key %v", k)
@@ -160,6 +159,7 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 	root, err := db.GetMerkleRoot(context.Background())
 	require.NoError(err)
 
+	// TODO: replace with closeWithRoot
 	require.NoError(db.disk.(*rawDisk).close())
 
 	// reloading the db should set the root back to the one that was saved to [baseDB]

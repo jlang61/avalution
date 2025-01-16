@@ -449,7 +449,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 		dbNode: dbNode{
 			value: maybe.Some([]byte("value1")),
 		},
-    key:     ToKey([]byte("123")),
+    key:     ToKey([]byte{1,2,5}),
 		valueDigest: maybe.Some([]byte("digest5")),
 	}
 
@@ -457,7 +457,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 	node1 := &node{
 		dbNode: dbNode{
 			children : map[byte]*child{
-				byte('5'): {
+				byte(5): {
 					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
@@ -466,7 +466,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			},
 			// ...existing code...
 		},
-    key:         ToKey([]byte("12")),
+    key:         ToKey([]byte{1,2}),
 		valueDigest: maybe.Some([]byte("digest1")),
 		// ...existing code...
 	}
@@ -476,7 +476,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			value: maybe.Some([]byte("value2")),
 			// ...existing code...
 		},
-    key:         ToKey([]byte("13")),
+    key:         ToKey([]byte{1,3}),
 		valueDigest: maybe.Some([]byte("digest2")),
 		// ...existing code...
 	}
@@ -486,7 +486,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			value: maybe.Some([]byte("value3")),
 			// ...existing code...
 		},
-    key:         ToKey([]byte("14")),
+    key:         ToKey([]byte{1,4}),
 		valueDigest: maybe.Some([]byte("digest3")),
 		// ...existing code...
 	}
@@ -494,19 +494,19 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 	rootNode := &node{
 		dbNode: dbNode{
 			children: map[byte]*child{
-				byte('2'): {
+				byte(2): {
 					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
 				},
-				byte('3'): {
+				byte(3): {
 					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
 					// ...existing code...
 				},
-				byte('4'): {
+				byte(4): {
 					compressedKey: ToKey(make([]byte,0)),
 					id:            ids.GenerateTestID(),
 					hasValue:      true,
@@ -515,7 +515,7 @@ func TestWriteChanges_MultipleNodes(t *testing.T) {
 			},
 			// ...existing code...
 		},
-    key: ToKey([]byte("1")),
+    key: ToKey([]byte{1}),
 		// ...existing code...
 	}
 

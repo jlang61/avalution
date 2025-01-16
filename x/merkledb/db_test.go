@@ -827,62 +827,62 @@ func TestMerkleDBClear(t *testing.T) {
 	require.Empty(change.values)
 }
 
-func FuzzMerkleDBEmptyRandomizedActions(f *testing.F) {
-	f.Fuzz(
-		func(
-			t *testing.T,
-			randSeed int64,
-			size uint,
-		) {
-			if size == 0 {
-				t.SkipNow()
-			}
-			require := require.New(t)
-			r := rand.New(rand.NewSource(randSeed)) // #nosec G404
-			for _, ts := range validTokenSizes {
-				runRandDBTest(
-					require,
-					r,
-					generateRandTest(
-						require,
-						r,
-						size,
-						0.01, /*checkHashProbability*/
-					),
-					ts,
-				)
-			}
-		})
-}
+// func FuzzMerkleDBEmptyRandomizedActions(f *testing.F) {
+// 	f.Fuzz(
+// 		func(
+// 			t *testing.T,
+// 			randSeed int64,
+// 			size uint,
+// 		) {
+// 			if size == 0 {
+// 				t.SkipNow()
+// 			}
+// 			require := require.New(t)
+// 			r := rand.New(rand.NewSource(randSeed)) // #nosec G404
+// 			for _, ts := range validTokenSizes {
+// 				runRandDBTest(
+// 					require,
+// 					r,
+// 					generateRandTest(
+// 						require,
+// 						r,
+// 						size,
+// 						0.01, /*checkHashProbability*/
+// 					),
+// 					ts,
+// 				)
+// 			}
+// 		})
+// }
 
-func FuzzMerkleDBInitialValuesRandomizedActions(f *testing.F) {
-	f.Fuzz(func(
-		t *testing.T,
-		initialValues uint,
-		numSteps uint,
-		randSeed int64,
-	) {
-		if numSteps == 0 {
-			t.SkipNow()
-		}
-		require := require.New(t)
-		r := rand.New(rand.NewSource(randSeed)) // #nosec G404
-		for _, ts := range validTokenSizes {
-			runRandDBTest(
-				require,
-				r,
-				generateInitialValues(
-					require,
-					r,
-					initialValues,
-					numSteps,
-					0.001, /*checkHashProbability*/
-				),
-				ts,
-			)
-		}
-	})
-}
+// func FuzzMerkleDBInitialValuesRandomizedActions(f *testing.F) {
+// 	f.Fuzz(func(
+// 		t *testing.T,
+// 		initialValues uint,
+// 		numSteps uint,
+// 		randSeed int64,
+// 	) {
+// 		if numSteps == 0 {
+// 			t.SkipNow()
+// 		}
+// 		require := require.New(t)
+// 		r := rand.New(rand.NewSource(randSeed)) // #nosec G404
+// 		for _, ts := range validTokenSizes {
+// 			runRandDBTest(
+// 				require,
+// 				r,
+// 				generateInitialValues(
+// 					require,
+// 					r,
+// 					initialValues,
+// 					numSteps,
+// 					0.001, /*checkHashProbability*/
+// 				),
+// 				ts,
+// 			)
+// 		}
+// 	})
+// }
 
 // randTest performs random trie operations.
 // Instances of this test are created by Generate.

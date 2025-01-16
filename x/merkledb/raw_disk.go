@@ -191,6 +191,12 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			completeKeyBytes := append(k.Bytes(), token)
 			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
 			completeKey := ToKey(completeKeyBytes)
+			log.Printf("child compressed key %v", child.compressedKey)
+			completeKeyCopy := k.Extend(ToToken(token, 4))
+			// if child.compressedKey.length != 0 {
+			// 	completeKeyCopy = completeKeyCopy.Extend(child.compressedKey)
+			// }
+			log.Printf("regular key vs copy key %v %v", completeKey, completeKeyCopy)
 			log.Printf("Creating child's completekey %v for parent %v", completeKey, k)
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {

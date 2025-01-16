@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -78,9 +79,9 @@ func Test_MerkleDB_Get_Safety(t *testing.T) {
 
 func Test_MerkleDB_GetValues_Safety(t *testing.T) {
 	require := require.New(t)
-
 	db, err := getBasicDB(t)
 	require.NoError(err)
+
 
 	keyBytes := []byte{0}
 	value := []byte{0, 1, 2}
@@ -146,6 +147,7 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 	// string is just 1-99 in string form 
 	for i := 0; i < keyCount; i++ {
 		k := []byte(strconv.Itoa(i))
+		log.Printf("key %v", k)
 		ops = append(ops, database.BatchOp{
 			Key:   k,
 			Value: hashing.ComputeHash256(k),
@@ -172,6 +174,19 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 	reloadedRoot, err := db.GetMerkleRoot(context.Background())
 	require.NoError(err)
 	require.Equal(root, reloadedRoot)
+	log.Printf("HUH")
+
+	t.Cleanup(func() {
+		err = db.disk.(*rawDisk).close()
+		if err != nil {
+			t.Errorf("error closing disk: %v", err)
+		}
+		err = db.disk.(*rawDisk).dm.free.close(dir)
+		if err != nil {
+			t.Errorf("error closing disk: %v", err)
+		}
+
+	})
 }
 
 func Test_MerkleDB_DB_Rebuild(t *testing.T) {
@@ -183,10 +198,12 @@ func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 	config.ValueNodeCacheSize = uint(initialSize)
 	config.IntermediateNodeCacheSize = uint(initialSize)
 
-	db, err := newDB(
+	dir := t.TempDir()
+
+	db, err := newDB_disk(
 		context.Background(),
-		memdb.New(),
-		config,
+		dir,
+		newDefaultConfig(),
 	)
 	require.NoError(err)
 

@@ -225,17 +225,17 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				log.Printf("Adding a diskaddress from map to remainingNodes")
 				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
+				log.Printf("assigned child %v to parent %v", completeKey, k)
 			}
 		}
 		// check to ensure that all of its children have disk addresses
 		for _, child := range nodeChange.after.children{
-			log.Printf("dbnode children %v", changes.rootChange.after.Value().dbNode.children)
 			// Check remainingNodes actually have disk addresses
 			if child.diskAddr == (diskAddress{}) {
 				log.Print("child ", child)
 				return errors.New("child disk address missing")
 			} else {
-				log.Printf("Child disk address is %v", child.diskAddr)
+				// log.Printf("Child disk address is %v", child.diskAddr)
 			}
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
@@ -278,6 +278,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
+				log.Printf("assigned child %v to root node  %v", completeKey, k)
+
 			}
 		}
 		for _, child := range changes.rootChange.after.Value().children {
@@ -285,7 +287,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			if child.diskAddr == (diskAddress{}) {
 				return errors.New("child disk address missing")
 			} else {
-				log.Printf("Child disk address is %v", child.diskAddr)
 			}
 		}
 		// writing rootNode to header
@@ -298,15 +299,28 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		rootDiskAddrBytes := rootDiskAddr.bytes()
 		r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
-		// writing root key to header
-		rootKey := rootNode.key.Bytes()
-		rootKeyDiskAddr, err := r.dm.write(rootKey[:])
+		rootKey := rootNode.key
+        rootKeyLen := rootKey.length
+        rootKeyVal := rootKey.value
+
+		log.Printf("RootkeyVal %v", rootKeyVal)
+		log.Printf("root key %v ", rootKey)
+
+        rooyKeyByteArray := []byte{}
+        rooyKeyByteArray = append(rooyKeyByteArray, byte(rootKeyLen))
+        rooyKeyByteArray = append(rooyKeyByteArray, rootKeyVal...)
+
+
+		log.Printf("RootkeyByteArray %v", rooyKeyByteArray)
+		
+        //.Bytes()
+        rootKeyDiskAddr, err := r.dm.write(rooyKeyByteArray)
 		if err != nil {
 			return err
 		}
 		rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
 		r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
-		
+
 		// print the tree
 		err = r.printTree(rootDiskAddr, changes)
 		if err != nil {
@@ -376,13 +390,10 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	}
 
 	// log.Printf("Here")
-	currKeyString := string(rootKeyBytes[:])
-	currKey := Key{length: len(currKeyString) * 8, value: currKeyString}
-	// currKey, err := decodeKey(rootKeyBytes[:])
-	// log.Printf(currKey.value
-	// if err != nil {
-	// 	return nil, err
-	// }
+	currKey, err := decodeKey(rootKeyBytes[:])
+	if err != nil {
+		return nil, err
+	}
 
 	if !key.HasPrefix(currKey) {
 		return nil, errors.New("Key doesn't match rootkey")

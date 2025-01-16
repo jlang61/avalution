@@ -123,7 +123,7 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 // if we dont write to freelist: append bytes to end, return endoffset and size
 func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 	freeSpace, ok := dm.free.get(int64(len(bytes)))
-
+	log.Printf("length of bytes: %d", int64(len(bytes)))
 	// Calculate and add padding
 	prevSize := len(bytes)
 	nextPowerOf2Size := nextPowerOf2(prevSize)
@@ -146,7 +146,7 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 			log.Fatalf("failed to write data: %v", err)
 			return diskAddress{}, err
 		}
-		log.Println("Data written successfully at the end of the file.")
+		// log.Println("Data written successfully at the end of the file.")
 		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
 	} else {
 		// If there is free space, write at the offset
@@ -155,7 +155,7 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 			log.Fatalf("failed to write data: %v", err)
 			return diskAddress{}, err
 		}
-		log.Println("Data written successfully at free space.")
+		// log.Println("Data written successfully at free space.")
 		freeSpace = diskAddress{offset: freeSpace.offset, size: int64(prevSize)}
 	}
 	// log.Println("Freespace: ", freeSpace)

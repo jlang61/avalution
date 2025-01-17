@@ -45,7 +45,7 @@ func getNodeValue(t Trie, key string) ([]byte, error) {
 func Test_GetValue_Safety(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	view, err := db.NewView(
@@ -72,7 +72,7 @@ func Test_GetValue_Safety(t *testing.T) {
 func Test_GetValues_Safety(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	view, err := db.NewView(
@@ -102,7 +102,7 @@ func Test_GetValues_Safety(t *testing.T) {
 func TestVisitPathToKey(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	trieIntf, err := db.NewView(context.Background(), ViewChanges{})
@@ -242,7 +242,7 @@ func TestVisitPathToKey(t *testing.T) {
 func Test_Trie_ViewOnCommitedView(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -280,7 +280,7 @@ func Test_Trie_ViewOnCommitedView(t *testing.T) {
 func Test_Trie_WriteToDB(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -320,7 +320,7 @@ func Test_Trie_WriteToDB(t *testing.T) {
 func Test_Trie_InsertAndRetrieve(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -339,7 +339,7 @@ func Test_Trie_InsertAndRetrieve(t *testing.T) {
 func Test_Trie_Overwrite(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 	trie, err := dbTrie.NewView(
@@ -373,7 +373,7 @@ func Test_Trie_Overwrite(t *testing.T) {
 func Test_Trie_Delete(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -409,7 +409,7 @@ func Test_Trie_Delete(t *testing.T) {
 func Test_Trie_DeleteMissingKey(t *testing.T) {
 	require := require.New(t)
 
-	trie, err := getBasicDB()
+	trie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(trie)
 
@@ -419,7 +419,7 @@ func Test_Trie_DeleteMissingKey(t *testing.T) {
 func Test_Trie_ExpandOnKeyPath(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 	trieIntf, err := dbTrie.NewView(
@@ -483,7 +483,7 @@ func Test_Trie_ExpandOnKeyPath(t *testing.T) {
 func Test_Trie_CompressedKeys(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 	trieIntf, err := dbTrie.NewView(
@@ -547,7 +547,7 @@ func Test_Trie_CompressedKeys(t *testing.T) {
 func Test_Trie_SplitBranch(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -575,7 +575,7 @@ func Test_Trie_SplitBranch(t *testing.T) {
 func Test_Trie_HashCountOnBranch(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -631,7 +631,7 @@ func Test_Trie_HashCountOnBranch(t *testing.T) {
 func Test_Trie_HashCountOnDelete(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 
 	trie, err := dbTrie.NewView(
@@ -682,7 +682,7 @@ func Test_Trie_HashCountOnDelete(t *testing.T) {
 func Test_Trie_NoExistingResidual(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -720,7 +720,7 @@ func Test_Trie_NoExistingResidual(t *testing.T) {
 func Test_Trie_BatchApply(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -753,7 +753,7 @@ func Test_Trie_BatchApply(t *testing.T) {
 func Test_Trie_ChainDeletion(t *testing.T) {
 	require := require.New(t)
 
-	trie, err := getBasicDB()
+	trie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(trie)
 	newTrie, err := trie.NewView(
@@ -798,7 +798,7 @@ func Test_Trie_ChainDeletion(t *testing.T) {
 func Test_Trie_Invalidate_Siblings_On_Commit(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -835,7 +835,7 @@ func Test_Trie_Invalidate_Siblings_On_Commit(t *testing.T) {
 func Test_Trie_NodeCollapse(t *testing.T) {
 	require := require.New(t)
 
-	dbTrie, err := getBasicDB()
+	dbTrie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(dbTrie)
 
@@ -1009,7 +1009,7 @@ func Test_Trie_MultipleStates(t *testing.T) {
 func TestNewViewOnCommittedView(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	// Create a view
@@ -1111,7 +1111,7 @@ func TestNewViewOnCommittedView(t *testing.T) {
 func Test_View_NewView(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	// Create a view
@@ -1168,7 +1168,7 @@ func Test_View_NewView(t *testing.T) {
 func TestViewInvalidate(t *testing.T) {
 	require := require.New(t)
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	// Create a view
@@ -1206,7 +1206,7 @@ func TestViewInvalidate(t *testing.T) {
 func Test_Trie_ConcurrentNewViewAndCommit(t *testing.T) {
 	require := require.New(t)
 
-	trie, err := getBasicDB()
+	trie, err := getBasicDB(t)
 	require.NoError(err)
 	require.NotNil(trie)
 
@@ -1253,7 +1253,7 @@ func TestTrieCommitToDB(t *testing.T) {
 	}
 
 	// Make a database
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	r.NoError(err)
 
 	tests := []test{

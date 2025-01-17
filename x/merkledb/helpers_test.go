@@ -15,8 +15,11 @@ import (
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
-
-func getBasicDB() (*merkleDB, error) {
+const disk = true
+func getBasicDB(tb testing.TB) (*merkleDB, error) {
+	if disk{
+		return getBasicDB_disk(tb)
+	}
 	return newDatabase(
 		context.Background(),
 		memdb.New(),

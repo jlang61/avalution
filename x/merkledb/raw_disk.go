@@ -61,6 +61,7 @@ func newRawDisk(dir string, fileName string) (*rawDisk, error) {
 	if err != nil {
 		return nil, err
 	}
+	// correctly read rootId from the header
 	return &rawDisk{dm: dm}, nil
 }
 
@@ -99,7 +100,17 @@ func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 }
 
 func (r *rawDisk) getRootKey() ([]byte, error) {
-	return nil, errors.New("not implemented")
+	rootKeyDiskAddrBytes, err := r.dm.get(diskAddress{offset: 17, size: 16})
+	if err != nil {
+		return nil, err
+	}
+	rootKeyDiskAddr := diskAddress{}
+	rootKeyDiskAddr.decode(rootKeyDiskAddrBytes)
+	rootKeyBytes, err := r.dm.get(rootKeyDiskAddr)
+	if err != nil {
+		return nil, err
+	}
+	return rootKeyBytes, nil
 }
 
 func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) error {
@@ -151,12 +162,6 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 
 }
 
-// type assertion to ensure that
-// pointer to rawdisk implements disk interface
-//var _ Disk = &rawDisk{}
-
-// return new error for iterator
-
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	var keys []Key
 
@@ -173,8 +178,14 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
 	childrenNodes := make(map[Key]diskAddress)
 
+	// ITERATES THROUGH ALL NODES EXCEPT THE ROOT
+	// STARTS WITH CHILDRENS THEN MOVES TO PARENTS
+	// EACH PARENT CHECKS THEIR CHILDREN'S KEY THEN ENSURES POINTERS PROPERLY WORK
+	// Iterate through the keys
 	for _, k := range keys {
+		// find the nodechange associated with the key
 		nodeChange := changes.nodes[k]
+		// filter through nodes that arent changed
 		if nodeChange.after == nil {
 			continue
 		}
@@ -186,25 +197,41 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			}
 		}
 
-		// Iterate through remainingNodes in the node
+		// Iterate through node's children
 		for token, child := range nodeChange.after.children {
 			// Create the complete key (current key + compressed key of the child)
-			completeKeyBytes := append(k.Bytes(), token)
-			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
-			completeKey := ToKey(completeKeyBytes)
-			log.Printf("Creating child's completekey %v for parent %v", completeKey, k)
+
+			// PREVIOUS IMPLEMENTATION:
+			// completeKeyBytes := append(k.Bytes(), token)
+			// completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
+			// completeKey := ToKey(completeKeyBytes)
+
+			// CURRENT IMPLEMENTATION
+			completeKey := k.Extend(ToToken(token, 4))
+			if child.compressedKey.length != 0 {
+				completeKey = completeKey.Extend(child.compressedKey)
+			}
+
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				log.Printf("Adding a diskaddress from map to remainingNodes")
 				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
-			}
-			if child.diskAddr == (diskAddress{}) {
-				log.Printf("child diskaddr is nonexistent %v", child.diskAddr)
+				log.Printf("assigned child %v to parent %v", completeKey, k)
 			}
 		}
-
+		// check to ensure that all of its children have disk addresses
+		for _, child := range nodeChange.after.children {
+			// Check remainingNodes actually have disk addresses
+			if child.diskAddr == (diskAddress{}) {
+				log.Print("child ", child)
+				return errors.New("child disk address missing")
+			} else {
+				// log.Printf("Child disk address is %v", child.diskAddr)
+			}
+		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
+		log.Printf("Wrote key %v to disk", k)
 		diskAddr, err := r.dm.write(nodeBytes)
 		if err != nil {
 			return err
@@ -221,22 +248,30 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	if err := r.dm.file.Sync(); err != nil {
 		return err
 	}
+
+	// ITERATES THROUGH THE ROOT NODE A FINAL TIME
+	// ENSURES THAT ROOTNODE
 	if changes.rootChange.after.HasValue() {
 		// Adding remainingNodes to the root node
 		k := changes.rootChange.after.Value().key
 		for token, child := range changes.rootChange.after.Value().children {
-			// tokenInt := int(token)
-			// tokenSize := len(string(token))
-			// // Create the complete key (current key + compressed key of the child)
-			// completeKey := Key{length: k.length + tokenSize + child.compressedKey.length, value: k.value + strconv.Itoa(tokenInt) +child.compressedKey.value}
-			completeKeyBytes := append(k.Bytes(), token)
-			completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
-			completeKey := ToKey(completeKeyBytes)
-			log.Printf("Creating root node's child's completekey %v for parent %v", completeKey, k)
+
+			// PREVIOUS IMPLEMENTATION:
+			// completeKeyBytes := append(k.Bytes(), token)
+			// completeKeyBytes = append(completeKeyBytes, child.compressedKey.Bytes()...)
+			// completeKey := ToKey(completeKeyBytes)
+
+			// CURRENT IMPLEMENTATION
+			completeKey := k.Extend(ToToken(token, 4))
+			if child.compressedKey.length != 0 {
+				completeKey = completeKey.Extend(child.compressedKey)
+			}
 			// Check whether or not there exists a value for the child in the map
 			if childrenNodes[completeKey] != (diskAddress{}) {
 				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
+				log.Printf("assigned child %v to root node  %v", completeKey, k)
+
 			}
 		}
 		for _, child := range changes.rootChange.after.Value().children {
@@ -244,7 +279,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			if child.diskAddr == (diskAddress{}) {
 				return errors.New("child disk address missing")
 			} else {
-				log.Printf("Child disk address is %v", child.diskAddr)
 			}
 		}
 		// writing rootNode to header
@@ -257,9 +291,21 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		rootDiskAddrBytes := rootDiskAddr.bytes()
 		r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
-		// writing root key to header
-		rootKey := rootNode.key.Bytes()
-		rootKeyDiskAddr, err := r.dm.write(rootKey[:])
+		rootKey := rootNode.key
+		rootKeyLen := rootKey.length
+		rootKeyVal := rootKey.value
+
+		log.Printf("RootkeyVal %v", rootKeyVal)
+		log.Printf("root key %v ", rootKey)
+
+		rooyKeyByteArray := []byte{}
+		rooyKeyByteArray = append(rooyKeyByteArray, byte(rootKeyLen))
+		rooyKeyByteArray = append(rooyKeyByteArray, rootKeyVal...)
+
+		log.Printf("RootkeyByteArray %v", rooyKeyByteArray)
+
+		//.Bytes()
+		rootKeyDiskAddr, err := r.dm.write(rooyKeyByteArray)
 		if err != nil {
 			return err
 		}
@@ -299,7 +345,6 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
-	log.Printf("Getting node for key %v", key)
 	metadata, err := r.dm.getHeader()
 	if err != nil {
 		return nil, err
@@ -339,22 +384,16 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	}
 
 	// log.Printf("Here")
-	currKeyString := string(rootKeyBytes[:])
-	currKey := Key{length: len(currKeyString) * 8, value: currKeyString}
-	// currKey, err := decodeKey(rootKeyBytes[:])
-	// log.Printf(currKey.value
-	// if err != nil {
-	// 	return nil, err
-	// }
+	currKey, err := decodeKey(rootKeyBytes[:])
+	if err != nil {
+		return nil, err
+	}
 
 	if !key.HasPrefix(currKey) {
 		return nil, database.ErrNotFound //errors.New("Key doesn't match rootkey")
 	}
 
 	keylen := currKey.length // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
-	// log.Printf("Key length %d", currKey.length)
-	// log.Printf("Key length %d", keylen)
-	// log.Printf("Key length %d", key.length)
 
 	// while the entire path hasn't been matched
 	for keylen < (key.length) {
@@ -420,6 +459,7 @@ func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.I
 }
 
 func (r *rawDisk) close() error {
+	r.dm.file.WriteAt([]byte{1}, 0)
 	if err := r.dm.file.Close(); err != nil {
 		return err
 	}

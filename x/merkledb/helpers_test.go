@@ -31,6 +31,11 @@ func getBasicDB(tb testing.TB) (*merkleDB, error) {
 func getBasicDBWithBranchFactor(bf BranchFactor) (*merkleDB, error) {
 	config := newDefaultConfig()
 	config.BranchFactor = bf
+	t := &testing.T{}
+	dir := t.TempDir()
+	if disk{
+		return getBasicDBWithBranchFactor_disk(bf,dir)
+	}
 	return newDatabase(
 		context.Background(),
 		memdb.New(),

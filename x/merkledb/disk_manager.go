@@ -123,7 +123,6 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 // if we dont write to freelist: append bytes to end, return endoffset and size
 func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 	freeSpace, ok := dm.free.get(int64(len(bytes)))
-	log.Printf("length of bytes: %d", int64(len(bytes)))
 	// Calculate and add padding
 	prevSize := len(bytes)
 	nextPowerOf2Size := nextPowerOf2(prevSize)

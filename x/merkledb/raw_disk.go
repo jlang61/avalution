@@ -92,7 +92,18 @@ func (r *rawDisk) Compact(start, limit []byte) error {
 }
 
 func (r *rawDisk) HealthCheck(ctx context.Context) (interface{}, error) {
-	return struct{}{}, nil
+	// 1) Ensure the disk manager and file exist
+	if r.dm == nil || r.dm.file == nil {
+		return nil, database.ErrClosed
+	}
+	// 2) Attempt a small read on metadata to confirm the file is accessible
+	header := make([]byte, metaSize)
+	if _, err := r.dm.file.ReadAt(header, 1); err != nil {
+		return nil, fmt.Errorf("rawDisk HealthCheck: could not read metadata: %w", err)
+	}
+	// If all checks pass:
+	return nil, nil
+	//return struct{}{}, nil
 }
 
 func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {

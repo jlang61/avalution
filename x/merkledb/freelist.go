@@ -22,6 +22,8 @@ import (
 // write byte array - keep diskaddres
 type freeList struct {
 	buckets [][]diskAddress
+	//closed  bool
+	//lock    sync.RWMutex
 }
 
 // newFreeList creates a new freeList with the specified maximum size.
@@ -42,6 +44,11 @@ func newFreeList(maxSize int) *freeList {
 // get retrieves a diskAddress from the freeList that can accommodate the specified size.
 // It returns the diskAddress and a boolean indicating whether a suitable address was found.
 func (f *freeList) get(size int64) (diskAddress, bool) {
+	/*f.lock.Lock()
+	defer f.lock.Unlock()
+	if f.closed {
+		return diskAddress{}, false
+	}*/
 	bucket := f.bucketIndex(size)
 	for i := bucket; i < len(f.buckets); i++ {
 		if len(f.buckets[i]) > 0 {
@@ -56,6 +63,12 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 
 // put adds a diskAddress to the freeList.
 func (f *freeList) put(space diskAddress) {
+	/*f.lock.Lock()
+	defer f.lock.Unlock()
+	if f.closed {
+		log.Printf("Attempted to put to free list after close; ignoring.")
+		return
+	}*/
 	bucket := f.bucketIndex(space.size)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
@@ -67,6 +80,11 @@ func (f *freeList) bucketIndex(size int64) int {
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.
 func (f *freeList) close(dir string) error {
+	/*f.lock.Lock()
+	defer f.lock.Unlock()
+	if f.closed {
+		return nil // or return an error indicating it's already closed
+	}*/
 	r, err := os.OpenFile(filepath.Join(dir, "freelist.db"), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		log.Fatalf("failed to create temp file: %v", err)
@@ -101,6 +119,7 @@ func (f *freeList) close(dir string) error {
 	if err != nil {
 		return err
 	}
+	//f.closed = true
 	return nil
 }
 

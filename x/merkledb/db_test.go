@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -55,7 +56,6 @@ func newDefaultConfig() Config {
 	}
 }
 
-
 // PASSES
 func Test_MerkleDB_Get_Safety(t *testing.T) {
 	require := require.New(t)
@@ -77,7 +77,6 @@ func Test_MerkleDB_Get_Safety(t *testing.T) {
 	val[0]++
 	require.Equal(originalVal, n.value.Value())
 }
-
 
 // PASSES
 func Test_MerkleDB_GetValues_Safety(t *testing.T) {
@@ -102,9 +101,8 @@ func Test_MerkleDB_GetValues_Safety(t *testing.T) {
 	require.Equal(value, gotValues[0])
 }
 
-
 // FAILS
-// child disk address missing 
+// child disk address missing
 // child disk address and not implemented error
 // child disk address missiing - batch.put which should use WriteChanges
 // not implemented error from db.Close()
@@ -135,7 +133,6 @@ func Benchmark_MerkleDB_DBInterface(b *testing.B) {
 		}
 	}
 }
-
 
 // PASSES
 func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
@@ -200,8 +197,8 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 }
 
 // FAILS
-// REBUILD NOT WORKING FOR RAWDISK 
-// IS OK BECAUSE INTERMEDIATE NODES ARE NOT  NEEDED 
+// REBUILD NOT WORKING FOR RAWDISK
+// IS OK BECAUSE INTERMEDIATE NODES ARE NOT  NEEDED
 
 func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 	require := require.New(t)
@@ -260,7 +257,6 @@ func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 	require.Equal(root, rebuiltRoot)
 }
 
-
 // PASSES
 func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 	require := require.New(t)
@@ -284,13 +280,15 @@ func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 	require.ErrorIs(err, database.ErrClosed)
 }
 
-
 // FAILS
-// issue of key not found in nodes children 
-// 3 total nodes 
-// key0, key1, key2 
+// PREVIOUS ISSUE:
+// issue of key not found in nodes children
+// 3 total nodes
+// key0, key1, key2
 // 1 and 2 are the children of root node key0
-// does correclty get the complte key value 
+// does correclty get the complte key value
+// CURRENT ISSUE:
+// key cannot be read because we have no cache
 func Test_MerkleDB_Value_Cache(t *testing.T) {
 	require := require.New(t)
 
@@ -310,9 +308,7 @@ func Test_MerkleDB_Value_Cache(t *testing.T) {
 	require.NoError(batch.Write())
 
 	batch = db.NewBatch()
-	// force key2 to be inserted into the cache as not found
 	require.NoError(batch.Delete(key2))
-	// ERROR IN BATCH WRITE, CANNOT FIND THE KEY2 
 	require.NoError(batch.Write())
 
 	require.NoError(db.Close())
@@ -442,7 +438,6 @@ func Test_MerkleDB_CommitRangeProof_EmptyTrie(t *testing.T) {
 	require.Equal(db1Root, db2Root)
 }
 
-
 // FAILS, OKAY BECAUSE PROOF IS NOT IMPLEMENTED YET
 func Test_MerkleDB_CommitRangeProof_TrieWithInitialValues(t *testing.T) {
 	require := require.New(t)
@@ -496,7 +491,6 @@ func Test_MerkleDB_CommitRangeProof_TrieWithInitialValues(t *testing.T) {
 	require.Equal(db1Root, db2Root)
 }
 
-
 // PASSES:
 // HAD TO FIX TOKEN SIZE TO BE 4
 // AND DATABASE.ERRNOTFOUND IS RETURNED WHEN NOT FOUND
@@ -525,8 +519,7 @@ func Test_MerkleDB_GetValues(t *testing.T) {
 	require.Nil(values[3])
 }
 
-
-// PASSES 
+// PASSES
 func Test_MerkleDB_InsertNil(t *testing.T) {
 	require := require.New(t)
 
@@ -547,8 +540,7 @@ func Test_MerkleDB_InsertNil(t *testing.T) {
 	require.Empty(value)
 }
 
-
-// FAILS: HEALTHCHECK NOT IMPELEMENTEDYET
+// PASSES
 func Test_MerkleDB_HealthCheck(t *testing.T) {
 	require := require.New(t)
 
@@ -616,9 +608,8 @@ func TestDatabaseNewViewFromBatchOpsTracked(t *testing.T) {
 	require.Len(db.childViews, 1)
 }
 
-
 // FAILS: KEY DOES NOT MATCH WITH ROOTKEY: on require.NoError(db.Put(key2, value2))
-// CURRENTLY FAILING BECAUSE ONE KEY VLAUE PAIR HAS THE SAME SIZE OF THE ROOTKEY 
+// CURRENTLY FAILING BECAUSE ONE KEY VLAUE PAIR HAS THE SAME SIZE OF THE ROOTKEY
 
 func TestDatabaseCommitChanges(t *testing.T) {
 	require := require.New(t)
@@ -710,8 +701,7 @@ func TestDatabaseCommitChanges(t *testing.T) {
 	require.Equal(db, view3.parentTrie)
 }
 
-
-// PASSES 
+// PASSES
 func TestDatabaseInvalidateChildrenExcept(t *testing.T) {
 	require := require.New(t)
 
@@ -755,7 +745,6 @@ func TestDatabaseInvalidateChildrenExcept(t *testing.T) {
 	db.invalidateChildrenExcept(view1)
 	require.Empty(db.childViews)
 }
-
 
 // PASSES
 func Test_MerkleDB_Random_Insert_Ordering(t *testing.T) {
@@ -851,7 +840,7 @@ func Test_MerkleDB_Random_Insert_Ordering(t *testing.T) {
 	}
 }
 
-// FAILS - TRAILING BUFFER SPACE 
+// FAILS - TRAILING BUFFER SPACE
 func TestMerkleDBClear(t *testing.T) {
 	require := require.New(t)
 
@@ -894,7 +883,6 @@ func TestMerkleDBClear(t *testing.T) {
 	require.Empty(change.values)
 }
 
-
 // PASSES?
 func FuzzMerkleDBEmptyRandomizedActions(f *testing.F) {
 	f.Fuzz(
@@ -923,7 +911,6 @@ func FuzzMerkleDBEmptyRandomizedActions(f *testing.F) {
 			}
 		})
 }
-
 
 // PASSES?
 func FuzzMerkleDBInitialValuesRandomizedActions(f *testing.F) {
@@ -1314,12 +1301,13 @@ func insertRandomKeyValues(
 	for i := uint(0); i < numKeyValues; i++ {
 		keyLen := rand.Intn(maxKeyLen)
 		key := make([]byte, keyLen)
+		log.Print("key: ", key)
 		_, _ = rand.Read(key)
 
 		valueLen := rand.Intn(maxValLen)
 		value := make([]byte, valueLen)
 		_, _ = rand.Read(value)
- 		for _, db := range dbs {
+		for _, db := range dbs {
 			require.NoError(db.Put(key, value))
 		}
 
@@ -1330,7 +1318,6 @@ func insertRandomKeyValues(
 		}
 	}
 }
-
 
 // PASSES
 func TestGetRangeProofAtRootEmptyRootID(t *testing.T) {
@@ -1348,7 +1335,6 @@ func TestGetRangeProofAtRootEmptyRootID(t *testing.T) {
 	)
 	require.ErrorIs(err, ErrEmptyProof)
 }
-
 
 // PASSES
 func TestGetChangeProofEmptyRootID(t *testing.T) {
@@ -1371,7 +1357,6 @@ func TestGetChangeProofEmptyRootID(t *testing.T) {
 	)
 	require.ErrorIs(err, ErrEmptyProof)
 }
-
 
 // PASSES
 func TestCrashRecovery(t *testing.T) {
@@ -1446,7 +1431,6 @@ func TestCrashRecovery(t *testing.T) {
 // 		}
 // 	})
 // }
-
 
 // FAILS
 func BenchmarkIteration(b *testing.B) {

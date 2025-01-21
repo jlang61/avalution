@@ -55,8 +55,12 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 }
 
 // put adds a diskAddress to the freeList.
-func (f *freeList) put(space diskAddress) {
+func (f *freeList) put(space diskAddress) {	
+	if space == (diskAddress{}) {
+		return
+	}
 	bucket := f.bucketIndex(space.size)
+	log.Print(bucket)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
 

@@ -104,6 +104,10 @@ func Test_MerkleDB_GetValues_Safety(t *testing.T) {
 
 
 // FAILS
+// child disk address missing 
+// child disk address and not implemented error
+// child disk address missiing - batch.put which should use WriteChanges
+// not implemented error from db.Close()
 func Test_MerkleDB_DB_Interface(t *testing.T) {
 	for _, bf := range validBranchFactors {
 		for name, test := range dbtest.Tests {
@@ -198,6 +202,7 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 // FAILS
 // REBUILD NOT WORKING FOR RAWDISK 
 // IS OK BECAUSE INTERMEDIATE NODES ARE NOT  NEEDED 
+
 func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 	require := require.New(t)
 
@@ -256,8 +261,7 @@ func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 }
 
 
-// FAILS
-// ?? why should this test fail?
+// PASSES
 func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 	require := require.New(t)
 
@@ -269,6 +273,8 @@ func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 		newDefaultConfig(),
 	)
 	require.NoError(err)
+
+	_ = db.Close()
 
 	batch := db.NewBatch()
 	require.NoError(batch.Put([]byte("key1"), []byte("1")))
@@ -437,7 +443,7 @@ func Test_MerkleDB_CommitRangeProof_EmptyTrie(t *testing.T) {
 }
 
 
-// FAILS, ERROR ON LINE 441 MOST LIKEY WITH PROOFS
+// FAILS, OKAY BECAUSE PROOF IS NOT IMPLEMENTED YET
 func Test_MerkleDB_CommitRangeProof_TrieWithInitialValues(t *testing.T) {
 	require := require.New(t)
 

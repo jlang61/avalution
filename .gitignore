@@ -3,3 +3,6 @@
 
 # ignore all disk/db files
 /x/merkledb/*.db
+
+# ignroe debug 
+**/__debug_*

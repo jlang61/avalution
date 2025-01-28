@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -101,6 +102,10 @@ func Test_MerkleDB_GetValues_Safety(t *testing.T) {
 }
 
 // FAILS
+// child disk address missing
+// child disk address and not implemented error
+// child disk address missiing - batch.put which should use WriteChanges
+// not implemented error from db.Close()
 func Test_MerkleDB_DB_Interface(t *testing.T) {
 	for _, bf := range validBranchFactors {
 		for name, test := range dbtest.Tests {
@@ -194,6 +199,7 @@ func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 // FAILS
 // REBUILD NOT WORKING FOR RAWDISK
 // IS OK BECAUSE INTERMEDIATE NODES ARE NOT  NEEDED
+
 func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 	require := require.New(t)
 
@@ -251,8 +257,7 @@ func Test_MerkleDB_DB_Rebuild(t *testing.T) {
 	require.Equal(root, rebuiltRoot)
 }
 
-// FAILS
-// ?? why should this test fail?
+// PASSES
 func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 	require := require.New(t)
 
@@ -265,6 +270,8 @@ func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 	)
 	require.NoError(err)
 
+	_ = db.Close()
+
 	batch := db.NewBatch()
 	require.NoError(batch.Put([]byte("key1"), []byte("1")))
 	require.NoError(batch.Put([]byte("key2"), []byte("2")))
@@ -274,11 +281,14 @@ func Test_MerkleDB_Failed_Batch_Commit(t *testing.T) {
 }
 
 // FAILS
+// PREVIOUS ISSUE:
 // issue of key not found in nodes children
 // 3 total nodes
 // key0, key1, key2
 // 1 and 2 are the children of root node key0
 // does correclty get the complte key value
+// CURRENT ISSUE:
+// key cannot be read because we have no cache
 func Test_MerkleDB_Value_Cache(t *testing.T) {
 	require := require.New(t)
 
@@ -298,9 +308,7 @@ func Test_MerkleDB_Value_Cache(t *testing.T) {
 	require.NoError(batch.Write())
 
 	batch = db.NewBatch()
-	// force key2 to be inserted into the cache as not found
 	require.NoError(batch.Delete(key2))
-	// ERROR IN BATCH WRITE, CANNOT FIND THE KEY2
 	require.NoError(batch.Write())
 
 	require.NoError(db.Close())
@@ -430,7 +438,7 @@ func Test_MerkleDB_CommitRangeProof_EmptyTrie(t *testing.T) {
 	require.Equal(db1Root, db2Root)
 }
 
-// FAILS, ERROR ON LINE 441 MOST LIKEY WITH PROOFS
+// FAILS, OKAY BECAUSE PROOF IS NOT IMPLEMENTED YET
 func Test_MerkleDB_CommitRangeProof_TrieWithInitialValues(t *testing.T) {
 	require := require.New(t)
 
@@ -1293,6 +1301,7 @@ func insertRandomKeyValues(
 	for i := uint(0); i < numKeyValues; i++ {
 		keyLen := rand.Intn(maxKeyLen)
 		key := make([]byte, keyLen)
+		log.Print("key: ", key)
 		_, _ = rand.Read(key)
 
 		valueLen := rand.Intn(maxValLen)

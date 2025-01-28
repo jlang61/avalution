@@ -90,7 +90,6 @@ func (r *rawDisk) clearIntermediateNodes() error {
 func (r *rawDisk) Compact(start, limit []byte) error {
 	return errors.New("not implemented")
 }
-
 func (r *rawDisk) HealthCheck(ctx context.Context) (interface{}, error) {
 	// 1) Ensure the disk manager and file exist
 	if r.dm == nil || r.dm.file == nil {
@@ -106,8 +105,9 @@ func (r *rawDisk) HealthCheck(ctx context.Context) (interface{}, error) {
 	//return struct{}{}, nil
 }
 
+
 func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
-	return errors.New("not implemented")
+	return r.close()
 }
 
 func (r *rawDisk) getRootKey() ([]byte, error) {

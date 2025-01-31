@@ -52,17 +52,19 @@ type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
-	dm *diskMgr
-	//hasher Hasher
+	dm     *diskMgr
+	config Config
+	hasher Hasher
 }
 
-func newRawDisk(dir string, fileName string) (*rawDisk, error) {
+func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*rawDisk, error) {
 	dm, err := newDiskManager(nil, dir, fileName)
 	if err != nil {
 		return nil, err
 	}
+
 	// correctly read rootId from the header
-	return &rawDisk{dm: dm}, nil
+	return &rawDisk{dm: dm, hasher: hasher, config: config}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
@@ -104,7 +106,6 @@ func (r *rawDisk) HealthCheck(ctx context.Context) (interface{}, error) {
 	return nil, nil
 	//return struct{}{}, nil
 }
-
 
 func (r *rawDisk) closeWithRoot(root maybe.Maybe[*node]) error {
 	return r.close()
@@ -217,7 +218,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// completeKey := ToKey(completeKeyBytes)
 
 			// CURRENT IMPLEMENTATION
-			completeKey := k.Extend(ToToken(token, 4))
+			completeKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
 			if child.compressedKey.length != 0 {
 				completeKey = completeKey.Extend(child.compressedKey)
 			}
@@ -272,7 +273,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// completeKey := ToKey(completeKeyBytes)
 
 			// CURRENT IMPLEMENTATION
-			completeKey := k.Extend(ToToken(token, 4))
+			completeKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
 			if child.compressedKey.length != 0 {
 				completeKey = completeKey.Extend(child.compressedKey)
 			}
@@ -395,6 +396,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	}
 
 	if !key.HasPrefix(currKey) {
+		log.Printf("key %v %v, currkey %v %v", key.length, []byte(key.value), currKey.length, []byte(currKey.value))
 		return nil, errors.New("Key doesn't match rootkey")
 	}
 
@@ -436,11 +438,17 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 			return nil, err
 		}
 	}
-	return &node{
+
+	returnNode := &node{
 		dbNode:      currentDbNode,
 		key:         key,
 		valueDigest: currentDbNode.value,
-	}, nil
+	}
+
+	returnNode.setValueDigest(r.hasher)
+
+	return returnNode, nil
+
 }
 
 func (r *rawDisk) cacheSize() int {

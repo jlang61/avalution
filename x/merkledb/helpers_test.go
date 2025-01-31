@@ -15,9 +15,11 @@ import (
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
+
 const disk = true
+
 func getBasicDB(tb testing.TB) (*merkleDB, error) {
-	if disk{
+	if disk {
 		return getBasicDB_disk(tb)
 	}
 	return newDatabase(
@@ -33,8 +35,8 @@ func getBasicDBWithBranchFactor(bf BranchFactor) (*merkleDB, error) {
 	config.BranchFactor = bf
 	t := &testing.T{}
 	dir := t.TempDir()
-	if disk{
-		return getBasicDBWithBranchFactor_disk(bf,dir)
+	if disk {
+		return getBasicDBWithBranchFactor_disk(bf, dir)
 	}
 	return newDatabase(
 		context.Background(),

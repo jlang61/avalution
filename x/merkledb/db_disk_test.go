@@ -99,8 +99,8 @@ func newDatabase_disk(
 	}
 
 	// disk := newDBDisk(db, hasher, config, metrics)
-	//disk, err := newRawDisk(dir, "merkle.db", hasher)
-	disk, err := newRawDisk(dir, "merkle.db")
+	disk, err := newRawDisk(dir, "merkle.db", hasher, config)
+	//disk, err := newRawDisk(dir, "merkle.db")
 
 	if err != nil {
 		return nil, err
@@ -151,9 +151,9 @@ func newDatabase_disk(
 func Test_MerkleDB_Get_Safety_disk(t *testing.T) {
 	require := require.New(t)
 
-	// generate file, meant to cleanup after itself 
-	// doesnt work on windows 
-	// manually delete tempdir 
+	// generate file, meant to cleanup after itself
+	// doesnt work on windows
+	// manually delete tempdir
 	// file descriptor - handle that gives access to file
 	// under the hood of file management
 	// close file descriptor

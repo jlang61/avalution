@@ -609,7 +609,7 @@ func TestDatabaseNewViewFromBatchOpsTracked(t *testing.T) {
 }
 
 // FAILS: KEY DOES NOT MATCH WITH ROOTKEY: on require.NoError(db.Put(key2, value2))
-// CURRENTLY FAILING BECAUSE ONE KEY VLAUE PAIR HAS THE SAME SIZE OF THE ROOTKEY
+// CURRENTLY FAILING BECAUSE ONE KEY VALUE PAIR HAS THE SAME SIZE OF THE ROOTKEY
 
 func TestDatabaseCommitChanges(t *testing.T) {
 	require := require.New(t)

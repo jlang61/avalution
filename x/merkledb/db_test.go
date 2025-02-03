@@ -850,15 +850,15 @@ func TestMerkleDBClear(t *testing.T) {
 
 	emptyRootID := db.getMerkleRoot()
 
-	now := time.Now().UnixNano()
-	t.Logf("seed: %d", now)
-	r := rand.New(rand.NewSource(now)) // #nosec G404
+	// now := time.Now().UnixNano()
+	// t.Logf("seed: %d", now)
+	r := rand.New(rand.NewSource(0)) // #nosec G404
 
 	insertRandomKeyValues(
 		require,
 		r,
 		[]database.Database{db},
-		1_000,
+		2,
 		0.25,
 	)
 

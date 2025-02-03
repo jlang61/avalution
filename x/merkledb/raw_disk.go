@@ -371,7 +371,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		// all node paths start at the root
 		currentDbNode = dbNode{}
 		// tokenSize   = t.getTokenSize()
-		tokenSize = 4
+		tokenSize = BranchFactorToTokenSize[r.config.BranchFactor]
 	)
 
 	err = decodeDBNode_disk(rootBytes, &currentDbNode)
@@ -456,23 +456,26 @@ func (r *rawDisk) cacheSize() int {
 }
 
 func (r *rawDisk) NewIterator() database.Iterator {
-	return nil
+	panic("new iterator not implemented")
 }
 
 func (r *rawDisk) NewIteratorWithStart(start []byte) database.Iterator {
-	return nil
+	panic("NewIteratorWithStart not implemented")
 }
 
 func (r *rawDisk) NewIteratorWithPrefix(prefix []byte) database.Iterator {
-	return nil
+	panic("NewIteratorWithPrefix not implemented")
 }
 
 func (r *rawDisk) NewIteratorWithStartAndPrefix(start, prefix []byte) database.Iterator {
-	return nil
+	panic("NewIteratorWithStartAndPrefix not implemented")
 }
 
 func (r *rawDisk) close() error {
-	r.dm.file.WriteAt([]byte{1}, 0)
+	_, err := r.dm.file.WriteAt([]byte{1}, 0)
+	if err != nil {
+		return err
+	}
 	if err := r.dm.file.Close(); err != nil {
 		return err
 	}

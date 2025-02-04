@@ -24,7 +24,7 @@ import (
 
 // Tests is a list of all database tests
 var Tests = map[string]func(t *testing.T, db database.Database){
-	//"SimpleKeyValue":       TestSimpleKeyValue, SHOULD WORK
+	"SimpleKeyValue":       TestSimpleKeyValue,
 	"OverwriteKeyValue":    TestOverwriteKeyValue,
 	"EmptyKey":             TestEmptyKey,
 	"KeyEmptyValue":        TestKeyEmptyValue,

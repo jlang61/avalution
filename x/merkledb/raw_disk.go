@@ -303,15 +303,19 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
 		rootKey := rootNode.key
-		rootKeyLen := rootKey.length
-		rootKeyVal := rootKey.value
+		// rootKeyLen := rootKey.length
+		// rootKeyVal := rootKey.value
 
 		// log.Printf("RootkeyVal %v", rootKeyVal)
 		// log.Printf("root key %v ", rootKey)
 
-		rooyKeyByteArray := []byte{}
-		rooyKeyByteArray = append(rooyKeyByteArray, byte(rootKeyLen))
-		rooyKeyByteArray = append(rooyKeyByteArray, rootKeyVal...)
+		// rooyKeyByteArray := []byte{}
+		// rooyKeyByteArray = append(rooyKeyByteArray, byte(rootKeyLen))
+		// rooyKeyByteArray = append(rooyKeyByteArray, rootKeyVal...)
+		rooyKeyByteArray := encodeKey(rootKey)
+		// log.Printf("RootKey %v", rootKey)
+		// log.Printf("RootkeyByteArray %v", rooyKeyByteArray)
+		// completeRootKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
 
 		// log.Printf("RootkeyByteArray %v", rooyKeyByteArray)
 

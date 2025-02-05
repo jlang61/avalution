@@ -303,17 +303,19 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
 		rootKey := rootNode.key
-		rootKeyLen := rootKey.length
-		rootKeyVal := rootKey.value
+		// rootKeyLen := rootKey.length
+		// rootKeyVal := rootKey.value
 
 		// log.Printf("RootkeyVal %v", rootKeyVal)
 		// log.Printf("root key %v ", rootKey)
 
-		rooyKeyByteArray := []byte{}
-		rooyKeyByteArray = append(rooyKeyByteArray, byte(rootKeyLen))
-		rooyKeyByteArray = append(rooyKeyByteArray, rootKeyVal...)
-
+		// rooyKeyByteArray := []byte{}
+		// rooyKeyByteArray = append(rooyKeyByteArray, byte(rootKeyLen))
+		// rooyKeyByteArray = append(rooyKeyByteArray, rootKeyVal...)
+		rooyKeyByteArray := encodeKey(rootKey)
+		// log.Printf("RootKey %v", rootKey)
 		// log.Printf("RootkeyByteArray %v", rooyKeyByteArray)
+		// completeRootKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
 
 		//.Bytes()
 		rootKeyDiskAddr, err := r.dm.write(rooyKeyByteArray)
@@ -480,6 +482,21 @@ func (r *rawDisk) close() error {
 	if err := r.dm.file.Close(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r *rawDisk) Delete(k Key) error {
+	// Find the node to delete and add it to the free list
+
+	// Find the node to delete
+	node, err := r.getNode(k, false)
+	if err != nil {
+		return err
+	}
+
+	// Add node to free list
+	r.dm.free.put(node.diskAddr)
 
 	return nil
 }

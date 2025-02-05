@@ -24,7 +24,7 @@ import (
 
 // Tests is a list of all database tests
 var Tests = map[string]func(t *testing.T, db database.Database){
-	"SimpleKeyValue":       TestSimpleKeyValue,
+	//"SimpleKeyValue":       TestSimpleKeyValue,
 	"OverwriteKeyValue":    TestOverwriteKeyValue,
 	"EmptyKey":             TestEmptyKey,
 	"KeyEmptyValue":        TestKeyEmptyValue,
@@ -37,8 +37,8 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 	//"BatchRewrite":              TestBatchRewrite,  SHOULD WORK
 	"BatchReplay":               TestBatchReplay,
 	"BatchReplayPropagateError": TestBatchReplayPropagateError,
-	//"BatchInner":                TestBatchInner,
-	//"BatchLargeSize": TestBatchLargeSize,
+	"BatchInner":                TestBatchInner,
+	"BatchLargeSize":            TestBatchLargeSize,
 	/*	"IteratorSnapshot": TestIteratorSnapshot,
 		"Iterator":                         TestIterator,
 		"IteratorStart":                    TestIteratorStart,

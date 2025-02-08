@@ -24,17 +24,17 @@ import (
 
 // Tests is a list of all database tests
 var Tests = map[string]func(t *testing.T, db database.Database){
-	//"SimpleKeyValue":       TestSimpleKeyValue,
+	// "SimpleKeyValue":       TestSimpleKeyValue,
 	"OverwriteKeyValue":    TestOverwriteKeyValue,
 	"EmptyKey":             TestEmptyKey,
 	"KeyEmptyValue":        TestKeyEmptyValue,
 	"SimpleKeyValueClosed": TestSimpleKeyValueClosed,
 	"NewBatchClosed":       TestNewBatchClosed,
 	"BatchPut":             TestBatchPut,
-	//"BatchDelete":          TestBatchDelete, NOT SURE NEVER DELETE?
+	// "BatchDelete":          TestBatchDelete, 
 	"BatchReset": TestBatchReset,
-	//"BatchReuse": TestBatchReuse, SHOULD WORK
-	//"BatchRewrite":              TestBatchRewrite,  SHOULD WORK
+	// "BatchReuse": TestBatchReuse,  SHOULD WORK 
+	// "BatchRewrite":              TestBatchRewrite,  
 	"BatchReplay":               TestBatchReplay,
 	"BatchReplayPropagateError": TestBatchReplayPropagateError,
 	"BatchInner":                TestBatchInner,
@@ -58,7 +58,7 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 	"ModifyValueAfterPut":            TestModifyValueAfterPut,
 	"ModifyValueAfterBatchPut":       TestModifyValueAfterBatchPut,
 	"ModifyValueAfterBatchPutReplay": TestModifyValueAfterBatchPutReplay,
-	//"ConcurrentBatches":              TestConcurrentBatches,
+	// "ConcurrentBatches":              TestConcurrentBatches,
 	//"ManySmallConcurrentKVPairBatches": TestManySmallConcurrentKVPairBatches,
 	"PutGetEmpty": TestPutGetEmpty,
 }

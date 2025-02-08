@@ -119,8 +119,59 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 }
 
 
-func (dm *diskMgr) writeRoot(bytes []byte) (diskAddress, error) {
+func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
+	// first check the size of rootNode without the disk address
+	bytes := encodeDBNode_disk(&rootNode)
 	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16 )
+	// Calculate and add padding
+	prevSize := len(bytes)
+	nextPowerOf2Size := nextPowerOf2(prevSize)
+	// Add dummy bytes to reach the next power of 2 size
+	paddingSize := nextPowerOf2Size - prevSize
+	if paddingSize > 0 {
+		padding := make([]byte, paddingSize)
+		bytes = append(bytes, padding...)
+	}
+	rootNodeSize := len(bytes) + 16 
+	if !ok {
+		// If there is no free space, write at the end of the file
+		endOffset, err := dm.endOfFile()
+		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
+			return diskAddress{}, err
+		}
+		// We know the offset for the root node and the size 
+		rootDiskAddr := diskAddress{offset: endOffset, size: int64(rootNodeSize)}
+		// Attach the diskAddress to the rootnode 
+		rootNode.diskAddr = rootDiskAddr
+		// Encode the root node with the disk address
+		bytes = encodeDBNode_disk(&rootNode)
+		// Write the root node to the end of the file
+		_, err = dm.file.WriteAt(bytes, endOffset)
+		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
+			return diskAddress{}, err
+		}
+		_, err = dm.file.WriteAt(bytes, endOffset)
+		if err != nil {
+			log.Fatalf("failed to write data: %v", err)
+			return diskAddress{}, err
+		}
+		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
+	} else {
+		// If there is free space, we need to write at the offset 
+		rootDiskAddr := diskAddress{offset: freeSpace.offset, size: int64(rootNodeSize)}
+		rootNode.diskAddr = rootDiskAddr
+		bytes = encodeDBNode_disk(&rootNode)
+		_, err := dm.file.WriteAt(bytes, freeSpace.offset)
+		if err != nil {
+			log.Fatalf("failed to write data: %v", err)
+			return diskAddress{}, err
+		}
+		freeSpace = diskAddress{offset: freeSpace.offset, size: int64(prevSize)}
+	}
+	// log.Println("Freespace: ", freeSpace)
+	return freeSpace, nil
 
 }
 // returning diskaddress that it wrote to

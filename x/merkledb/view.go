@@ -6,6 +6,7 @@ package merkledb
 import (
 	"context"
 	"errors"
+	// "log"
 	"slices"
 	"sync"
 
@@ -152,7 +153,9 @@ func newView(
 		changes:    newChangeSummary(len(changes.BatchOps) + len(changes.MapOps)),
 		tokenSize:  db.tokenSize,
 	}
-
+	if v.root.Value() != nil {
+		// log.Printf("v.root: %v", v.root.Value().dbNode.diskAddr)
+	}
 	for _, op := range changes.BatchOps {
 		key := op.Key
 		if !changes.ConsumeBytes {

@@ -931,6 +931,8 @@ func (db *merkleDB) commitView(ctx context.Context, trieToCommit *view) error {
 	if err := db.disk.writeChanges(ctx, changes); err != nil {
 		return err
 	}
+	// set the changes.rootChange.node.diskaddress to the address of the root node
+	// in the database
 
 	db.history.record(changes)
 

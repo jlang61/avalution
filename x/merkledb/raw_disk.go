@@ -174,11 +174,14 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 }
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
+
+	// change the rootnode's diskaddress to on file diskaddress if it exists
+	// iterate through the entire tree 		
+
 	var keys []Key
 
 	for k := range changes.nodes {
 		keys = append(keys, k)
-
 	}
 
 	// sort the keys by length, then start at the longest keys (leaf nodes)
@@ -409,6 +412,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 	keylen := currKey.length // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
 
+	tempDiskAddr := diskAddress{}
 	// while the entire path hasn't been matched
 	for keylen < (key.length) {
 		// confirm that a child exists and grab its address before attempting to load it
@@ -437,6 +441,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 		// grab the next node along the path
 		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
+		tempDiskAddr = nextChildEntry.diskAddr
 		if err != nil {
 			return nil, err
 		}
@@ -449,6 +454,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		dbNode:      currentDbNode,
 		key:         key,
 		valueDigest: currentDbNode.value,
+		diskAddr: 	 tempDiskAddr,
 	}
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil

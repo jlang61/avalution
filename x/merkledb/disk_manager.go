@@ -118,6 +118,11 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 	return nil
 }
 
+
+func (dm *diskMgr) writeRoot(bytes []byte) (diskAddress, error) {
+	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16 )
+
+}
 // returning diskaddress that it wrote to
 // if we write to freelist: diskaddress would be the size of freespace
 // if we dont write to freelist: append bytes to end, return endoffset and size

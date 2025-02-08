@@ -19,9 +19,9 @@ var (
 		// "Get":            BenchmarkGet,
 		// "Put":            BenchmarkPut,
 		// // "Delete":         BenchmarkDelete,
-		// "BatchPut":       BenchmarkBatchPut,
+		// "BatchPut":       BenchmarkBatchPut, // works 
 		// // "BatchDelete":    BenchmarkBatchDelete,
-		"BatchWrite":     BenchmarkBatchWrite,
+		// "BatchWrite":     BenchmarkBatchWrite, // works
 		// "ParallelGet":    BenchmarkParallelGet,
 		// "ParallelPut":    BenchmarkParallelPut,
 		// "ParallelDelete": BenchmarkParallelDelete,

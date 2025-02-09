@@ -85,7 +85,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 	}
 
 	// start freelist
-	maxSize := 1024
+	maxSize := 4096
 	f := newFreeList(maxSize)
 	f.load(dir)
 
@@ -118,11 +118,10 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 	return nil
 }
 
-
 func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 	// first check the size of rootNode without the disk address
 	bytes := encodeDBNode_disk(&rootNode)
-	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16 )
+	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16)
 	// Calculate and add padding
 	prevSize := len(bytes)
 	nextPowerOf2Size := nextPowerOf2(prevSize)
@@ -132,7 +131,7 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 		padding := make([]byte, paddingSize)
 		bytes = append(bytes, padding...)
 	}
-	rootNodeSize := len(bytes) + 16 
+	rootNodeSize := len(bytes) + 16
 	if !ok {
 		// If there is no free space, write at the end of the file
 		endOffset, err := dm.endOfFile()
@@ -140,9 +139,9 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 			log.Fatalf("failed to get end of file: %v", err)
 			return diskAddress{}, err
 		}
-		// We know the offset for the root node and the size 
+		// We know the offset for the root node and the size
 		rootDiskAddr := diskAddress{offset: endOffset, size: int64(rootNodeSize)}
-		// Attach the diskAddress to the rootnode 
+		// Attach the diskAddress to the rootnode
 		rootNode.diskAddr = rootDiskAddr
 		// Encode the root node with the disk address
 		bytes = encodeDBNode_disk(&rootNode)
@@ -159,7 +158,7 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 		}
 		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
 	} else {
-		// If there is free space, we need to write at the offset 
+		// If there is free space, we need to write at the offset
 		rootDiskAddr := diskAddress{offset: freeSpace.offset, size: int64(rootNodeSize)}
 		rootNode.diskAddr = rootDiskAddr
 		bytes = encodeDBNode_disk(&rootNode)
@@ -174,6 +173,7 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 	return freeSpace, nil
 
 }
+
 // returning diskaddress that it wrote to
 // if we write to freelist: diskaddress would be the size of freespace
 // if we dont write to freelist: append bytes to end, return endoffset and size
@@ -216,6 +216,7 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 	// log.Println("Freespace: ", freeSpace)
 	return freeSpace, nil
 }
+
 // Helper function for Disk Manager
 func (dm *diskMgr) endOfFile() (int64, error) {
 	fileInfo, err := dm.file.Stat()
@@ -224,7 +225,6 @@ func (dm *diskMgr) endOfFile() (int64, error) {
 	}
 	return fileInfo.Size(), err
 }
-
 
 // Helper function to calculate the next power of 2 for a given size
 func nextPowerOf2(n int) int {

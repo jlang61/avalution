@@ -30,7 +30,7 @@ type node struct {
 	dbNode
 	key         Key
 	valueDigest maybe.Maybe[[]byte]
-	diskAddr    diskAddress
+	//diskAddr    diskAddress
 }
 
 // Returns a new node with the given [key] and no value.
@@ -97,7 +97,7 @@ func (n *node) addChildWithID(childNode *node, tokenSize int, childID ids.ID) {
 			compressedKey: childNode.key.Skip(n.key.length + tokenSize),
 			id:            childID,
 			hasValue:      childNode.hasValue(),
-			diskAddr: 	   childNode.dbNode.diskAddr,
+			diskAddr:      childNode.dbNode.diskAddr,
 		},
 	)
 }

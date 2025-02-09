@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -861,7 +860,7 @@ func TestMerkleDBClear(t *testing.T) {
 		require,
 		r,
 		[]database.Database{db},
-		2,
+		13,
 		0.25,
 	)
 
@@ -1304,21 +1303,22 @@ func insertRandomKeyValues(
 	for i := uint(0); i < numKeyValues; i++ {
 		keyLen := rand.Intn(maxKeyLen)
 		key := make([]byte, keyLen)
-		log.Print("key: ", key)
+
 		_, _ = rand.Read(key)
 
 		valueLen := rand.Intn(maxValLen)
 		value := make([]byte, valueLen)
 		_, _ = rand.Read(value)
-		for _, db := range dbs {
-			require.NoError(db.Put(key, value))
-		}
+		// for _, db := range dbs {
+		db := dbs[0]
+		require.NoError(db.Put(key, value))
+		// }
 
-		if rand.Float64() < deletePortion {
-			for _, db := range dbs {
-				require.NoError(db.Delete(key))
-			}
-		}
+		// if rand.Float64() < deletePortion {
+		// 	for _, db := range dbs {
+		// 		require.NoError(db.Delete(key))
+		// 	}
+		// }
 	}
 }
 

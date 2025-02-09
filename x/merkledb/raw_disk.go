@@ -175,15 +175,14 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	// 3 nodes
-	// 0 
+	// 0
 	// 4000, 8000
 	// 33 3133
 	// change the rootnode's diskaddress to on file diskaddress if it exists
-	// iterate through the entire tree 		
-
+	// iterate through the entire tree
 
 	// rootnode diskaddress rootchange.before
-	// nodes.children.diskaddress - missing 
+	// nodes.children.diskaddress - missing
 	var keys []Key
 
 	for k := range changes.nodes {
@@ -240,7 +239,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// Check remainingNodes actually have disk addresses
 			if child.diskAddr == (diskAddress{}) {
 				return errors.New("regular node child disk address missing")
-			} 
+			}
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
@@ -249,10 +248,11 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 
 		// If there is not a node with the key in the map, create a new map with the key being the ch
-		if childrenNodes[k] == (diskAddress{}){
+		if childrenNodes[k] == (diskAddress{}) {
 			// If the node is a leaf node, compress the key and store the disk address
 			key := Key{length: k.length, value: k.value}
 			childrenNodes[key] = diskAddr
+
 		}
 
 	}
@@ -282,12 +282,12 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// Check remainingNodes actually have disk addresses
 			if child.diskAddr == (diskAddress{}) {
 				return errors.New("root node child disk address missing")
-			} 
+			}
 		}
 		// writing rootNode to header
 		rootNode := changes.rootChange.after.Value()
 		// add function that would write the root node to the disk while also updating the disk address
-		rootDiskAddr, err  := r.dm.writeRoot(rootNode.dbNode)
+		rootDiskAddr, err := r.dm.writeRoot(rootNode.dbNode)
 		if err != nil {
 			return err
 		}
@@ -400,6 +400,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		// for token, child := range currentDbNode.children {
 		// 	log.Printf("Token: %v for Child: %s", (token), child.compressedKey.value)
 		// }
+
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keylen, tokenSize)]
 
 		keylen += tokenSize
@@ -409,7 +410,8 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
-			return nil, errors.New("Key doesn't match an existing node")
+			// return nil, errors.New("Key doesn't match an existing node")
+			return nil, database.ErrNotFound
 
 		}
 
@@ -433,8 +435,11 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		dbNode:      currentDbNode,
 		key:         key,
 		valueDigest: currentDbNode.value,
-		diskAddr: 	 tempDiskAddr,
+		//diskAddr:    tempDiskAddr,
 	}
+	log.Printf("dbnode %v", returnNode.dbNode)
+
+	returnNode.dbNode.diskAddr = tempDiskAddr
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil
 }

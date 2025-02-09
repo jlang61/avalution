@@ -860,7 +860,7 @@ func TestMerkleDBClear(t *testing.T) {
 		require,
 		r,
 		[]database.Database{db},
-		13,
+		62, //starts to fail at 62
 		0.25,
 	)
 

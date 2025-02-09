@@ -872,6 +872,7 @@ func (v *view) insert(
 			compressedKey: existingChildEntry.compressedKey.Skip(commonPrefixLength + v.tokenSize),
 			id:            existingChildEntry.id,
 			hasValue:      existingChildEntry.hasValue,
+			diskAddr: 	   existingChildEntry.diskAddr,
 		})
 
 	return nodeWithValue, v.recordNewNode(branchNode)

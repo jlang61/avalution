@@ -67,7 +67,7 @@ func (f *freeList) put(space diskAddress) {
 		return
 	}
 	bucket := f.bucketIndex(space.size)
-	log.Print(bucket)
+	// log.Print(bucket)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
 

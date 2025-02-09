@@ -16,12 +16,12 @@ import (
 var (
 	// Benchmarks is a list of all database benchmarks
 	Benchmarks = map[string]func(b *testing.B, db database.Database, keys, values [][]byte){
-		// "Get":            BenchmarkGet,
+		"Get":            BenchmarkGet,
 		// "Put":            BenchmarkPut,
 		// // "Delete":         BenchmarkDelete,
 		// "BatchPut":       BenchmarkBatchPut,
 		// // "BatchDelete":    BenchmarkBatchDelete,
-		"BatchWrite":     BenchmarkBatchWrite,
+		// "BatchWrite":     BenchmarkBatchWrite,
 		// "ParallelGet":    BenchmarkParallelGet,
 		// "ParallelPut":    BenchmarkParallelPut,
 		// "ParallelDelete": BenchmarkParallelDelete,

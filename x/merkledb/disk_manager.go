@@ -85,7 +85,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 	}
 
 	// start freelist
-	maxSize := 4096
+	maxSize := 4096 * 16 * 16
 	f := newFreeList(maxSize)
 	f.load(dir)
 

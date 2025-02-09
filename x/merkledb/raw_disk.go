@@ -339,6 +339,7 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
+	// log.Printf("Getting node for key %v", key)
 	metadata, err := r.dm.getHeader()
 	if err != nil {
 		return nil, err
@@ -398,16 +399,16 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		// log.Printf("currentDbNode value %s", currentDbNode.value.Value())
 		// log.Printf("num of children %d", len(currentDbNode.children))
 		// for token, child := range currentDbNode.children {
-		// 	log.Printf("Token: %v for Child: %s", (token), child.compressedKey.value)
+		// 	log.Printf("Token: %v for Child: %x", (token), child.compressedKey.value)
 		// }
-
+		// log.Printf("Checking key %x", key.Token(keylen, tokenSize))
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keylen, tokenSize)]
 
 		keylen += tokenSize
 		if !hasChild {
 			return nil, database.ErrNotFound
 		}
-
+		// log.Printf("nextChildEntry %v", nextChildEntry)
 		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
 			// return nil, errors.New("Key doesn't match an existing node")
@@ -416,12 +417,14 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		}
 
 		// get the next key from the current child
-		currKey = nextChildEntry.compressedKey
-		keylen += currKey.length
+		currKey := ToToken(key.Token(keylen-tokenSize, tokenSize), tokenSize)
+		// log.Printf("currKey %x", currKey)
+		currKey = currKey.Extend(nextChildEntry.compressedKey)
+		keylen += currKey.length - tokenSize
 
 		// grab the next node along the path
 		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
-		tempDiskAddr = nextChildEntry.diskAddr
+		tempDiskAddr = currentDbNode.diskAddr
 		if err != nil {
 			return nil, err
 		}
@@ -437,7 +440,6 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		valueDigest: currentDbNode.value,
 		//diskAddr:    tempDiskAddr,
 	}
-	log.Printf("dbnode %v", returnNode.dbNode)
 
 	returnNode.dbNode.diskAddr = tempDiskAddr
 	returnNode.setValueDigest(r.hasher)

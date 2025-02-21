@@ -15,7 +15,7 @@ import (
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
-const disk = false
+const disk = true
 func getBasicDB(tb testing.TB) (*merkleDB, error) {
 	if disk{
 		return getBasicDB_disk(tb)

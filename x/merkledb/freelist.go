@@ -50,14 +50,6 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 		return diskAddress{}, false
 	}*/
 	bucket := f.bucketIndex(size)
-	// for i := bucket; i < len(f.buckets); i++ {
-	// 	if len(f.buckets[i]) > 0 {
-	// 		space := f.buckets[i][len(f.buckets[i])-1]
-	// 		f.buckets[i] = f.buckets[i][:len(f.buckets[i])-1]
-	// 		return space, true
-	// 	}
-	// }
-
 
 	if len(f.buckets[bucket]) > 0 {
 		space := f.buckets[bucket][len(f.buckets[bucket])-1]
@@ -104,22 +96,16 @@ func (f *freeList) close(dir string) error {
 		for _, space := range pool {
 			// Encode the diskAddress to bytes
 			data := space.bytes()
-			// log.Print(space.bytes())
-
 			// Write the bytes at the current offset, returns number of bytes written
 			n, err := r.WriteAt(data[:], offset)
 			if err != nil {
 				panic(err)
 			}
-			// if r.file.Sync() == nil {
-			// 	log.Println("Data written successfully at the end of the file BIG DUB.")
-			// }
 			// Increment the offset by the number of bytes written
 			offset += int64(n)
 		}
 	}
 	// ensures that the file is written to disk
-	// log.Println(os.ReadFile("freeList.db"))
 	err = r.Sync()
 	if err != nil {
 		return err

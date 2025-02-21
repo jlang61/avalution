@@ -174,13 +174,6 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 }
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-	// readBytes := make([]byte, 5634)
-	// _, _ = r.dm.file.ReadAt(readBytes, 1146860)
-  	// log.Printf("Value at 46940 %v", readBytes)
-	// 3 nodes
-	// 0
-	// 4000, 8000
-	// 33 3133
 	// change the rootnode's diskaddress to on file diskaddress if it exists
 	// iterate through the entire tree
 
@@ -246,14 +239,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
-		// if diskAddr.offset == 1146860{
-		// 	// log.Print("ERRRR: ", diskAddr)
-		// }
-		// if diskAddr.offset + diskAddr.size > (1146860){
-		// 	if diskAddr.offset + diskAddr.size < (1146860+5634){
-		// 		// log.Printf("ERROR IN WRITING NODE %v", nodeChange.after.key)
-		// 	}
-		// }
 		if err != nil {
 			return err
 		}
@@ -329,15 +314,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// ensuring that there are two trees, then add old one to freelist
 	for _, nodeChange := range changes.nodes {
 		if nodeChange.before != nil {
-			/*oldDiskAddr := nodeChange.before.diskAddr
-			if oldDiskAddr.offset >= 0 && oldDiskAddr.size > 0 {
-				r.dm.free.put(oldDiskAddr)
-			}*/
-			//log.Printf("Getting size %v", nodeChange.before.diskAddr.size)
-			// log.Printf("Putting %v to free list", nodeChange.before.diskAddr)
-			if nodeChange.before.diskAddr.offset == 43127{
-				log.Print("ERRRR: ", nodeChange.before.diskAddr)
-			}
 			r.dm.free.put(nodeChange.before.diskAddr)
 
 		}
@@ -363,10 +339,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 		}
 	}
-	// readBytes = make([]byte, 5634)
-	// _, _ = r.dm.file.ReadAt(readBytes, 1146860)
-	// log.Printf("Value at 46940 %v", readBytes)
-
 	return r.dm.file.Sync()
 }
 

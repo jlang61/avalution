@@ -164,8 +164,6 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 		size = int64(nextPowerOf2(int(size)))
 		// Calculate and add padding
 		prevSize := len(bytes)
-		// log.Print("Prev Size: ", prevSize)
-		// log.Print("Next Power of 2: ", size)
 		paddingSize := int(size) - prevSize
 		if paddingSize > 0 {
 			padding := make([]byte, paddingSize)
@@ -202,8 +200,6 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 		// Calculate and add padding
 		prevSize := len(bytes)
 		nextPowerOf2Size := nextPowerOf2(prevSize)
-		// log.Print("Prev Size: ", prevSize)
-		// log.Print("Next Power of 2: ", nextPowerOf2Size)
 		// Add dummy bytes to reach the next power of 2 size
 		paddingSize := nextPowerOf2Size - prevSize
 		if paddingSize > 0 {
@@ -229,12 +225,6 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 		// Calculate and add padding
 
 		prevSize := len(bytes)
-		// log.Print("Prev Size: ", prevSize)
-		// log.Print("Next Power of 2: ", size)
-
-
-
-
 		paddingSize := int(size) - prevSize
 		if paddingSize > 0 {
 			padding := make([]byte, paddingSize)
@@ -249,7 +239,6 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 		// log.Println("Data written successfully at free space.")
 		freeSpace = diskAddress{offset: freeSpace.offset, size: int64(prevSize)}
 	}
-	// log.Println("Freespace: ", freeSpace)
 	return freeSpace, nil
 }
 

@@ -16,14 +16,14 @@ import (
 var (
 	// Benchmarks is a list of all database benchmarks
 	Benchmarks = map[string]func(b *testing.B, db database.Database, keys, values [][]byte){
-		"Get":            BenchmarkGet,
-		"Put":            BenchmarkPut,
-		// "Delete":         BenchmarkDelete,
-		"BatchPut":       BenchmarkBatchPut,
-		"BatchDelete":    BenchmarkBatchDelete,
-		"BatchWrite":     BenchmarkBatchWrite,
-		"ParallelGet":    BenchmarkParallelGet,
-		"ParallelPut":    BenchmarkParallelPut,
+		// "Get":            BenchmarkGet,
+		// "Put":            BenchmarkPut,
+		"Delete": BenchmarkDelete,
+		// "BatchPut":       BenchmarkBatchPut,
+		// "BatchDelete":    BenchmarkBatchDelete,
+		// "BatchWrite":     BenchmarkBatchWrite,
+		// "ParallelGet":    BenchmarkParallelGet,
+		// "ParallelPut":    BenchmarkParallelPut,
 		// "ParallelDelete": BenchmarkParallelDelete,
 	}
 	// BenchmarkSizes to use with each benchmark
@@ -36,7 +36,7 @@ var (
 )
 
 // Writes size data into the db in order to setup reads in subsequent tests.
-func SetupBenchmark(b *testing.B, count int, keySize, valueSize int) ([][]byte, [][]byte) {
+func SetupBenchmark(b testing.TB, count int, keySize, valueSize int) ([][]byte, [][]byte) {
 	require := require.New(b)
 
 	b.Helper()

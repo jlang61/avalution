@@ -184,11 +184,21 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	for k := range changes.nodes {
 		keys = append(keys, k)
 	}
-	
+
 	// sort the keys by length, then start at the longest keys (leaf nodes)
+	// sorting longest to shortest
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i].length > keys[j].length
 	})
+
+	if len(keys) > 0 {
+		for i := 0; i < len(keys)-2; i += 2 {
+			pair := keys[i : i+2]
+			if pair[0].length < pair[1].length {
+				log.Printf("prev key shorter than next key")
+			}
+		}
+	}
 
 	// Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
 	childrenNodes := make(map[Key]diskAddress)
@@ -485,4 +495,3 @@ func (r *rawDisk) close() error {
 
 	return nil
 }
-

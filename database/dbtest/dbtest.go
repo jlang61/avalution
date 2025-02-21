@@ -51,7 +51,7 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 	// "CompactNoPanic": TestCompactNoPanic, only this one doesnt pass
 	"MemorySafetyDatabase": TestMemorySafetyDatabase,
 	"MemorySafetyBatch": TestMemorySafetyBatch,
-	//"AtomicClear":       TestAtomicClear,
+	// "AtomicClear":       TestAtomicClear,
 	//"Clear": TestClear,
 	//"AtomicClearPrefix": TestAtomicClearPrefix,
 	//"ClearPrefix":                      TestClearPrefix,

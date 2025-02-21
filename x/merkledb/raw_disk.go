@@ -141,8 +141,8 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 		diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
 		remainingNodes = append(remainingNodes, diskAddressKey)
 
-		// log.Printf("Token of %v with child compressed key %v", token, child.compressedKey)
-		// log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
+		log.Printf("Token of %v with child compressed key %v", token, child.compressedKey.length)
+		log.Printf("Child with key %v with parent key %v", totalKey.length, parentKey.length)
 	}
 	for _, diskAddressKey := range remainingNodes {
 		// iterate through the first instance of the remainingNodes
@@ -163,7 +163,7 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 			diskAddressKey := diskAddressWithKey{addr: &child.diskAddr, key: totalKey}
 			remainingNodes = append(remainingNodes, diskAddressKey)
 
-			// log.Printf("Child with key %v with parent key %v", totalKey, parentKey)
+			log.Printf("Child with key %v with parent key %v", totalKey.length, parentKey.length)
 		}
 		// remove the node from remainingNodes array
 		remainingNodes = remainingNodes[1:]
@@ -174,6 +174,9 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 }
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
+	// readBytes := make([]byte, 5634)
+	// _, _ = r.dm.file.ReadAt(readBytes, 1146860)
+  	// log.Printf("Value at 46940 %v", readBytes)
 	// 3 nodes
 	// 0
 	// 4000, 8000
@@ -188,7 +191,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	for k := range changes.nodes {
 		keys = append(keys, k)
 	}
-
+	
 	// sort the keys by length, then start at the longest keys (leaf nodes)
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i].length > keys[j].length
@@ -243,6 +246,14 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
+		// if diskAddr.offset == 1146860{
+		// 	// log.Print("ERRRR: ", diskAddr)
+		// }
+		// if diskAddr.offset + diskAddr.size > (1146860){
+		// 	if diskAddr.offset + diskAddr.size < (1146860+5634){
+		// 		// log.Printf("ERROR IN WRITING NODE %v", nodeChange.after.key)
+		// 	}
+		// }
 		if err != nil {
 			return err
 		}
@@ -305,7 +316,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
 
 		// print the tree
-		err = r.printTree(rootDiskAddr, changes)
+		// err = r.printTree(rootDiskAddr, changes)
 		if err != nil {
 			return err
 		}
@@ -323,8 +334,12 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				r.dm.free.put(oldDiskAddr)
 			}*/
 			//log.Printf("Getting size %v", nodeChange.before.diskAddr.size)
-			log.Printf("Putting %v to free list", nodeChange.before.diskAddr)
+			// log.Printf("Putting %v to free list", nodeChange.before.diskAddr)
+			if nodeChange.before.diskAddr.offset == 43127{
+				log.Print("ERRRR: ", nodeChange.before.diskAddr)
+			}
 			r.dm.free.put(nodeChange.before.diskAddr)
+
 		}
 		if nodeChange.before != nil && nodeChange.after == nil {
 			// make a new node that is the same as the old node but with has value set to false
@@ -348,10 +363,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 		}
 	}
-
-	if err := r.dm.file.Sync(); err != nil {
-		log.Fatalf("failed to sync data at the end: %v", err)
-	}
+	// readBytes = make([]byte, 5634)
+	// _, _ = r.dm.file.ReadAt(readBytes, 1146860)
+	// log.Printf("Value at 46940 %v", readBytes)
 
 	return r.dm.file.Sync()
 }
@@ -500,17 +514,3 @@ func (r *rawDisk) close() error {
 	return nil
 }
 
-func (r *rawDisk) Delete(k Key) error {
-	// Find the node to delete and add it to the free list
-
-	// Find the node to delete
-	node, err := r.getNode(k, false)
-	if err != nil {
-		return err
-	}
-
-	// Add node to free list
-	r.dm.free.put(node.diskAddr)
-
-	return nil
-}

@@ -112,8 +112,15 @@ func Test_MerkleDB_DB_Interface(t *testing.T) {
 				dir := t.TempDir()
 				db, err := getBasicDBWithBranchFactor_disk(bf, dir)
 				require.NoError(t, err)
+
+				// Ensure the database is closed before cleanup
+				t.Cleanup(func() {
+					db.Close()
+				})
+
 				test(t, db)
 			})
+
 		}
 	}
 }
@@ -126,6 +133,9 @@ func Benchmark_MerkleDB_DBInterface(b *testing.B) {
 				b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
 					db, err := getBasicDBWithBranchFactor(bf)
 					require.NoError(b, err)
+					b.Cleanup(func() {
+						db.Close()
+					})
 					bench(b, db, keys, values)
 				})
 			}
@@ -860,7 +870,7 @@ func TestMerkleDBClear(t *testing.T) {
 		require,
 		r,
 		[]database.Database{db},
-		62, //starts to fail at 62
+		10000, //starts to fail at 146
 		0.25,
 	)
 

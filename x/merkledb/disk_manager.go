@@ -119,20 +119,23 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 }
 
 func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
+
+
 	// first check the size of rootNode without the disk address
 	bytes := encodeDBNode_disk(&rootNode)
 	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16)
 	// Calculate and add padding
-	prevSize := len(bytes)
-	nextPowerOf2Size := nextPowerOf2(prevSize)
+	
 	// Add dummy bytes to reach the next power of 2 size
-	paddingSize := nextPowerOf2Size - prevSize
-	if paddingSize > 0 {
-		padding := make([]byte, paddingSize)
-		bytes = append(bytes, padding...)
-	}
-	rootNodeSize := len(bytes) + 16
 	if !ok {
+		prevSize := len(bytes)
+		nextPowerOf2Size := nextPowerOf2(prevSize)
+		paddingSize := nextPowerOf2Size - prevSize
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
+		rootNodeSize := len(bytes) + 16
 		// If there is no free space, write at the end of the file
 		endOffset, err := dm.endOfFile()
 		if err != nil {
@@ -145,6 +148,10 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 		rootNode.diskAddr = rootDiskAddr
 		// Encode the root node with the disk address
 		bytes = encodeDBNode_disk(&rootNode)
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
 		// Write the root node to the end of the file
 		_, err = dm.file.WriteAt(bytes, endOffset)
 		if err != nil {
@@ -153,10 +160,26 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 		}
 		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
 	} else {
+		size := freeSpace.size
+		size = int64(nextPowerOf2(int(size)))
+		// Calculate and add padding
+		prevSize := len(bytes)
+		// log.Print("Prev Size: ", prevSize)
+		// log.Print("Next Power of 2: ", size)
+		paddingSize := int(size) - prevSize
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
+		rootNodeSize := len(bytes) + 16
 		// If there is free space, we need to write at the offset
 		rootDiskAddr := diskAddress{offset: freeSpace.offset, size: int64(rootNodeSize)}
 		rootNode.diskAddr = rootDiskAddr
 		bytes = encodeDBNode_disk(&rootNode)
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
 		_, err := dm.file.WriteAt(bytes, freeSpace.offset)
 		if err != nil {
 			log.Fatalf("failed to write data: %v", err)
@@ -174,17 +197,19 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 // if we dont write to freelist: append bytes to end, return endoffset and size
 func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 	freeSpace, ok := dm.free.get(int64(len(bytes)))
-	// Calculate and add padding
-	prevSize := len(bytes)
-	nextPowerOf2Size := nextPowerOf2(prevSize)
-	// Add dummy bytes to reach the next power of 2 size
-	paddingSize := nextPowerOf2Size - prevSize
-	if paddingSize > 0 {
-		padding := make([]byte, paddingSize)
-		bytes = append(bytes, padding...)
-	}
 	// log.Println("Initial Get: ", freeSpace)
 	if !ok {
+		// Calculate and add padding
+		prevSize := len(bytes)
+		nextPowerOf2Size := nextPowerOf2(prevSize)
+		// log.Print("Prev Size: ", prevSize)
+		// log.Print("Next Power of 2: ", nextPowerOf2Size)
+		// Add dummy bytes to reach the next power of 2 size
+		paddingSize := nextPowerOf2Size - prevSize
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
 		// If there is no free space, write at the end of the file
 		endOffset, err := dm.endOfFile()
 		if err != nil {
@@ -199,6 +224,22 @@ func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
 		// log.Println("Data written successfully at the end of the file.")
 		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
 	} else {
+		size := freeSpace.size
+		size = int64(nextPowerOf2(int(size)))
+		// Calculate and add padding
+
+		prevSize := len(bytes)
+		// log.Print("Prev Size: ", prevSize)
+		// log.Print("Next Power of 2: ", size)
+
+
+
+
+		paddingSize := int(size) - prevSize
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
 		// If there is free space, write at the offset
 		_, err := dm.file.WriteAt(bytes, freeSpace.offset)
 		if err != nil {

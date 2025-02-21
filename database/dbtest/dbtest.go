@@ -24,17 +24,17 @@ import (
 
 // Tests is a list of all database tests
 var Tests = map[string]func(t *testing.T, db database.Database){
-	// "SimpleKeyValue":       TestSimpleKeyValue,
+	"SimpleKeyValue":       TestSimpleKeyValue,
 	"OverwriteKeyValue":    TestOverwriteKeyValue,
 	"EmptyKey":             TestEmptyKey,
 	"KeyEmptyValue":        TestKeyEmptyValue,
 	"SimpleKeyValueClosed": TestSimpleKeyValueClosed,
 	"NewBatchClosed":       TestNewBatchClosed,
 	"BatchPut":             TestBatchPut,
-	// "BatchDelete":          TestBatchDelete, 
+	"BatchDelete":          TestBatchDelete, 
 	"BatchReset": TestBatchReset,
-	// "BatchReuse": TestBatchReuse,  SHOULD WORK 
-	// "BatchRewrite":              TestBatchRewrite,  
+	"BatchReuse": TestBatchReuse,   
+	"BatchRewrite":              TestBatchRewrite,  
 	"BatchReplay":               TestBatchReplay,
 	"BatchReplayPropagateError": TestBatchReplayPropagateError,
 	"BatchInner":                TestBatchInner,
@@ -48,8 +48,8 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 		"IteratorClosed":                   TestIteratorClosed,
 		"IteratorError":                    TestIteratorError,
 		"IteratorErrorAfterRelease":        TestIteratorErrorAfterRelease,*/
-	//"CompactNoPanic": TestCompactNoPanic,
-	//"MemorySafetyDatabase": TestMemorySafetyDatabase,
+	// "CompactNoPanic": TestCompactNoPanic, only this one doesnt pass
+	"MemorySafetyDatabase": TestMemorySafetyDatabase,
 	"MemorySafetyBatch": TestMemorySafetyBatch,
 	//"AtomicClear":       TestAtomicClear,
 	//"Clear": TestClear,
@@ -58,10 +58,10 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 	"ModifyValueAfterPut":            TestModifyValueAfterPut,
 	"ModifyValueAfterBatchPut":       TestModifyValueAfterBatchPut,
 	"ModifyValueAfterBatchPutReplay": TestModifyValueAfterBatchPutReplay,
-	// "ConcurrentBatches":              TestConcurrentBatches,
-	//"ManySmallConcurrentKVPairBatches": TestManySmallConcurrentKVPairBatches,
+	"ConcurrentBatches":              TestConcurrentBatches,
+	"ManySmallConcurrentKVPairBatches": TestManySmallConcurrentKVPairBatches,
 	"PutGetEmpty": TestPutGetEmpty,
-}
+} 
 
 // TestSimpleKeyValue tests to make sure that simple Put + Get + Delete + Has
 // calls return the expected values.

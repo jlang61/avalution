@@ -85,7 +85,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 	}
 
 	// start freelist
-	maxSize := 4096 * 16 * 16
+	maxSize := 4096 * 4 * 4
 	f := newFreeList(maxSize)
 	f.load(dir)
 
@@ -146,11 +146,6 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 		// Encode the root node with the disk address
 		bytes = encodeDBNode_disk(&rootNode)
 		// Write the root node to the end of the file
-		_, err = dm.file.WriteAt(bytes, endOffset)
-		if err != nil {
-			log.Fatalf("failed to get end of file: %v", err)
-			return diskAddress{}, err
-		}
 		_, err = dm.file.WriteAt(bytes, endOffset)
 		if err != nil {
 			log.Fatalf("failed to write data: %v", err)

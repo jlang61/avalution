@@ -382,6 +382,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	)
 
 	err = decodeDBNode_disk(rootBytes, &currentDbNode)
+	currentDbNode.diskAddr = rootAddress
 	if err != nil {
 		return nil, database.ErrNotFound
 	}
@@ -409,7 +410,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 	keylen := currKey.length // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
 
-	tempDiskAddr := diskAddress{}
+	// tempDiskAddr := diskAddress{}
 	// while the entire path hasn't been matched
 	for keylen < (key.length) {
 		// confirm that a child exists and grab its address before attempting to load it
@@ -442,11 +443,12 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 		// grab the next node along the path
 		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
-		tempDiskAddr = currentDbNode.diskAddr
+		// tempDiskAddr = currentDbNode.diskAddr
 		if err != nil {
 			return nil, err
 		}
 		err = decodeDBNode_disk(nextBytes, &currentDbNode)
+		currentDbNode.diskAddr = nextChildEntry.diskAddr
 		if err != nil {
 			return nil, err
 		}
@@ -459,7 +461,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		//diskAddr:    tempDiskAddr,
 	}
 
-	returnNode.dbNode.diskAddr = tempDiskAddr
+	returnNode.dbNode.diskAddr = currentDbNode.diskAddr
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil
 }

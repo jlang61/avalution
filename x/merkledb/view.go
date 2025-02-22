@@ -722,6 +722,7 @@ func (v *view) compressNodePath(parent, n *node) error {
 			compressedKey: childKey.Skip(parent.key.length + v.tokenSize),
 			id:            childEntry.id,
 			hasValue:      childEntry.hasValue,
+			diskAddr: 	   childEntry.diskAddr,
 		})
 	return v.recordNodeChange(parent)
 }

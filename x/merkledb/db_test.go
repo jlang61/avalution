@@ -19,7 +19,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/dbtest"
-	"github.com/ava-labs/avalanchego/database/memdb"
+	// "github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/hashing"
@@ -1390,13 +1390,13 @@ func TestGetChangeProofEmptyRootID(t *testing.T) {
 
 // PASSES
 func TestCrashRecovery(t *testing.T) {
-	panic("still uses memdb, adding panic so we don't forget")
-	require := require.New(t)
+	panic("issue of should it fail, adding panic so we don't forget")
 
-	baseDB := memdb.New()
-	merkleDB, err := newDatabase(
+	require := require.New(t)
+	tempDir := t.TempDir()
+	merkleDB, err := newDatabase_disk(
 		context.Background(),
-		baseDB,
+		tempDir,
 		newDefaultConfig(),
 		&mockMetrics{},
 	)
@@ -1412,9 +1412,9 @@ func TestCrashRecovery(t *testing.T) {
 
 	// Do not `.Close()` the database to simulate a process crash.
 
-	newMerkleDB, err := newDatabase(
+	newMerkleDB, err := newDatabase_disk(
 		context.Background(),
-		baseDB,
+		tempDir,
 		newDefaultConfig(),
 		&mockMetrics{},
 	)

@@ -292,8 +292,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 		// writing rootNode to header
 		rootNode := changes.rootChange.after.Value()
+		rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
+		rootDiskAddr, err := r.dm.write(rootNodeBytes)
 		// add function that would write the root node to the disk while also updating the disk address
-		rootDiskAddr, err := r.dm.writeRoot(rootNode.dbNode)
 		if err != nil {
 			return err
 		}

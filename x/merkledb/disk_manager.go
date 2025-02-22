@@ -4,10 +4,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"fmt"
 
 	"github.com/ava-labs/avalanchego/utils/perms"
-	"github.com/iceber/iouring-go"
 )
 
 // Metadata size constant
@@ -108,26 +106,13 @@ func (dm *diskMgr) getHeader() ([]byte, error) {
 
 func (dm *diskMgr) get(addr diskAddress) ([]byte, error) {
 	readBytes := make([]byte, addr.size)
-
-	// Use io_uring for async read
-	fd := int(dm.file.Fd()) // Get file descriptor
-	ring, err := iouring.New(8) // Create an io_uring instance
+	_, err := dm.file.ReadAt(readBytes, addr.offset)
 	if err != nil {
 		return nil, err
 	}
-	defer ring.Close()
-
-	sqe := ring.GetSQE()
-	sqe.PrepRead(fd, readBytes, addr.offset)
-	ring.SubmitAndWait(1)
-
-	cqe := ring.GetCQE()
-	if cqe.Res < 0 {
-		return nil, fmt.Errorf("failed io_uring read: %d", cqe.Res)
-	}
-
 	return readBytes, nil
 }
+
 
 
 func (dm *diskMgr) putBack(addr diskAddress) error {
@@ -211,35 +196,52 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 // if we write to freelist: diskaddress would be the size of freespace
 // if we dont write to freelist: append bytes to end, return endoffset and size
 func (dm *diskMgr) write(bytes []byte) (diskAddress, error) {
-	fd := int(dm.file.Fd()) // Get file descriptor
-	ring, err := iouring.New(8) // Create an io_uring instance
-	if err != nil {
-		return diskAddress{}, err
-	}
-	defer ring.Close()
-
-	// Get free space or append to EOF
 	freeSpace, ok := dm.free.get(int64(len(bytes)))
-	var offset int64
-	if ok {
-		offset = freeSpace.offset
-	} else {
-		offset, err = dm.endOfFile()
+	// log.Println("Initial Get: ", freeSpace)
+	if !ok {
+		// Calculate and add padding
+		prevSize := len(bytes)
+		nextPowerOf2Size := nextPowerOf2(prevSize)
+		// Add dummy bytes to reach the next power of 2 size
+		paddingSize := nextPowerOf2Size - prevSize
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
+		// If there is no free space, write at the end of the file
+		endOffset, err := dm.endOfFile()
 		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
 			return diskAddress{}, err
 		}
+		_, err = dm.file.WriteAt(bytes, endOffset)
+		if err != nil {
+			log.Fatalf("failed to write data: %v", err)
+			return diskAddress{}, err
+		}
+		// log.Println("Data written successfully at the end of the file.")
+		freeSpace = diskAddress{offset: endOffset, size: int64(prevSize)}
+	} else {
+		size := freeSpace.size
+		size = int64(nextPowerOf2(int(size)))
+		// Calculate and add padding
+
+		prevSize := len(bytes)
+		paddingSize := int(size) - prevSize
+		if paddingSize > 0 {
+			padding := make([]byte, paddingSize)
+			bytes = append(bytes, padding...)
+		}
+		// If there is free space, write at the offset
+		_, err := dm.file.WriteAt(bytes, freeSpace.offset)
+		if err != nil {
+			log.Fatalf("failed to write data: %v", err)
+			return diskAddress{}, err
+		}
+		// log.Println("Data written successfully at free space.")
+		freeSpace = diskAddress{offset: freeSpace.offset, size: int64(prevSize)}
 	}
-
-	sqe := ring.GetSQE()
-	sqe.PrepWrite(fd, bytes, offset)
-	ring.SubmitAndWait(1)
-
-	cqe := ring.GetCQE()
-	if cqe.Res < 0 {
-		return diskAddress{}, fmt.Errorf("failed io_uring write: %d", cqe.Res)
-	}
-
-	return diskAddress{offset: offset, size: int64(len(bytes))}, nil
+	return freeSpace, nil
 }
 
 

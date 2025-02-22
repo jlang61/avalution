@@ -363,7 +363,7 @@ func (r *rawDisk) Clear() error {
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	if cachedNode, ok := r.cache.Get(key); ok {
-		log.Print("Cache hit")
+		// log.Print("Cache hit")
 		return cachedNode.(*node), nil
 	}
 

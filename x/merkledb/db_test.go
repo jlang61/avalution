@@ -136,8 +136,10 @@ func TestDelete(t *testing.T) {
 		value := values[i]
 		require.NoError(db.Put(key, value))
 	}
+	for i := 0; i < 1024; i++ {
+		require.NoError(db.Delete(keys[i%1024]))
+	}
 
-	require.NoError(db.Delete(keys[0]))
 
 }
 

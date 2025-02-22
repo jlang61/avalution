@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
-
+	"github.com/hashicorp/golang-lru"
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
@@ -55,6 +55,7 @@ type rawDisk struct {
 	dm     *diskMgr
 	config Config
 	hasher Hasher
+	cache *lru.Cache
 }
 
 func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*rawDisk, error) {
@@ -62,8 +63,10 @@ func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*raw
 	if err != nil {
 		return nil, err
 	}
+	cache, _ := lru.New(1000) // LRU cache with 1000 entries
+
 	// correctly read rootId from the header
-	return &rawDisk{dm: dm, hasher: hasher, config: config}, nil
+	return &rawDisk{dm: dm, hasher: hasher, config: config, cache: cache}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
@@ -252,6 +255,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		if err != nil {
 			return err
 		}
+		r.cache.Add(k, &node{dbNode: nodeChange.after.dbNode})
 
 		// If there is not a node with the key in the map, create a new map with the key being the ch
 		if childrenNodes[k] == (diskAddress{}) {
@@ -358,6 +362,11 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
+	if cachedNode, ok := r.cache.Get(key); ok {
+		log.Print("Cache hit")
+		return cachedNode.(*node), nil
+	}
+
 	// log.Printf("Getting node for key %v", key)
 	metadata, err := r.dm.getHeader()
 	if err != nil {

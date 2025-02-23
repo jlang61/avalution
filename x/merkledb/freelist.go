@@ -50,7 +50,12 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 		return diskAddress{}, false
 	}*/
 	bucket := f.bucketIndex(size)
+	
 
+	// first check whether or not the bucket would be out of bounds
+	if bucket >= len(f.buckets) {
+		return diskAddress{}, false
+	}
 	if len(f.buckets[bucket]) > 0 {
 		space := f.buckets[bucket][len(f.buckets[bucket])-1]
 		f.buckets[bucket] = f.buckets[bucket][:len(f.buckets[bucket])-1]

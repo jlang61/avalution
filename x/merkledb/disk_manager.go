@@ -85,7 +85,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 	}
 
 	// start freelist
-	maxSize := 4096 * 4 * 4
+	maxSize := 4096 * 4 * 4 * 4
 	f := newFreeList(maxSize)
 	f.load(dir)
 
@@ -119,8 +119,6 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 }
 
 func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
-
-
 	// first check the size of rootNode without the disk address
 	bytes := encodeDBNode_disk(&rootNode)
 	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16)

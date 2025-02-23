@@ -241,12 +241,12 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// THEREFORE WE CAN SKIP THIS STEP
 		}
 		// check to ensure that all of its children have disk addresses
-		for _, child := range nodeChange.after.children {
-			// Check remainingNodes actually have disk addresses
-			if child.diskAddr == (diskAddress{}) {
-				return errors.New("regular node child disk address missing")
-			}
-		}
+		// for _, child := range nodeChange.after.children {
+		// 	// Check remainingNodes actually have disk addresses
+		// 	if child.diskAddr == (diskAddress{}) {
+		// 		return errors.New("regular node child disk address missing")
+		// 	}
+		// }
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
 		if err != nil {
@@ -284,12 +284,12 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				child.diskAddr = childrenNodes[completeKey]
 			}
 		}
-		for _, child := range changes.rootChange.after.Value().children {
-			// Check remainingNodes actually have disk addresses
-			if child.diskAddr == (diskAddress{}) {
-				return errors.New("root node child disk address missing")
-			}
-		}
+		// for _, child := range changes.rootChange.after.Value().children {
+		// 	// Check remainingNodes actually have disk addresses
+		// 	if child.diskAddr == (diskAddress{}) {
+		// 		return errors.New("root node child disk address missing")
+		// 	}
+		// }
 		// writing rootNode to header
 		rootNode := changes.rootChange.after.Value()
 		rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)

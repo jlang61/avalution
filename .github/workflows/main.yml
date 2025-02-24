@@ -1,0 +1,23 @@
+name: Go Test Check
+
+on:
+  pull_request:
+    branches:
+      - main  # Runs only on PRs targeting the main branch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'  # Adjust to your Go version
+
+      - name: Run specific tests in x/merkledb/
+        run: |
+          cd x/merkledb
+          go test -timeout 30s -run "^(Test_MerkleDB_Get_Safety|Test_MerkleDB_GetValues_Safety|Test_MerkleDB_DB_Interface|TestDelete|Test_MerkleDB_DB_Load_Root_From_DB|Test_MerkleDB_DB_Rebuild|Test_MerkleDB_Failed_Batch_Commit|Test_MerkleDB_Value_Cache|Test_MerkleDB_Invalidate_Siblings_On_Commit|Test_MerkleDB_CommitRangeProof_DeletesValuesInRange|Test_MerkleDB_CommitRangeProof_EmptyTrie|Test_MerkleDB_CommitRangeProof_TrieWithInitialValues|Test_MerkleDB_GetValues|Test_MerkleDB_InsertNil|Test_MerkleDB_HealthCheck|TestDatabaseNewUntrackedView|TestDatabaseNewViewFromBatchOpsTracked|TestDatabaseCommitChanges|TestDatabaseInvalidateChildrenExcept|Test_MerkleDB_Random_Insert_Ordering|TestMerkleDBClear|FuzzMerkleDBEmptyRandomizedActions|FuzzMerkleDBInitialValuesRandomizedActions|TestGetRangeProofAtRootEmptyRootID|TestGetChangeProofEmptyRootID|TestCrashRecovery)$"

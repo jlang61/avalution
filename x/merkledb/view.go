@@ -6,6 +6,7 @@ package merkledb
 import (
 	"context"
 	"errors"
+	// "log"
 	"slices"
 	"sync"
 
@@ -721,6 +722,7 @@ func (v *view) compressNodePath(parent, n *node) error {
 			compressedKey: childKey.Skip(parent.key.length + v.tokenSize),
 			id:            childEntry.id,
 			hasValue:      childEntry.hasValue,
+			diskAddr: 	   childEntry.diskAddr,
 		})
 	return v.recordNodeChange(parent)
 }
@@ -869,6 +871,7 @@ func (v *view) insert(
 			compressedKey: existingChildEntry.compressedKey.Skip(commonPrefixLength + v.tokenSize),
 			id:            existingChildEntry.id,
 			hasValue:      existingChildEntry.hasValue,
+			diskAddr: 	   existingChildEntry.diskAddr,
 		})
 
 	return nodeWithValue, v.recordNewNode(branchNode)

@@ -36,19 +36,21 @@ var (
 )
 
 // Writes size data into the db in order to setup reads in subsequent tests.
-func SetupBenchmark(b *testing.B, count int, keySize, valueSize int) ([][]byte, [][]byte) {
+func SetupBenchmark(b testing.TB, count int, keySize, valueSize int) ([][]byte, [][]byte) {
 	require := require.New(b)
 
 	b.Helper()
+
+	r := rand.New(rand.NewSource(0))
 
 	keys := make([][]byte, count)
 	values := make([][]byte, count)
 	for i := 0; i < count; i++ {
 		keyBytes := make([]byte, keySize)
 		valueBytes := make([]byte, valueSize)
-		_, err := rand.Read(keyBytes) // #nosec G404
+		_, err := r.Read(keyBytes) // #nosec G404
 		require.NoError(err)
-		_, err = rand.Read(valueBytes) // #nosec G404
+		_, err = r.Read(valueBytes) // #nosec G404
 		require.NoError(err)
 		keys[i], values[i] = keyBytes, valueBytes
 	}

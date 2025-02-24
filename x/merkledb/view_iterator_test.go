@@ -27,7 +27,7 @@ func Test_View_Iterator(t *testing.T) {
 	key2 := []byte("hello2")
 	value2 := []byte("world2")
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	require.NoError(db.Put(key1, value1))
@@ -60,7 +60,7 @@ func Test_View_Iterator_DBClosed(t *testing.T) {
 	key1 := []byte("hello1")
 	value1 := []byte("world1")
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	require.NoError(db.Put(key1, value1))
@@ -85,7 +85,7 @@ func Test_View_Iterator_DBClosed(t *testing.T) {
 // start midway through the database.
 func Test_View_IteratorStart(t *testing.T) {
 	require := require.New(t)
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	key1 := []byte("hello1")
@@ -118,7 +118,7 @@ func Test_View_IteratorStart(t *testing.T) {
 // keys missing the provided prefix.
 func Test_View_IteratorPrefix(t *testing.T) {
 	require := require.New(t)
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	key1 := []byte("hello")
@@ -155,7 +155,7 @@ func Test_View_IteratorPrefix(t *testing.T) {
 // midway through the database while skipping a prefix.
 func Test_View_IteratorStartPrefix(t *testing.T) {
 	require := require.New(t)
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	key1 := []byte("hello1")
@@ -219,7 +219,7 @@ func Test_View_Iterator_Random(t *testing.T) {
 		})
 	}
 
-	db, err := getBasicDB()
+	db, err := getBasicDB(t)
 	require.NoError(err)
 
 	for i := 0; i < numKeyChanges/4; i++ {

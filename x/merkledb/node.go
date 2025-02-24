@@ -4,6 +4,7 @@
 package merkledb
 
 import (
+	// "log"
 	"slices"
 
 	"github.com/ava-labs/avalanchego/ids"
@@ -14,6 +15,7 @@ import (
 type dbNode struct {
 	value    maybe.Maybe[[]byte]
 	children map[byte]*child //hashmap of byte to child
+	diskAddr diskAddress
 }
 
 type child struct {
@@ -28,7 +30,7 @@ type node struct {
 	dbNode
 	key         Key
 	valueDigest maybe.Maybe[[]byte]
-	diskAddr    diskAddress
+	//diskAddr    diskAddress
 }
 
 // Returns a new node with the given [key] and no value.
@@ -95,6 +97,7 @@ func (n *node) addChildWithID(childNode *node, tokenSize int, childID ids.ID) {
 			compressedKey: childNode.key.Skip(n.key.length + tokenSize),
 			id:            childID,
 			hasValue:      childNode.hasValue(),
+			diskAddr:      childNode.dbNode.diskAddr,
 		},
 	)
 }
@@ -114,11 +117,14 @@ func (n *node) removeChild(child *node, tokenSize int) {
 // if this ever changes, value will need to be copied as well
 // it is safe to clone all fields because they are only written/read while one or both of the db locks are held
 func (n *node) clone() *node {
+	// log.Printf("n.dbnode.diskAddr: %v", n.dbNode.diskAddr)
+	// log.Printf(("n.diskAddr: %v"), n.diskAddr)
 	result := &node{
 		key: n.key,
 		dbNode: dbNode{
 			value:    n.value,
 			children: make(map[byte]*child, len(n.children)),
+			diskAddr: n.dbNode.diskAddr,
 		},
 		valueDigest: n.valueDigest,
 	}
@@ -127,6 +133,7 @@ func (n *node) clone() *node {
 			compressedKey: existing.compressedKey,
 			id:            existing.id,
 			hasValue:      existing.hasValue,
+			diskAddr:      existing.diskAddr,
 		}
 	}
 	return result

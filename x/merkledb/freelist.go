@@ -22,6 +22,8 @@ import (
 // write byte array - keep diskaddres
 type freeList struct {
 	buckets [][]diskAddress
+	//closed  bool
+	//lock    sync.RWMutex
 }
 
 // newFreeList creates a new freeList with the specified maximum size.
@@ -42,13 +44,17 @@ func newFreeList(maxSize int) *freeList {
 // get retrieves a diskAddress from the freeList that can accommodate the specified size.
 // It returns the diskAddress and a boolean indicating whether a suitable address was found.
 func (f *freeList) get(size int64) (diskAddress, bool) {
+	/*f.lock.Lock()
+	defer f.lock.Unlock()
+	if f.closed {
+		return diskAddress{}, false
+	}*/
 	bucket := f.bucketIndex(size)
-	for i := bucket; i < len(f.buckets); i++ {
-		if len(f.buckets[i]) > 0 {
-			space := f.buckets[i][len(f.buckets[i])-1]
-			f.buckets[i] = f.buckets[i][:len(f.buckets[i])-1]
-			return space, true
-		}
+
+	if len(f.buckets[bucket]) > 0 {
+		space := f.buckets[bucket][len(f.buckets[bucket])-1]
+		f.buckets[bucket] = f.buckets[bucket][:len(f.buckets[bucket])-1]
+		return space, true
 	}
 	// No suitable free block available
 	return diskAddress{}, false
@@ -56,7 +62,11 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 
 // put adds a diskAddress to the freeList.
 func (f *freeList) put(space diskAddress) {
+	if space == (diskAddress{}) {
+		return
+	}
 	bucket := f.bucketIndex(space.size)
+	// log.Print(bucket)
 	f.buckets[bucket] = append(f.buckets[bucket], space)
 }
 
@@ -67,6 +77,11 @@ func (f *freeList) bucketIndex(size int64) int {
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.
 func (f *freeList) close(dir string) error {
+	/*f.lock.Lock()
+	defer f.lock.Unlock()
+	if f.closed {
+		return nil // or return an error indicating it's already closed
+	}*/
 	r, err := os.OpenFile(filepath.Join(dir, "freelist.db"), os.O_RDWR|os.O_CREATE, perms.ReadWrite)
 	if err != nil {
 		log.Fatalf("failed to create temp file: %v", err)
@@ -81,26 +96,21 @@ func (f *freeList) close(dir string) error {
 		for _, space := range pool {
 			// Encode the diskAddress to bytes
 			data := space.bytes()
-			// log.Print(space.bytes())
-
 			// Write the bytes at the current offset, returns number of bytes written
 			n, err := r.WriteAt(data[:], offset)
 			if err != nil {
 				panic(err)
 			}
-			// if r.file.Sync() == nil {
-			// 	log.Println("Data written successfully at the end of the file BIG DUB.")
-			// }
 			// Increment the offset by the number of bytes written
 			offset += int64(n)
 		}
 	}
 	// ensures that the file is written to disk
-	// log.Println(os.ReadFile("freeList.db"))
 	err = r.Sync()
 	if err != nil {
 		return err
 	}
+	//f.closed = true
 	return nil
 }
 

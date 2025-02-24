@@ -11,6 +11,10 @@ import (
 	"log"
 	"sort"
 
+	// "github.com/hashicorp/golang-lru"
+
+	"github.com/dgraph-io/ristretto"
+
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
 )
@@ -55,6 +59,7 @@ type rawDisk struct {
 	dm     *diskMgr
 	config Config
 	hasher Hasher
+	cache  *ristretto.Cache
 }
 
 func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*rawDisk, error) {
@@ -62,8 +67,13 @@ func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*raw
 	if err != nil {
 		return nil, err
 	}
+	cache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e5,     // Number of keys to track frequency (higher = better hit rate)
+		MaxCost:     1 << 30, // Maximum cost in bytes (adjust as needed)
+		BufferItems: 64,      // Number of keys per eviction buffer
+	})
 	// correctly read rootId from the header
-	return &rawDisk{dm: dm, hasher: hasher, config: config}, nil
+	return &rawDisk{dm: dm, hasher: hasher, config: config, cache: cache}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
@@ -241,18 +251,24 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			// THEREFORE WE CAN SKIP THIS STEP
 		}
 		// check to ensure that all of its children have disk addresses
-		// for _, child := range nodeChange.after.children {
-		// 	// Check remainingNodes actually have disk addresses
-		// 	if child.diskAddr == (diskAddress{}) {
-		// 		return errors.New("regular node child disk address missing")
-		// 	}
-		// }
+		for _, child := range nodeChange.after.children {
+			// Check remainingNodes actually have disk addresses
+			if child.diskAddr == (diskAddress{}) {
+				return errors.New("regular node child disk address missing")
+			}
+		}
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr, err := r.dm.write(nodeBytes)
 		if err != nil {
 			return err
 		}
 
+		nodeChange.after.dbNode.diskAddr = diskAddr
+		if nodeChange.after.hasValue() {
+			compositeKey := fmt.Sprintf("%s:%d", nodeChange.after.key.value, nodeChange.after.key.length)
+			r.cache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
+		}
+		// log.Print("Setting node in cache", nodeChange.after.dbNode.diskAddr)
 		// If there is not a node with the key in the map, create a new map with the key being the ch
 		if childrenNodes[k] == (diskAddress{}) {
 			// If the node is a leaf node, compress the key and store the disk address
@@ -284,16 +300,30 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				child.diskAddr = childrenNodes[completeKey]
 			}
 		}
-		// for _, child := range changes.rootChange.after.Value().children {
-		// 	// Check remainingNodes actually have disk addresses
-		// 	if child.diskAddr == (diskAddress{}) {
-		// 		return errors.New("root node child disk address missing")
-		// 	}
-		// }
+		for _, child := range changes.rootChange.after.Value().children {
+			// Check remainingNodes actually have disk addresses
+			if child.diskAddr == (diskAddress{}) {
+				return errors.New("root node child disk address missing")
+			}
+		}
 		// writing rootNode to header
 		rootNode := changes.rootChange.after.Value()
 		rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
 		rootDiskAddr, err := r.dm.write(rootNodeBytes)
+		if err != nil {
+			return err
+		}
+
+		// iterate through cache and delete all nodes with same key value
+		// as the root node
+		changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
+		if changes.rootChange.after.HasValue() {
+			compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
+			r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
+		}
+
+		
+		// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
 		// add function that would write the root node to the disk while also updating the disk address
 		if err != nil {
 			return err
@@ -302,9 +332,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
 		rootKey := rootNode.key
-		rooyKeyByteArray := encodeKey(rootKey)
+		rootKeyByteArray := encodeKey(rootKey)
 
-		rootKeyDiskAddr, err := r.dm.write(rooyKeyByteArray)
+		rootKeyDiskAddr, err := r.dm.write(rootKeyByteArray)
 		if err != nil {
 			return err
 		}
@@ -330,18 +360,27 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 		if nodeChange.before != nil && nodeChange.after == nil {
 			// make a new node that is the same as the old node but with has value set to false
-			tempdBNode := dbNode{}
+			tempDBNode := dbNode{}
+			// remove node from cache
+			if nodeChange.before.hasValue() {
+				compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
+				if val, _ := r.cache.Get(compositeKey); val != nil {
+					r.cache.Del(compositeKey)
+				}
+			}
+			// r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
+
 			nextBytes, err := r.dm.get(nodeChange.before.diskAddr)
 			if err != nil {
 				return err
 			}
-			err = decodeDBNode_disk(nextBytes, &tempdBNode)
+			err = decodeDBNode_disk(nextBytes, &tempDBNode)
 			if err != nil {
 				return err
 			}
-			tempdBNode.value = maybe.Nothing[[]byte]()
+			tempDBNode.value = maybe.Nothing[[]byte]()
 			// write the new node to disk
-			nodeBytes := encodeDBNode_disk(&tempdBNode)
+			nodeBytes := encodeDBNode_disk(&tempDBNode)
 			// write new node at the same disk address
 			_, err = r.dm.file.WriteAt(nodeBytes, nodeChange.before.diskAddr.offset)
 			if err != nil {
@@ -358,6 +397,27 @@ func (r *rawDisk) Clear() error {
 }
 
 func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
+	// Add a flag to check if the cache was found
+
+	if val, found := r.cache.Get(fmt.Sprintf("%s:%d", key.value, key.length)); found {
+		if val != nil{
+			// If the value is found, process normally
+
+			// Assuming val is of type dbNode, create the return node
+			returnNode := &node{
+				dbNode:      val.(dbNode),
+				key:         key,
+				valueDigest: val.(dbNode).value,
+			}
+
+			// Set the disk address from the cache entry
+			returnNode.dbNode.diskAddr = val.(dbNode).diskAddr
+
+			// You can then return the node if you wish
+			return returnNode, nil
+		}
+	}
+
 	// log.Printf("Getting node for key %v", key)
 	metadata, err := r.dm.getHeader()
 	if err != nil {
@@ -405,31 +465,31 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	}
 
 	if !key.HasPrefix(currKey) {
-		// log.Printf("key %v %v, currkey %v %v", key.length, []byte(key.value), currKey.length, []byte(currKey.value))
-		return nil, database.ErrNotFound //errors.New("Key doesn't match rootkey")
+		// log.Printf("key %v %v, currKey %v %v", key.length, []byte(key.value), currKey.length, []byte(currKey.value))
+		return nil, database.ErrNotFound //errors.New("Key doesn't match rootKey")
 	}
 
-	keylen := currKey.length // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
+	keyLen := currKey.length // keeps track of where to start comparing prefixes in the key i.e. the length of key iterated so far
 
 	// tempDiskAddr := diskAddress{}
 	// while the entire path hasn't been matched
-	for keylen < (key.length) {
+	for keyLen < (key.length) {
 		// confirm that a child exists and grab its address before attempting to load it
-		// log.Printf("Token: %v", key.Token(keylen, tokenSize))
+		// log.Printf("Token: %v", key.Token(keyLen, tokenSize))
 		// log.Printf("currentDbNode value %s", currentDbNode.value.Value())
 		// log.Printf("num of children %d", len(currentDbNode.children))
 		// for token, child := range currentDbNode.children {
 		// 	log.Printf("Token: %v for Child: %x", (token), child.compressedKey.value)
 		// }
-		// log.Printf("Checking key %x", key.Token(keylen, tokenSize))
-		nextChildEntry, hasChild := currentDbNode.children[key.Token(keylen, tokenSize)]
+		// log.Printf("Checking key %x", key.Token(keyLen, tokenSize))
+		nextChildEntry, hasChild := currentDbNode.children[key.Token(keyLen, tokenSize)]
 
-		keylen += tokenSize
+		keyLen += tokenSize
 		if !hasChild {
 			return nil, database.ErrNotFound
 		}
 		// log.Printf("nextChildEntry %v", nextChildEntry)
-		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keylen, tokenSize) {
+		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keyLen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
 			// return nil, errors.New("Key doesn't match an existing node")
 			return nil, database.ErrNotFound
@@ -437,10 +497,10 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		}
 
 		// get the next key from the current child
-		currKey := ToToken(key.Token(keylen-tokenSize, tokenSize), tokenSize)
+		currKey := ToToken(key.Token(keyLen-tokenSize, tokenSize), tokenSize)
 		// log.Printf("currKey %x", currKey)
 		currKey = currKey.Extend(nextChildEntry.compressedKey)
-		keylen += currKey.length - tokenSize
+		keyLen += currKey.length - tokenSize
 
 		// grab the next node along the path
 		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
@@ -463,6 +523,8 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	}
 
 	returnNode.dbNode.diskAddr = currentDbNode.diskAddr
+	// log.Print("Found node in rawdisk", returnNode.dbNode.diskAddr, returnNode.key.value)
+
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil
 }

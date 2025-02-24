@@ -24,20 +24,20 @@ import (
 
 // Tests is a list of all database tests
 var Tests = map[string]func(t *testing.T, db database.Database){
-	//"SimpleKeyValue":       TestSimpleKeyValue,
+	//"SimpleKeyValue":       TestSimpleKeyValue, //.delete-->require.False(has)
 	"OverwriteKeyValue":    TestOverwriteKeyValue,
 	"EmptyKey":             TestEmptyKey,
 	"KeyEmptyValue":        TestKeyEmptyValue,
 	"SimpleKeyValueClosed": TestSimpleKeyValueClosed,
 	"NewBatchClosed":       TestNewBatchClosed,
 	"BatchPut":             TestBatchPut,
-	//"BatchDelete":          TestBatchDelete, NOT SURE NEVER DELETE?
+	//"BatchDelete":          TestBatchDelete, .delete-->require.False(has)
 	"BatchReset": TestBatchReset,
-	//"BatchReuse": TestBatchReuse, SHOULD WORK
-	//"BatchRewrite":              TestBatchRewrite,  SHOULD WORK
-	"BatchReplay":               TestBatchReplay,
-	"BatchReplayPropagateError": TestBatchReplayPropagateError,
-	"BatchInner":                TestBatchInner,
+	//"BatchReuse": TestBatchReuse, .delete-->require.False(has) key2:=
+	//"BatchRewrite":              TestBatchRewrite,  .delete-->require.False(has)
+	"BatchReplay":               TestBatchReplay,               //key2:=
+	"BatchReplayPropagateError": TestBatchReplayPropagateError, //key2:=
+	"BatchInner":                TestBatchInner,                //key2:=
 	"BatchLargeSize":            TestBatchLargeSize,
 	/*	"IteratorSnapshot": TestIteratorSnapshot,
 		"Iterator":                         TestIterator,
@@ -48,8 +48,8 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 		"IteratorClosed":                   TestIteratorClosed,
 		"IteratorError":                    TestIteratorError,
 		"IteratorErrorAfterRelease":        TestIteratorErrorAfterRelease,*/
-	//"CompactNoPanic": TestCompactNoPanic,
-	//"MemorySafetyDatabase": TestMemorySafetyDatabase,
+	//"CompactNoPanic": TestCompactNoPanic, //key2:=
+	//"MemorySafetyDatabase": TestMemorySafetyDatabase, key2:=
 	"MemorySafetyBatch": TestMemorySafetyBatch,
 	//"AtomicClear":       TestAtomicClear,
 	//"Clear": TestClear,
@@ -99,6 +99,7 @@ func TestSimpleKeyValue(t *testing.T, db database.Database) {
 	require.Equal(database.ErrNotFound, err)
 
 	require.NoError(db.Delete(key))
+
 }
 
 func TestOverwriteKeyValue(t *testing.T, db database.Database) {

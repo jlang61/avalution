@@ -1,0 +1,23 @@
+name: Go Benchmark Test
+
+on:
+  pull_request:
+    branches:
+      - main  # Runs when a PR targets the main branch
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'  # Adjust this to match your Go version
+
+      - name: Run Benchmark
+        run: |
+          cd x/merkledb
+          go test -benchmem -benchtime=10s -bench ^Benchmark_MerkleDB_DBInterface$

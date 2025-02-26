@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	
+	// "log"
 	"runtime"
 	"slices"
 	"strconv"
@@ -119,10 +121,24 @@ func newDatabase_disk(
 	if err != nil {
 		return nil, err
 	}
+	// check if the type of disk is of type rawdisk 
+	// if shutdown type has nothing in it, then skip initialization
+	// if it has something in it, then initialize root
+
+	// if bytes.Equal(shutdownType, make([]byte, 0)) || bytes.Equal(shutdownType, make([]byte, 1)) {
+	// 	log.Printf("shutdowntype %v", shutdownType)
+	// 	if err := trieDB.initializeRoot(); err != nil {
+	// 		return nil, err
+	// 	}
+	// }
+	// log.Printf("shutdowntype %T", shutdownType)
+	// if err := trieDB.initializeRoot(); err != nil {
+	// 	return nil, err
+	// }
 	if bytes.Equal(shutdownType, didNotHaveCleanShutdown) {
-		// if err := trieDB.rebuild(ctx, int(config.ValueNodeCacheSize)); err != nil {
-		// 	return nil, err
-		// }
+		if err := trieDB.rebuild(ctx, int(config.ValueNodeCacheSize)); err != nil {
+			return nil, err
+		}
 	} else {
 		if err := trieDB.initializeRoot(); err != nil {
 			return nil, err

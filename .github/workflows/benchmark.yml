@@ -20,4 +20,4 @@ jobs:
       - name: Run Benchmark
         run: |
           cd x/merkledb
-          go test -benchmem -benchtime=10s -bench ^Benchmark_MerkleDB_DBInterface$
+          go test -benchmem -run=^$ -bench ^Benchmark_MerkleDB_DBInterface$ github.com/ava-labs/avalanchego/x/merkledb

@@ -1337,16 +1337,15 @@ func insertRandomKeyValues(
 		valueLen := rand.Intn(maxValLen)
 		value := make([]byte, valueLen)
 		_, _ = rand.Read(value)
-		// for _, db := range dbs {
-		db := dbs[0]
-		require.NoError(db.Put(key, value))
-		// }
+		for _, db := range dbs {
+			require.NoError(db.Put(key, value))
+		}
 
-		// if rand.Float64() < deletePortion {
-		// 	for _, db := range dbs {
-		// 		require.NoError(db.Delete(key))
-		// 	}
-		// }
+		if rand.Float64() < deletePortion {
+			for _, db := range dbs {
+				require.NoError(db.Delete(key))
+			}
+		}
 	}
 }
 
@@ -1391,8 +1390,8 @@ func TestGetChangeProofEmptyRootID(t *testing.T) {
 
 // PASSES
 func TestCrashRecovery(t *testing.T) {
-	t.Skip()
-	panic("issue of should it fail, adding panic so we don't forget")
+	// t.Skip()
+	// panic("issue of should it fail, adding panic so we don't forget")
 
 	require := require.New(t)
 	tempDir := t.TempDir()

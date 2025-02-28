@@ -159,6 +159,37 @@ func Benchmark_MerkleDB_DBInterface(b *testing.B) {
 	}
 }
 
+
+func Benchmark_MerkleDB_DBInterface_Timed(b *testing.B) {
+	totalTime := time.Duration(0)
+    for _, size := range dbtest.BenchmarkSizes {
+        keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
+        for _, bf := range validBranchFactors {
+            for name, bench := range dbtest.Benchmarks {
+                // Run the benchmark and track its time
+                b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
+                    db, err := getBasicDBWithBranchFactor(bf)
+                    require.NoError(b, err)
+                    b.Cleanup(func() {
+                        db.Close()
+                    })
+
+                    // Record the start time for each individual benchmark
+                    start := time.Now()
+                    bench(b, db, keys, values)
+                    // Calculate the time taken for the specific benchmark
+                    duration := time.Since(start)
+					totalTime += duration
+                    // Log the time taken for the specific benchmark
+                })
+            }
+        }
+    }
+	// Log the total time taken for all benchmarks
+	fmt.Printf("Total time taken for all benchmarks: %v\n", totalTime)
+	b.Log("Total time taken for all benchmarks: ", totalTime)
+}
+
 // PASSES
 func Test_MerkleDB_DB_Load_Root_From_DB(t *testing.T) {
 	require := require.New(t)

@@ -85,7 +85,7 @@ func newDiskManager(metaData []byte, dir string, fileName string) (*diskMgr, err
 	}
 
 	// start freelist
-	maxSize := 4096 * 4 * 4
+	maxSize := 4096 * 4 * 4 * 4
 	f := newFreeList(maxSize)
 	f.load(dir)
 
@@ -119,8 +119,6 @@ func (dm *diskMgr) putBack(addr diskAddress) error {
 }
 
 func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
-
-
 	// first check the size of rootNode without the disk address
 	bytes := encodeDBNode_disk(&rootNode)
 	freeSpace, ok := dm.free.get(int64(len(bytes)) + 16)
@@ -187,6 +185,22 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 	}
 	// log.Println("Freespace: ", freeSpace)
 	return freeSpace, nil
+
+}
+
+func (dm *diskMgr) fetch(byteLength int64) (diskAddress, error) {
+	freeSpace, ok := dm.free.get(int64(byteLength))
+	if !ok {
+		endOffset, err := dm.endOfFile()
+		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
+			return diskAddress{}, err
+		}
+		return diskAddress{offset: endOffset, size: int64(byteLength)}, nil
+	} else {
+		return diskAddress{offset: freeSpace.offset, size: int64(byteLength)}, nil
+	}
+
 
 }
 

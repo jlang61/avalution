@@ -188,6 +188,22 @@ func (dm *diskMgr) writeRoot(rootNode dbNode) (diskAddress, error) {
 
 }
 
+func (dm *diskMgr) fetch(byteLength int64) (diskAddress, error) {
+	freeSpace, ok := dm.free.get(int64(byteLength))
+	if !ok {
+		endOffset, err := dm.endOfFile()
+		if err != nil {
+			log.Fatalf("failed to get end of file: %v", err)
+			return diskAddress{}, err
+		}
+		return diskAddress{offset: endOffset, size: int64(byteLength)}, nil
+	} else {
+		return diskAddress{offset: freeSpace.offset, size: int64(byteLength)}, nil
+	}
+
+
+}
+
 // returning diskaddress that it wrote to
 // if we write to freelist: diskaddress would be the size of freespace
 // if we dont write to freelist: append bytes to end, return endoffset and size

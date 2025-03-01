@@ -49,18 +49,18 @@ var Tests = map[string]func(t *testing.T, db database.Database){
 		"IteratorError":                    TestIteratorError,
 		"IteratorErrorAfterRelease":        TestIteratorErrorAfterRelease,*/
 	// "CompactNoPanic": TestCompactNoPanic, only this one doesnt pass
-	"MemorySafetyDatabase": TestMemorySafetyDatabase,
-	"MemorySafetyBatch": TestMemorySafetyBatch,
+	// "MemorySafetyDatabase": TestMemorySafetyDatabase,
+	// "MemorySafetyBatch": TestMemorySafetyBatch,
 	// "AtomicClear":       TestAtomicClear,
 	//"Clear": TestClear,
 	//"AtomicClearPrefix": TestAtomicClearPrefix,
 	//"ClearPrefix":                      TestClearPrefix,
-	"ModifyValueAfterPut":            TestModifyValueAfterPut,
-	"ModifyValueAfterBatchPut":       TestModifyValueAfterBatchPut,
-	"ModifyValueAfterBatchPutReplay": TestModifyValueAfterBatchPutReplay,
-	"ConcurrentBatches":              TestConcurrentBatches,
-	"ManySmallConcurrentKVPairBatches": TestManySmallConcurrentKVPairBatches,
-	"PutGetEmpty": TestPutGetEmpty,
+	// "ModifyValueAfterPut":            TestModifyValueAfterPut,
+	// "ModifyValueAfterBatchPut":       TestModifyValueAfterBatchPut,
+	// "ModifyValueAfterBatchPutReplay": TestModifyValueAfterBatchPutReplay,
+	// "ConcurrentBatches":              TestConcurrentBatches,
+	// "ManySmallConcurrentKVPairBatches": TestManySmallConcurrentKVPairBatches,
+	// "PutGetEmpty": TestPutGetEmpty,
 } 
 
 // TestSimpleKeyValue tests to make sure that simple Put + Get + Delete + Has

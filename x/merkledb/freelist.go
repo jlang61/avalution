@@ -49,11 +49,13 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 	if f.closed {
 		return diskAddress{}, false
 	}*/
+	if size == 0{
+		return diskAddress{}, false
+	}
 	bucket := f.bucketIndex(size)
-	
 
 	// first check whether or not the bucket would be out of bounds
-	if bucket >= len(f.buckets) {
+	if bucket >= len(f.buckets) && size >0 {
 		return diskAddress{}, false
 	}
 	if len(f.buckets[bucket]) > 0 {

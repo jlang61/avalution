@@ -208,9 +208,14 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	for _, nodes := range changes.nodes {
 		if nodes.after != nil {
 			totalLenBytes += len(encodeDBNode_disk(&nodes.after.dbNode))
+			// find how many children nodes exist in the node
+			totalLenBytes += 16 * len(nodes.after.children)
 		}
+
 	}
-	totalLenBytes += 16 * (len(changes.nodes) - 1)
+	// every node in the tree has a diskaddress of its children except leaf nodes
+	// find how many leaf nodes there are
+
 	// log.Printf("Total length of bytes %d", totalLenBytes)
 
 	// fetch the available disk address for totallenbytes
@@ -262,27 +267,6 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				return errors.New("regular node child disk address missing")
 			}
 		}
-		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
-		diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(nodeBytes))}
-		totalOffset += len(nodeBytes)
-		totalBytes = append(totalBytes, nodeBytes...)
-		if err != nil {
-			return err
-		}
-
-		nodeChange.after.dbNode.diskAddr = diskAddr
-		if nodeChange.after.hasValue() {
-			compositeKey := fmt.Sprintf("%s:%d", nodeChange.after.key.value, nodeChange.after.key.length)
-			r.cache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
-		}
-		// log.Print("Setting node in cache", nodeChange.after.dbNode.diskAddr)
-		// If there is not a node with the key in the map, create a new map with the key being the ch
-		if childrenNodes[k] == (diskAddress{}) {
-			// If the node is a leaf node, compress the key and store the disk address
-			key := Key{length: k.length, value: k.value}
-			childrenNodes[key] = diskAddr
-		}
-
 		if nodeChange.after.key == changes.rootChange.after.Value().key {
 			// writing rootNode to header
 			if changes.rootChange.after.HasValue() {
@@ -314,10 +298,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				rootKey := rootNode.key
 				rootKeyByteArray := encodeKey(rootKey)
 
-
 				// need to set tthe endof file to something different - current issue is that its ovelapping with end of file
-				
-				size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size + totalDiskAddress.offset))
+
+				size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size+totalDiskAddress.offset))
 				if err != nil {
 					return err
 				}
@@ -329,20 +312,27 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 				// print the tree
 				changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
+			}
+		} else {
+			nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
+			diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(nodeBytes))}
+			totalOffset += len(nodeBytes)
+			totalBytes = append(totalBytes, nodeBytes...)
+			if err != nil {
+				return err
+			}
 
-				// print out a a comprehensive report on root
-				// log.Print("Root key", rootKey)
-				// log.Print("Root key byte array", rootKeyByteArray)
-				// log.Print("Root key ", rootKeyDiskAddrBytes)
-				// log.Print("Root key", rootKeyDiskAddr)
-				// decodeDBNode_disk(rootNodeBytes, &rootNode.dbNode)
-				// log.Print("Root node", rootNode.dbNode)
-				// key, err := decodeKey(rootKeyByteArray)
-				// if err != nil {
-				// 	return err
-				// }
-
-				// log.Print("Root key", key)
+			nodeChange.after.dbNode.diskAddr = diskAddr
+			if nodeChange.after.hasValue() {
+				compositeKey := fmt.Sprintf("%s:%d", nodeChange.after.key.value, nodeChange.after.key.length)
+				r.cache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
+			}
+			// log.Print("Setting node in cache", nodeChange.after.dbNode.diskAddr)
+			// If there is not a node with the key in the map, create a new map with the key being the ch
+			if childrenNodes[k] == (diskAddress{}) {
+				// If the node is a leaf node, compress the key and store the disk address
+				key := Key{length: k.length, value: k.value}
+				childrenNodes[key] = diskAddr
 			}
 
 		}

@@ -211,6 +211,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		}
 	}
 	totalLenBytes += 16 * (len(changes.nodes) - 1)
+	// log.Printf("Total length of bytes %d", totalLenBytes)
 
 	// fetch the available disk address for totallenbytes
 	totalDiskAddress, err := r.dm.fetch(int64(totalLenBytes))
@@ -284,43 +285,66 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 		if nodeChange.after.key == changes.rootChange.after.Value().key {
 			// writing rootNode to header
-			rootNode := changes.rootChange.after.Value()
-			rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
-			rootDiskAddr = diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
-			totalOffset += len(rootNodeBytes)
-			totalBytes = append(totalBytes, rootNodeBytes...)
-			if err != nil {
-				return err
-			}
-
-			// iterate through cache and delete all nodes with same key value
-			// as the root node
-			changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
 			if changes.rootChange.after.HasValue() {
-				compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
-				r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
+				rootNode := changes.rootChange.after.Value()
+				rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
+				rootDiskAddr = diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
+				totalOffset += len(rootNodeBytes)
+				totalBytes = append(totalBytes, rootNodeBytes...)
+				if err != nil {
+					return err
+				}
+
+				// iterate through cache and delete all nodes with same key value
+				// as the root node
+				changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
+				if changes.rootChange.after.HasValue() {
+					compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
+					r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
+				}
+
+				// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
+				// add function that would write the root node to the disk while also updating the disk address
+				if err != nil {
+					return err
+				}
+				rootDiskAddrBytes := rootDiskAddr.bytes()
+				r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
+
+				rootKey := rootNode.key
+				rootKeyByteArray := encodeKey(rootKey)
+
+
+				// need to set tthe endof file to something different - current issue is that its ovelapping with end of file
+				
+				size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size + totalDiskAddress.offset))
+				if err != nil {
+					return err
+				}
+				rootKeyDiskAddr := diskAddress{int64(totalDiskAddress.size + totalDiskAddress.offset), int64(size)}
+				// log.Print("wrote root key to disk", rootKeyDiskAddr)
+				// log.Print("total disk address", totalDiskAddress)
+				rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
+				r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
+
+				// print the tree
+				changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
+
+				// print out a a comprehensive report on root
+				// log.Print("Root key", rootKey)
+				// log.Print("Root key byte array", rootKeyByteArray)
+				// log.Print("Root key ", rootKeyDiskAddrBytes)
+				// log.Print("Root key", rootKeyDiskAddr)
+				// decodeDBNode_disk(rootNodeBytes, &rootNode.dbNode)
+				// log.Print("Root node", rootNode.dbNode)
+				// key, err := decodeKey(rootKeyByteArray)
+				// if err != nil {
+				// 	return err
+				// }
+
+				// log.Print("Root key", key)
 			}
 
-			// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
-			// add function that would write the root node to the disk while also updating the disk address
-			if err != nil {
-				return err
-			}
-			rootDiskAddrBytes := rootDiskAddr.bytes()
-			r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
-
-			rootKey := rootNode.key
-			rootKeyByteArray := encodeKey(rootKey)
-
-			rootKeyDiskAddr, err := r.dm.write(rootKeyByteArray)
-			if err != nil {
-				return err
-			}
-			rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
-			r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
-
-			// print the tree
-			changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
 		}
 	}
 
@@ -333,142 +357,10 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	if err != nil {
 		return err
 	}
-	// // Create a temporary map of remainingNodes to store the disk address and compressed key of the remainingNodes
-	// childrenNodes := make(map[Key]diskAddress)
 
-	// // ITERATES THROUGH ALL NODES EXCEPT THE ROOT
-	// // STARTS WITH CHILDRENS THEN MOVES TO PARENTS
-	// // EACH PARENT CHECKS THEIR CHILDREN'S KEY THEN ENSURES POINTERS PROPERLY WORK
-	// // Iterate through the keys
-	// for _, k := range keys {
-	// 	// find the nodechange associated with the key
-	// 	nodeChange := changes.nodes[k]
-	// 	// filter through nodes that arent changed
-	// 	if nodeChange.after == nil {
-	// 		continue
-	// 	}
-
-	// 	// Ensure root is not being written twice
-	// 	if changes.rootChange.after.HasValue() {
-	// 		if nodeChange.after.key == changes.rootChange.after.Value().key {
-	// 			continue
-	// 		}
-	// 	}
-
-	// 	// Iterate through node's children
-	// 	for token, child := range nodeChange.after.children {
-
-	// 		// Create the complete key (current key + compressed key of the child)
-	// 		completeKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
-	// 		if child.compressedKey.length != 0 {
-	// 			completeKey = completeKey.Extend(child.compressedKey)
-	// 		}
-
-	// 		// CASE WHERE NODES HAVE NOT BEEN WRITTEN TO DISK
-	// 		// Check whether or not there exists a value for the child in the map
-	// 		if childrenNodes[completeKey] != (diskAddress{}) {
-	// 			// If there is a value, set the disk address of the child to the value in the map
-	// 			child.diskAddr = childrenNodes[completeKey]
-	// 		}
-	// 		// IF THE CHILDREN ARE ALREADY WRITTEN TO DISK, THEY SHOULD HAVE A DISKADDRESS ASSOCIATED WITH THEM ALREADY
-	// 		// THEREFORE WE CAN SKIP THIS STEP
-	// 	}
-	// 	// check to ensure that all of its children have disk addresses
-	// 	for _, child := range nodeChange.after.children {
-	// 		// Check remainingNodes actually have disk addresses
-	// 		if child.diskAddr == (diskAddress{}) {
-	// 			return errors.New("regular node child disk address missing")
-	// 		}
-	// 	}
-	// 	nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
-	// 	diskAddr, err := r.dm.write(nodeBytes)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	nodeChange.after.dbNode.diskAddr = diskAddr
-	// 	if nodeChange.after.hasValue() {
-	// 		compositeKey := fmt.Sprintf("%s:%d", nodeChange.after.key.value, nodeChange.after.key.length)
-	// 		r.cache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
-	// 	}
-	// 	// log.Print("Setting node in cache", nodeChange.after.dbNode.diskAddr)
-	// 	// If there is not a node with the key in the map, create a new map with the key being the ch
-	// 	if childrenNodes[k] == (diskAddress{}) {
-	// 		// If the node is a leaf node, compress the key and store the disk address
-	// 		key := Key{length: k.length, value: k.value}
-	// 		childrenNodes[key] = diskAddr
-
-	// 	}
-
-	// }
 	if err := r.dm.file.Sync(); err != nil {
 		return err
 	}
-
-	// ITERATES THROUGH THE ROOT NODE A FINAL TIME
-	// ENSURES THAT ROOTNODE
-	// if changes.rootChange.after.HasValue() {
-	// 	// Adding remainingNodes to the root node
-	// 	k := changes.rootChange.after.Value().key
-	// 	for token, child := range changes.rootChange.after.Value().children {
-
-	// 		// CURRENT IMPLEMENTATION
-	// 		completeKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
-	// 		if child.compressedKey.length != 0 {
-	// 			completeKey = completeKey.Extend(child.compressedKey)
-	// 		}
-	// 		// Check whether or not there exists a value for the child in the map
-	// 		if childrenNodes[completeKey] != (diskAddress{}) {
-	// 			// If there is a value, set the disk address of the child to the value in the map
-	// 			child.diskAddr = childrenNodes[completeKey]
-	// 		}
-	// 	}
-	// 	for _, child := range changes.rootChange.after.Value().children {
-	// 		// Check remainingNodes actually have disk addresses
-	// 		if child.diskAddr == (diskAddress{}) {
-	// 			return errors.New("root node child disk address missing")
-	// 		}
-	// 	}
-	// 	// writing rootNode to header
-	// 	rootNode := changes.rootChange.after.Value()
-	// 	rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
-	// 	rootDiskAddr, err := r.dm.write(rootNodeBytes)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	// iterate through cache and delete all nodes with same key value
-	// 	// as the root node
-	// 	changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
-	// 	if changes.rootChange.after.HasValue() {
-	// 		compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
-	// 		r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
-	// 	}
-
-	// 	// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
-	// 	// add function that would write the root node to the disk while also updating the disk address
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	rootDiskAddrBytes := rootDiskAddr.bytes()
-	// 	r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
-
-	// 	rootKey := rootNode.key
-	// 	rootKeyByteArray := encodeKey(rootKey)
-
-	// 	rootKeyDiskAddr, err := r.dm.write(rootKeyByteArray)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
-	// 	r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
-
-	// 	// print the tree
-	// 	// err = r.printTree(rootDiskAddr, changes)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
 
 	// }
 	if err := r.dm.file.Sync(); err != nil {

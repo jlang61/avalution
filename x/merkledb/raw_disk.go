@@ -60,6 +60,7 @@ type rawDisk struct {
 	config Config
 	hasher Hasher
 	cache  *ristretto.Cache
+	deletedCache *ristretto.Cache
 }
 
 func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*rawDisk, error) {
@@ -72,8 +73,15 @@ func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*raw
 		MaxCost:     1 << 30, // Maximum cost in bytes (adjust as needed)
 		BufferItems: 64,      // Number of keys per eviction buffer
 	})
+
+	deletedCache, _ := ristretto.NewCache(&ristretto.Config{
+		NumCounters: 1e5,     // Number of keys to track frequency (higher = better hit rate)
+		MaxCost:     1 << 30, // Maximum cost in bytes (adjust as needed)
+		BufferItems: 64,      // Number of keys per eviction buffer
+	})
+
 	// correctly read rootId from the header
-	return &rawDisk{dm: dm, hasher: hasher, config: config, cache: cache}, nil
+	return &rawDisk{dm: dm, hasher: hasher, config: config, cache: cache, deletedCache: deletedCache}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
@@ -232,6 +240,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	childrenNodes := make(map[Key]diskAddress)
 	totalBytes := make([]byte, 0)
 	rootDiskAddr := diskAddress{}
+	totalRootBytes := make([]byte, 0)
 	for _, k := range keys {
 		// find the nodechange associated with the key
 		nodeChange := changes.nodes[k]
@@ -293,7 +302,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 					return err
 				}
 				rootDiskAddrBytes := rootDiskAddr.bytes()
-				r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
+				totalRootBytes = append(totalRootBytes, rootDiskAddrBytes[:]...)
+				// r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
 				rootKey := rootNode.key
 				rootKeyByteArray := encodeKey(rootKey)
@@ -308,7 +318,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				// log.Print("wrote root key to disk", rootKeyDiskAddr)
 				// log.Print("total disk address", totalDiskAddress)
 				rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
-				r.dm.file.WriteAt(rootKeyDiskAddrBytes[:], 17)
+				totalRootBytes = append(totalRootBytes, rootKeyDiskAddrBytes[:]...)
+				r.dm.file.WriteAt(totalRootBytes[:], 1)
 
 				// print the tree
 				changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
@@ -371,6 +382,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				if val, _ := r.cache.Get(compositeKey); val != nil {
 					r.cache.Del(compositeKey)
 				}
+				r.deletedCache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
+
 			}
 			// r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
 
@@ -408,6 +421,23 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 			// If the value is found, process normally
 
 			// Assuming val is of type dbNode, create the return node
+			returnNode := &node{
+				dbNode:      val.(dbNode),
+				key:         key,
+				valueDigest: val.(dbNode).value,
+			}
+
+			// Set the disk address from the cache entry
+			returnNode.dbNode.diskAddr = val.(dbNode).diskAddr
+
+			// You can then return the node if you wish
+			return returnNode, nil
+		}
+	}
+
+	if val, found := r.deletedCache.Get(fmt.Sprintf("%s:%d", key.value, key.length)); found {
+		if val != nil {
+			// If the value is found, process normally
 			returnNode := &node{
 				dbNode:      val.(dbNode),
 				key:         key,

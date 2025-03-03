@@ -328,27 +328,27 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			r.dm.free.put(nodeChange.before.diskAddr)
 
 		}
-		if nodeChange.before != nil && nodeChange.after == nil {
-			// make a new node that is the same as the old node but with has value set to false
-			tempdBNode := dbNode{}
-			nextBytes, err := r.dm.get(nodeChange.before.diskAddr)
-			if err != nil {
-				return err
-			}
-			err = decodeDBNode_disk(nextBytes, &tempdBNode)
-			if err != nil {
-				return err
-			}
-			tempdBNode.value = maybe.Nothing[[]byte]()
-			// write the new node to disk
-			nodeBytes := encodeDBNode_disk(&tempdBNode)
-			// write new node at the same disk address
-			_, err = r.dm.file.WriteAt(nodeBytes, nodeChange.before.diskAddr.offset)
-			if err != nil {
-				return err
-			}
+		// if nodeChange.before != nil && nodeChange.after == nil {
+		// 	// make a new node that is the same as the old node but with has value set to false
+		// 	tempdBNode := dbNode{}
+		// 	nextBytes, err := r.dm.get(nodeChange.before.diskAddr)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	err = decodeDBNode_disk(nextBytes, &tempdBNode)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	tempdBNode.value = maybe.Nothing[[]byte]()
+		// 	// write the new node to disk
+		// 	nodeBytes := encodeDBNode_disk(&tempdBNode)
+		// 	// write new node at the same disk address
+		// 	_, err = r.dm.file.WriteAt(nodeBytes, nodeChange.before.diskAddr.offset)
+		// 	if err != nil {
+		// 		return err
+		// 	}
 
-		}
+		// }
 	}
 	return r.dm.file.Sync()
 }
@@ -461,7 +461,11 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		valueDigest: currentDbNode.value,
 		//diskAddr:    tempDiskAddr,
 	}
-
+	// check if the currentdbnode diskaddress is a diskaddress inside freeelist 
+	// if it is return database errnot found
+	if r.dm.free.contains(currentDbNode.diskAddr) {
+		return nil, database.ErrNotFound
+	}
 	returnNode.dbNode.diskAddr = currentDbNode.diskAddr
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil

@@ -114,6 +114,19 @@ func (f *freeList) close(dir string) error {
 	return nil
 }
 
+func (f *freeList) contains(addr diskAddress) bool {
+	// Find the bucket corresponding to the diskAddress's size.
+	bucket := f.bucketIndex(addr.size)
+	
+	// Iterate over the diskAddresses stored in the bucket.
+	for _, a := range f.buckets[bucket] {
+		if a == addr {
+			return true
+		}
+	}
+	return false
+}
+
 // freelist should always be running
 // merkle.db, freelist
 

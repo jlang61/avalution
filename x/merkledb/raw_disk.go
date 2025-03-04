@@ -56,10 +56,10 @@ type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
-	dm     *diskMgr
-	config Config
-	hasher Hasher
-	cache  *ristretto.Cache
+	dm           *diskMgr
+	config       Config
+	hasher       Hasher
+	cache        *ristretto.Cache
 	deletedCache *ristretto.Cache
 }
 
@@ -69,8 +69,8 @@ func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*raw
 		return nil, err
 	}
 	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e5,     // Number of keys to track frequency (higher = better hit rate)
-		MaxCost:     1 << 30, // Maximum cost in bytes (adjust as needed)
+		NumCounters: 1e6,     // Number of keys to track frequency (higher = better hit rate)
+		MaxCost:     2 << 30, // Maximum cost in bytes (adjust as needed)
 		BufferItems: 64,      // Number of keys per eviction buffer
 	})
 
@@ -215,11 +215,10 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	totalLenBytes := 0
 	for _, nodes := range changes.nodes {
 		if nodes.after != nil {
-			totalLenBytes += len(encodeDBNode_disk(&nodes.after.dbNode))
-			// find how many children nodes exist in the node
+			// Increase length by one for the padding byte per node
+			totalLenBytes += len(encodeDBNode_disk(&nodes.after.dbNode)) + 1
 			totalLenBytes += 16 * len(nodes.after.children)
 		}
-
 	}
 	// every node in the tree has a diskaddress of its children except leaf nodes
 	// find how many leaf nodes there are
@@ -239,6 +238,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	totalOffset := 0
 	childrenNodes := make(map[Key]diskAddress)
 	totalBytes := make([]byte, 0)
+	numWritten := 0
 	rootDiskAddr := diskAddress{}
 	totalRootBytes := make([]byte, 0)
 	for _, k := range keys {
@@ -281,8 +281,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			if changes.rootChange.after.HasValue() {
 				rootNode := changes.rootChange.after.Value()
 				rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
-				rootDiskAddr = diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
+				rootDiskAddr = diskAddress{totalDiskAddress.offset + int64(totalOffset) + int64(numWritten), int64(len(rootNodeBytes))}
 				totalOffset += len(rootNodeBytes)
+				numWritten++
 				totalBytes = append(totalBytes, rootNodeBytes...)
 				if err != nil {
 					return err
@@ -294,6 +295,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				if changes.rootChange.after.HasValue() {
 					compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
 					r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
+					if val, _ := r.deletedCache.Get(compositeKey); val != nil {
+						r.deletedCache.Del(compositeKey)
+					}
 				}
 
 				// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
@@ -303,6 +307,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				}
 				rootDiskAddrBytes := rootDiskAddr.bytes()
 				totalRootBytes = append(totalRootBytes, rootDiskAddrBytes[:]...)
+				totalBytes = append(totalBytes, 0)
 				// r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
 				rootKey := rootNode.key
@@ -326,17 +331,22 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 			}
 		} else {
 			nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
-			diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(nodeBytes))}
+			diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset) + int64(numWritten), int64(len(nodeBytes))}
 			totalOffset += len(nodeBytes)
 			totalBytes = append(totalBytes, nodeBytes...)
+			totalBytes = append(totalBytes, 0)
+			numWritten++
 			if err != nil {
 				return err
 			}
 
 			nodeChange.after.dbNode.diskAddr = diskAddr
-			if nodeChange.after.hasValue() {
+			if nodeChange.after.value.HasValue() {
 				compositeKey := fmt.Sprintf("%s:%d", nodeChange.after.key.value, nodeChange.after.key.length)
 				r.cache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
+				if val, _ := r.deletedCache.Get(compositeKey); val != nil {
+					r.deletedCache.Del(compositeKey)
+				}
 			}
 			// log.Print("Setting node in cache", nodeChange.after.dbNode.diskAddr)
 			// If there is not a node with the key in the map, create a new map with the key being the ch
@@ -359,52 +369,31 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		return err
 	}
 
-	if err := r.dm.file.Sync(); err != nil {
-		return err
-	}
+	// if err := r.dm.file.Sync(); err != nil {
+	// 	return err
+	// }
 
 	// }
-	if err := r.dm.file.Sync(); err != nil {
-		return err
-	}
+	// if err := r.dm.file.Sync(); err != nil {
+	// 	return err
+	// }
 	// ensuring that there are two trees, then add old one to freelist
 	for _, nodeChange := range changes.nodes {
-		if nodeChange.before != nil {
-			r.dm.free.put(nodeChange.before.diskAddr)
-
-		}
-		if nodeChange.before != nil && nodeChange.after == nil {
-			// make a new node that is the same as the old node but with has value set to false
-			tempDBNode := dbNode{}
-			// remove node from cache
-			if nodeChange.before.hasValue() {
-				compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
-				if val, _ := r.cache.Get(compositeKey); val != nil {
-					r.cache.Del(compositeKey)
+		if nodeChange.before != nil && nodeChange.after == nil {			// r.dm.free.put(nodeChange.before.diskAddr)
+			// check that node has a key value and a disk address
+			if nodeChange.before.key != (Key{}) {
+				if nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
+					compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
+					r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
+					if val, _ := r.cache.Get(compositeKey); val != nil {
+						r.cache.Del(compositeKey)
+					}
 				}
-				r.deletedCache.Set(compositeKey, nodeChange.after.dbNode, nodeChange.after.dbNode.diskAddr.size)
-
 			}
-			// r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
-
-			nextBytes, err := r.dm.get(nodeChange.before.diskAddr)
-			if err != nil {
-				return err
-			}
-			err = decodeDBNode_disk(nextBytes, &tempDBNode)
-			if err != nil {
-				return err
-			}
-			tempDBNode.value = maybe.Nothing[[]byte]()
-			// write the new node to disk
-			nodeBytes := encodeDBNode_disk(&tempDBNode)
-			// write new node at the same disk address
-			_, err = r.dm.file.WriteAt(nodeBytes, nodeChange.before.diskAddr.offset)
-			if err != nil {
-				return err
-			}
-
 		}
+
+		// }
+
 	}
 	return r.dm.file.Sync()
 }
@@ -445,6 +434,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 			}
 
 			// Set the disk address from the cache entry
+			returnNode.dbNode.value = maybe.Nothing[[]byte]()
 			returnNode.dbNode.diskAddr = val.(dbNode).diskAddr
 
 			// You can then return the node if you wish

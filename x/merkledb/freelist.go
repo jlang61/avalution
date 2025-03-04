@@ -79,7 +79,7 @@ func (f *freeList) put(space diskAddress) {
 
 // bucketIndex returns the index of the bucket that the size belongs to.
 func (f *freeList) bucketIndex(size int64) int {
-	return int(math.Ceil(math.Log2(float64(size))))
+	return int(math.Floor(math.Log2(float64(size))))
 }
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.

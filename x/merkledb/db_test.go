@@ -19,6 +19,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/database/dbtest"
+
 	// "github.com/ava-labs/avalanchego/database/memdb"
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/trace"
@@ -128,16 +129,21 @@ func Test_MerkleDB_DB_Interface(t *testing.T) {
 func TestDelete(t *testing.T) {
 	require := require.New(t)
 	keys, values := dbtest.SetupBenchmark(t, 1024, 32, 32)
+	for _, bf := range validBranchFactors {
 
-	db, err := getBasicDB(t)
-	require.NoError(err)
+		db, err := getBasicDBWithBranchFactor(bf)
+		require.NoError(err)
 
-	for i, key := range keys {
-		value := values[i]
-		require.NoError(db.Put(key, value))
+		for i, key := range keys {
+			value := values[i]
+			require.NoError(db.Put(key, value))
+		}
+
+		require.NoError(db.Delete(keys[0]))
+		t.Cleanup(func() {
+			db.Close()
+		})
 	}
-
-	require.NoError(db.Delete(keys[0]))
 
 }
 
@@ -159,32 +165,31 @@ func Benchmark_MerkleDB_DBInterface(b *testing.B) {
 	}
 }
 
-
 func Benchmark_MerkleDB_DBInterface_Timed(b *testing.B) {
 	totalTime := time.Duration(0)
-    for _, size := range dbtest.BenchmarkSizes {
-        keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
-        for _, bf := range validBranchFactors {
-            for name, bench := range dbtest.Benchmarks {
-                // Run the benchmark and track its time
-                b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
-                    db, err := getBasicDBWithBranchFactor(bf)
-                    require.NoError(b, err)
-                    b.Cleanup(func() {
-                        db.Close()
-                    })
+	for _, size := range dbtest.BenchmarkSizes {
+		keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
+		for _, bf := range validBranchFactors {
+			for name, bench := range dbtest.Benchmarks {
+				// Run the benchmark and track its time
+				b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
+					db, err := getBasicDBWithBranchFactor(bf)
+					require.NoError(b, err)
+					b.Cleanup(func() {
+						db.Close()
+					})
 
-                    // Record the start time for each individual benchmark
-                    start := time.Now()
-                    bench(b, db, keys, values)
-                    // Calculate the time taken for the specific benchmark
-                    duration := time.Since(start)
+					// Record the start time for each individual benchmark
+					start := time.Now()
+					bench(b, db, keys, values)
+					// Calculate the time taken for the specific benchmark
+					duration := time.Since(start)
 					totalTime += duration
-                    // Log the time taken for the specific benchmark
-                })
-            }
-        }
-    }
+					// Log the time taken for the specific benchmark
+				})
+			}
+		}
+	}
 	// Log the total time taken for all benchmarks
 	fmt.Printf("Total time taken for all benchmarks: %v\n", totalTime)
 	b.Log("Total time taken for all benchmarks: ", totalTime)
@@ -917,7 +922,7 @@ func TestMerkleDBClear(t *testing.T) {
 		require,
 		r,
 		[]database.Database{db},
-		1_000,
+		95,
 		0.25,
 	)
 

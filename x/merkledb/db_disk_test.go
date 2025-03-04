@@ -219,26 +219,26 @@ func Test_MerkleDB_DB_Interface_disk(t *testing.T) {
 	})
 }
 
-func Benchmark_MerkleDB_DBInterface_disk(b *testing.B) {
-	dir := b.TempDir()
+// func Benchmark_MerkleDB_DBInterface_disk(b *testing.B) {
+// 	dir := b.TempDir()
 
-	for _, size := range dbtest.BenchmarkSizes {
-		keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
-		for _, bf := range validBranchFactors {
-			for name, bench := range dbtest.Benchmarks {
-				b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
-					db, err := getBasicDBWithBranchFactor_disk(bf, dir)
-					require.NoError(b, err)
-					bench(b, db, keys, values)
-				})
-			}
-		}
-	}
+// 	for _, size := range dbtest.BenchmarkSizes {
+// 		keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
+// 		for _, bf := range validBranchFactors {
+// 			for name, bench := range dbtest.Benchmarks {
+// 				b.Run(fmt.Sprintf("merkledb_%d_%d_pairs_%d_keys_%d_values_%s", bf, size[0], size[1], size[2], name), func(b *testing.B) {
+// 					db, err := getBasicDBWithBranchFactor_disk(bf, dir)
+// 					require.NoError(b, err)
+// 					bench(b, db, keys, values)
+// 				})
+// 			}
+// 		}
+// 	}
 
-	b.Cleanup(func() {
-		runtime.GC()
-	})
-}
+// 	b.Cleanup(func() {
+// 		runtime.GC()
+// 	})
+// }
 
 func Test_MerkleDB_DB_Load_Root_From_DB_disk(t *testing.T) {
 	require := require.New(t)

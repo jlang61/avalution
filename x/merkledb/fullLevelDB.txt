@@ -1,0 +1,633 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+Benchmark_MerkleDB_DBInterface_disk/merkledb_2_1024_pairs_32_keys_32_values_BatchWrite-10         	SIGQUIT: quit
+PC=0x19c094804 m=0 sigcode=0
+
+goroutine 0 gp=0x105cc0300 m=0 mp=0x105cc0ba0 [idle]:
+syscall.syscall6(0x14000143298?, 0x104fa2c50?, 0x14000143288?, 0x1054d95ac?, 0x14000143248?, 0x104f9a958?, 0x14000143248?)
+	/usr/local/go/src/runtime/sys_darwin.go:60 +0x50 fp=0x140001431f0 sp=0x14000143130 pc=0x104fa4a90
+syscall.pread(0x14000143288?, {0x1408c678620?, 0x1407b803e18?, 0x105cc0ba0?}, 0x1?)
+	/usr/local/go/src/syscall/zsyscall_darwin_arm64.go:1203 +0x50 fp=0x14000143250 sp=0x140001431f0 pc=0x104fc2cd0
+syscall.Pread(...)
+	/usr/local/go/src/syscall/syscall_unix.go:226
+internal/poll.(*FD).Pread(0x140915a2000, {0x1408c678620, 0x1408c678620?, 0x68}, 0xfc4b76c3)
+	/usr/local/go/src/internal/poll/fd_unix.go:191 +0x118 fp=0x140001432b0 sp=0x14000143250 pc=0x104fe56b8
+os.(*File).pread(...)
+	/usr/local/go/src/os/file_posix.go:38
+os.(*File).ReadAt(0x140001ee008, {0x1408c678620?, 0x0?, 0x1?}, 0x14000143498?)
+	/usr/local/go/src/os/file.go:142 +0x164 fp=0x14000143320 sp=0x140001432b0 pc=0x104feed14
+github.com/ava-labs/avalanchego/x/merkledb.(*diskMgr).get(0x1400004a020, {0x105c6dea0?, 0x140001433e6?})
+	/Users/justinlang/Code/avalution/x/merkledb/disk_manager.go:109 +0x58 fp=0x14000143370 sp=0x14000143320 pc=0x1054cade8
+github.com/ava-labs/avalanchego/x/merkledb.(*rawDisk).getNode(0x14000249760, {0x50?, {0x14042674f80?, 0x1054c8ecc?}}, 0xe8?)
+	/Users/justinlang/Code/avalution/x/merkledb/raw_disk.go:552 +0x720 fp=0x14000143550 sp=0x14000143370 pc=0x1054d8520
+github.com/ava-labs/avalanchego/x/merkledb.(*merkleDB).getNode(0xffffffffffffffff?, {0x0?, {0x14042674f80?, 0x1407b803c21?}}, 0xe8?)
+	/Users/justinlang/Code/avalution/x/merkledb/db.go:1232 +0xc0 fp=0x140001435a0 sp=0x14000143550 pc=0x1054c90e0
+github.com/ava-labs/avalanchego/x/merkledb.(*merkleDB).getEditableNode(0x1056effc0?, {0x1408ddc4060?, {0x14042674f80?, 0x0?}}, 0x7?)
+	/Users/justinlang/Code/avalution/x/merkledb/db.go:1213 +0xd0 fp=0x140001436b0 sp=0x140001435a0 pc=0x1054c8cc0
+github.com/ava-labs/avalanchego/x/merkledb.(*view).recordKeyChange(0x1407a69cd10, {0x8, {0x14042674f80, 0x1}}, 0x140c6af8ee0, 0x0, 0x0)
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:927 +0x184 fp=0x14000143700 sp=0x140001436b0 pc=0x1054e0fe4
+github.com/ava-labs/avalanchego/x/merkledb.(*view).recordNodeChange(...)
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:898
+github.com/ava-labs/avalanchego/x/merkledb.(*view).insert.func1(0x1407a69cd10?)
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:775 +0x60 fp=0x14000143740 sp=0x14000143700 pc=0x1054e0c60
+github.com/ava-labs/avalanchego/x/merkledb.visitPathToKey({0x1057f3300, 0x1407a69cd10}, {0x105ce7400?, {0x14042674f80?, 0x0?}}, 0x140001438f0)
+	/Users/justinlang/Code/avalution/x/merkledb/trie.go:132 +0x25c fp=0x140001437d0 sp=0x14000143740 pc=0x1054d998c
+github.com/ava-labs/avalanchego/x/merkledb.(*view).insert(0x1407a69cd10, {0x1408ddc4090?, {0x14042674f80?, 0x105559155?}}, {0x68?, {0x14042674fc0?, 0x14000143957?, 0x100000000000000?}})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:772 +0xa8 fp=0x14000143910 sp=0x140001437d0 pc=0x1054e0128
+github.com/ava-labs/avalanchego/x/merkledb.(*view).calculateNodeChanges(0x1407a69cd10, {0x1057eaf30?, 0x1408ddc40f0?})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:268 +0x104 fp=0x14000143a00 sp=0x14000143910 pc=0x1054dca24
+github.com/ava-labs/avalanchego/x/merkledb.(*view).applyValueChanges.func1()
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:239 +0x164 fp=0x14000143ac0 sp=0x14000143a00 pc=0x1054dc6b4
+sync.(*Once).doSlow(0x140c06db760?, 0x0?)
+	/usr/local/go/src/sync/once.go:76 +0xf8 fp=0x14000143b20 sp=0x14000143ac0 pc=0x104fb6328
+sync.(*Once).Do(...)
+	/usr/local/go/src/sync/once.go:67
+github.com/ava-labs/avalanchego/x/merkledb.(*view).applyValueChanges(0x1408c31efc0?, {0x1057eaf30?, 0x1408ddc40c0?})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:223 +0x60 fp=0x14000143b80 sp=0x14000143b20 pc=0x1054dc510
+github.com/ava-labs/avalanchego/x/merkledb.(*view).commitToDB(0x1407a69cd10, {0x1057eae00, 0x105ce7400})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:504 +0x288 fp=0x14000143cd0 sp=0x14000143b80 pc=0x1054de378
+github.com/ava-labs/avalanchego/x/merkledb.(*merkleDB).commitBatch(0x14087a560f0, {0x140184a6000, 0x400, 0x400})
+	/Users/justinlang/Code/avalution/x/merkledb/db.go:891 +0x10c fp=0x14000143d80 sp=0x14000143cd0 pc=0x1054c6c0c
+github.com/ava-labs/avalanchego/x/merkledb.(*batch).Write(0x14000143e18?)
+	/Users/justinlang/Code/avalution/x/merkledb/batch.go:18 +0x30 fp=0x14000143db0 sp=0x14000143d80 pc=0x1054bf800
+github.com/ava-labs/avalanchego/database/dbtest.BenchmarkBatchWrite(0x140000ec508, {0x1057f10d0, 0x14087a560f0}, {0x14000116008, 0x400, 0x0?}, {0x1400011ca88, 0x400, 0x17699872fadb?})
+	/Users/justinlang/Code/avalution/database/dbtest/benchmark.go:150 +0x184 fp=0x14000143e30 sp=0x14000143db0 pc=0x105463dd4
+github.com/ava-labs/avalanchego/x/merkledb.Benchmark_MerkleDB_DBInterface_disk.func1(0x140000ec508)
+	/Users/justinlang/Code/avalution/x/merkledb/db_disk_test.go:232 +0xd0 fp=0x14000143ed0 sp=0x14000143e30 pc=0x1054e77f0
+testing.(*B).runN(0x140000ec508, 0xaedb)
+	/usr/local/go/src/testing/benchmark.go:193 +0x128 fp=0x14000143f20 sp=0x14000143ed0 pc=0x105057b08
+testing.(*B).launch(0x140000ec508)
+	/usr/local/go/src/testing/benchmark.go:316 +0x16c fp=0x14000143fb0 sp=0x14000143f20 pc=0x10505866c
+testing.(*B).doBench.gowrap1()
+	/usr/local/go/src/testing/benchmark.go:266 +0x28 fp=0x14000143fd0 sp=0x14000143fb0 pc=0x1050584c8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000143fd0 sp=0x14000143fd0 pc=0x104fa93e4
+created by testing.(*B).doBench in goroutine 13
+	/usr/local/go/src/testing/benchmark.go:266 +0x68
+
+goroutine 106 gp=0x140000ee8c0 m=0 mp=0x105cc0ba0 [syscall]:
+syscall.syscall6(0x14000143298?, 0x104fa2c50?, 0x14000143288?, 0x1054d95ac?, 0x14000143248?, 0x104f9a958?, 0x14000143248?)
+	/usr/local/go/src/runtime/sys_darwin.go:60 +0x50 fp=0x140001431f0 sp=0x14000143130 pc=0x104fa4a90
+syscall.pread(0x14000143288?, {0x1408c678620?, 0x1407b803e18?, 0x105cc0ba0?}, 0x1?)
+	/usr/local/go/src/syscall/zsyscall_darwin_arm64.go:1203 +0x50 fp=0x14000143250 sp=0x140001431f0 pc=0x104fc2cd0
+syscall.Pread(...)
+	/usr/local/go/src/syscall/syscall_unix.go:226
+internal/poll.(*FD).Pread(0x140915a2000, {0x1408c678620, 0x1408c678620?, 0x68}, 0xfc4b76c3)
+	/usr/local/go/src/internal/poll/fd_unix.go:191 +0x118 fp=0x140001432b0 sp=0x14000143250 pc=0x104fe56b8
+os.(*File).pread(...)
+	/usr/local/go/src/os/file_posix.go:38
+os.(*File).ReadAt(0x140001ee008, {0x1408c678620?, 0x0?, 0x1?}, 0x14000143498?)
+	/usr/local/go/src/os/file.go:142 +0x164 fp=0x14000143320 sp=0x140001432b0 pc=0x104feed14
+github.com/ava-labs/avalanchego/x/merkledb.(*diskMgr).get(0x1400004a020, {0x105c6dea0?, 0x140001433e6?})
+	/Users/justinlang/Code/avalution/x/merkledb/disk_manager.go:109 +0x58 fp=0x14000143370 sp=0x14000143320 pc=0x1054cade8
+github.com/ava-labs/avalanchego/x/merkledb.(*rawDisk).getNode(0x14000249760, {0x50?, {0x14042674f80?, 0x1054c8ecc?}}, 0xe8?)
+	/Users/justinlang/Code/avalution/x/merkledb/raw_disk.go:552 +0x720 fp=0x14000143550 sp=0x14000143370 pc=0x1054d8520
+github.com/ava-labs/avalanchego/x/merkledb.(*merkleDB).getNode(0xffffffffffffffff?, {0x0?, {0x14042674f80?, 0x1407b803c21?}}, 0xe8?)
+	/Users/justinlang/Code/avalution/x/merkledb/db.go:1232 +0xc0 fp=0x140001435a0 sp=0x14000143550 pc=0x1054c90e0
+github.com/ava-labs/avalanchego/x/merkledb.(*merkleDB).getEditableNode(0x1056effc0?, {0x1408ddc4060?, {0x14042674f80?, 0x0?}}, 0x7?)
+	/Users/justinlang/Code/avalution/x/merkledb/db.go:1213 +0xd0 fp=0x140001436b0 sp=0x140001435a0 pc=0x1054c8cc0
+github.com/ava-labs/avalanchego/x/merkledb.(*view).recordKeyChange(0x1407a69cd10, {0x8, {0x14042674f80, 0x1}}, 0x140c6af8ee0, 0x0, 0x0)
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:927 +0x184 fp=0x14000143700 sp=0x140001436b0 pc=0x1054e0fe4
+github.com/ava-labs/avalanchego/x/merkledb.(*view).recordNodeChange(...)
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:898
+github.com/ava-labs/avalanchego/x/merkledb.(*view).insert.func1(0x1407a69cd10?)
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:775 +0x60 fp=0x14000143740 sp=0x14000143700 pc=0x1054e0c60
+github.com/ava-labs/avalanchego/x/merkledb.visitPathToKey({0x1057f3300, 0x1407a69cd10}, {0x105ce7400?, {0x14042674f80?, 0x0?}}, 0x140001438f0)
+	/Users/justinlang/Code/avalution/x/merkledb/trie.go:132 +0x25c fp=0x140001437d0 sp=0x14000143740 pc=0x1054d998c
+github.com/ava-labs/avalanchego/x/merkledb.(*view).insert(0x1407a69cd10, {0x1408ddc4090?, {0x14042674f80?, 0x105559155?}}, {0x68?, {0x14042674fc0?, 0x14000143957?, 0x100000000000000?}})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:772 +0xa8 fp=0x14000143910 sp=0x140001437d0 pc=0x1054e0128
+github.com/ava-labs/avalanchego/x/merkledb.(*view).calculateNodeChanges(0x1407a69cd10, {0x1057eaf30?, 0x1408ddc40f0?})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:268 +0x104 fp=0x14000143a00 sp=0x14000143910 pc=0x1054dca24
+github.com/ava-labs/avalanchego/x/merkledb.(*view).applyValueChanges.func1()
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:239 +0x164 fp=0x14000143ac0 sp=0x14000143a00 pc=0x1054dc6b4
+sync.(*Once).doSlow(0x140c06db760?, 0x0?)
+	/usr/local/go/src/sync/once.go:76 +0xf8 fp=0x14000143b20 sp=0x14000143ac0 pc=0x104fb6328
+sync.(*Once).Do(...)
+	/usr/local/go/src/sync/once.go:67
+github.com/ava-labs/avalanchego/x/merkledb.(*view).applyValueChanges(0x1408c31efc0?, {0x1057eaf30?, 0x1408ddc40c0?})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:223 +0x60 fp=0x14000143b80 sp=0x14000143b20 pc=0x1054dc510
+github.com/ava-labs/avalanchego/x/merkledb.(*view).commitToDB(0x1407a69cd10, {0x1057eae00, 0x105ce7400})
+	/Users/justinlang/Code/avalution/x/merkledb/view.go:504 +0x288 fp=0x14000143cd0 sp=0x14000143b80 pc=0x1054de378
+github.com/ava-labs/avalanchego/x/merkledb.(*merkleDB).commitBatch(0x14087a560f0, {0x140184a6000, 0x400, 0x400})
+	/Users/justinlang/Code/avalution/x/merkledb/db.go:891 +0x10c fp=0x14000143d80 sp=0x14000143cd0 pc=0x1054c6c0c
+github.com/ava-labs/avalanchego/x/merkledb.(*batch).Write(0x14000143e18?)
+	/Users/justinlang/Code/avalution/x/merkledb/batch.go:18 +0x30 fp=0x14000143db0 sp=0x14000143d80 pc=0x1054bf800
+github.com/ava-labs/avalanchego/database/dbtest.BenchmarkBatchWrite(0x140000ec508, {0x1057f10d0, 0x14087a560f0}, {0x14000116008, 0x400, 0x0?}, {0x1400011ca88, 0x400, 0x17699872fadb?})
+	/Users/justinlang/Code/avalution/database/dbtest/benchmark.go:150 +0x184 fp=0x14000143e30 sp=0x14000143db0 pc=0x105463dd4
+github.com/ava-labs/avalanchego/x/merkledb.Benchmark_MerkleDB_DBInterface_disk.func1(0x140000ec508)
+	/Users/justinlang/Code/avalution/x/merkledb/db_disk_test.go:232 +0xd0 fp=0x14000143ed0 sp=0x14000143e30 pc=0x1054e77f0
+testing.(*B).runN(0x140000ec508, 0xaedb)
+	/usr/local/go/src/testing/benchmark.go:193 +0x128 fp=0x14000143f20 sp=0x14000143ed0 pc=0x105057b08
+testing.(*B).launch(0x140000ec508)
+	/usr/local/go/src/testing/benchmark.go:316 +0x16c fp=0x14000143fb0 sp=0x14000143f20 pc=0x10505866c
+testing.(*B).doBench.gowrap1()
+	/usr/local/go/src/testing/benchmark.go:266 +0x28 fp=0x14000143fd0 sp=0x14000143fb0 pc=0x1050584c8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000143fd0 sp=0x14000143fd0 pc=0x104fa93e4
+created by testing.(*B).doBench in goroutine 13
+	/usr/local/go/src/testing/benchmark.go:266 +0x68
+
+goroutine 1 gp=0x140000021c0 m=nil [chan receive, 10 minutes]:
+runtime.gopark(0x14000133878?, 0xc4?, 0x88?, 0x42?, 0x10?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000141840 sp=0x14000141820 pc=0x104fa0628
+runtime.chanrecv(0x14000182150, 0x0, 0x1)
+	/usr/local/go/src/runtime/chan.go:639 +0x414 fp=0x140001418c0 sp=0x14000141840 pc=0x104f34274
+runtime.chanrecv1(0x14000133918?, 0x104f9b1c8?)
+	/usr/local/go/src/runtime/chan.go:489 +0x14 fp=0x140001418f0 sp=0x140001418c0 pc=0x104f33e24
+testing.(*B).run1(0x140000ec288)
+	/usr/local/go/src/testing/benchmark.go:217 +0xa0 fp=0x140001419f0 sp=0x140001418f0 pc=0x105057d10
+testing.(*B).Run(0x140000ec008, {0x105559d6c?, 0x14000133b28?}, 0x1057dd508)
+	/usr/local/go/src/testing/benchmark.go:682 +0x3ec fp=0x14000141af0 sp=0x140001419f0 pc=0x10505a60c
+testing.runBenchmarks.func1(0x140000ec008)
+	/usr/local/go/src/testing/benchmark.go:543 +0x40 fp=0x14000141b30 sp=0x14000141af0 pc=0x105059a20
+testing.(*B).runN(0x140000ec008, 0x1)
+	/usr/local/go/src/testing/benchmark.go:193 +0x128 fp=0x14000141b80 sp=0x14000141b30 pc=0x105057b08
+testing.runBenchmarks({0x10555f42d, 0x2a}, 0x0?, {0x105cb1500, 0x14, 0x38d5bd9a5b9b3600?})
+	/usr/local/go/src/testing/benchmark.go:552 +0x520 fp=0x14000141c90 sp=0x14000141b80 pc=0x105059970
+testing.(*M).Run(0x140000b8a00)
+	/usr/local/go/src/testing/testing.go:2050 +0x874 fp=0x14000141ec0 sp=0x14000141c90 pc=0x105067ce4
+main.main()
+	_testmain.go:421 +0x90 fp=0x14000141f40 sp=0x14000141ec0 pc=0x10553dd30
+runtime.main()
+	/usr/local/go/src/runtime/proc.go:272 +0x288 fp=0x14000141fd0 sp=0x14000141f40 pc=0x104f68838
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000141fd0 sp=0x14000141fd0 pc=0x104fa93e4
+
+goroutine 17 gp=0x14000102380 m=nil [force gc (idle), 10 minutes]:
+runtime.gopark(0x0?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000074790 sp=0x14000074770 pc=0x104fa0628
+runtime.goparkunlock(...)
+	/usr/local/go/src/runtime/proc.go:430
+runtime.forcegchelper()
+	/usr/local/go/src/runtime/proc.go:337 +0xb8 fp=0x140000747d0 sp=0x14000074790 pc=0x104f68b98
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140000747d0 sp=0x140000747d0 pc=0x104fa93e4
+created by runtime.init.7 in goroutine 1
+	/usr/local/go/src/runtime/proc.go:325 +0x24
+
+goroutine 18 gp=0x14000102540 m=nil [GC sweep wait]:
+runtime.gopark(0x1?, 0x0?, 0x0?, 0x0?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000074f60 sp=0x14000074f40 pc=0x104fa0628
+runtime.goparkunlock(...)
+	/usr/local/go/src/runtime/proc.go:430
+runtime.bgsweep(0x14000110000)
+	/usr/local/go/src/runtime/mgcsweep.go:317 +0x108 fp=0x14000074fb0 sp=0x14000074f60 pc=0x104f50a98
+runtime.gcenable.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:204 +0x28 fp=0x14000074fd0 sp=0x14000074fb0 pc=0x104f44988
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000074fd0 sp=0x14000074fd0 pc=0x104fa93e4
+created by runtime.gcenable in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:204 +0x6c
+
+goroutine 19 gp=0x14000102700 m=nil [GC scavenge wait]:
+runtime.gopark(0x10000?, 0xb8e37?, 0x0?, 0x0?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000075760 sp=0x14000075740 pc=0x104fa0628
+runtime.goparkunlock(...)
+	/usr/local/go/src/runtime/proc.go:430
+runtime.(*scavengerState).park(0x105cbff20)
+	/usr/local/go/src/runtime/mgcscavenge.go:425 +0x5c fp=0x14000075790 sp=0x14000075760 pc=0x104f4e42c
+runtime.bgscavenge(0x14000110000)
+	/usr/local/go/src/runtime/mgcscavenge.go:658 +0xac fp=0x140000757b0 sp=0x14000075790 pc=0x104f4e9dc
+runtime.gcenable.gowrap2()
+	/usr/local/go/src/runtime/mgc.go:205 +0x28 fp=0x140000757d0 sp=0x140000757b0 pc=0x104f44928
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140000757d0 sp=0x140000757d0 pc=0x104fa93e4
+created by runtime.gcenable in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:205 +0xac
+
+goroutine 33 gp=0x140001b2000 m=nil [finalizer wait, 5 minutes]:
+runtime.gopark(0x0?, 0x1057ddaa8?, 0xe0?, 0x6d?, 0x2000000020?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000078580 sp=0x14000078560 pc=0x104fa0628
+runtime.runfinq()
+	/usr/local/go/src/runtime/mfinal.go:193 +0x108 fp=0x140000787d0 sp=0x14000078580 pc=0x104f43a88
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140000787d0 sp=0x140000787d0 pc=0x104fa93e4
+created by runtime.createfing in goroutine 1
+	/usr/local/go/src/runtime/mfinal.go:163 +0x80
+
+goroutine 34 gp=0x1400025f880 m=nil [chan receive]:
+runtime.gopark(0x140002c2748?, 0x10515c4ac?, 0x50?, 0x19?, 0x1057f86c0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002c26f0 sp=0x140002c26d0 pc=0x104fa0628
+runtime.chanrecv(0x140001824d0, 0x0, 0x1)
+	/usr/local/go/src/runtime/chan.go:639 +0x414 fp=0x140002c2770 sp=0x140002c26f0 pc=0x104f34274
+runtime.chanrecv1(0x0?, 0x0?)
+	/usr/local/go/src/runtime/chan.go:489 +0x14 fp=0x140002c27a0 sp=0x140002c2770 pc=0x104f33e24
+runtime.unique_runtime_registerUniqueMapCleanup.func1(...)
+	/usr/local/go/src/runtime/mgc.go:1781
+runtime.unique_runtime_registerUniqueMapCleanup.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1784 +0x3c fp=0x140002c27d0 sp=0x140002c27a0 pc=0x104f47aac
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002c27d0 sp=0x140002c27d0 pc=0x104fa93e4
+created by unique.runtime_registerUniqueMapCleanup in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1779 +0xa0
+
+goroutine 3 gp=0x1400025fc00 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b1182cfd?, 0x3?, 0x21?, 0x31?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002c2f10 sp=0x140002c2ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x140002c2fb0 sp=0x140002c2f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x140002c2fd0 sp=0x140002c2fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002c2fd0 sp=0x140002c2fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 4 gp=0x14000003500 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b1182e74?, 0x1?, 0x3b?, 0x18?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000078f10 sp=0x14000078ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x14000078fb0 sp=0x14000078f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x14000078fd0 sp=0x14000078fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000078fd0 sp=0x14000078fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 5 gp=0x140000036c0 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b11897ec?, 0x3?, 0xe8?, 0x73?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000079710 sp=0x140000796f0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x140000797b0 sp=0x14000079710 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x140000797d0 sp=0x140000797b0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140000797d0 sp=0x140000797d0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 6 gp=0x14000003880 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6a048791b?, 0x3?, 0x13?, 0x12?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000079f10 sp=0x14000079ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x14000079fb0 sp=0x14000079f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x14000079fd0 sp=0x14000079fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000079fd0 sp=0x14000079fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 7 gp=0x14000003a40 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b11823b6?, 0x3?, 0xc0?, 0xd5?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x1400013bf10 sp=0x1400013bef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x1400013bfb0 sp=0x1400013bf10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x1400013bfd0 sp=0x1400013bfb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x1400013bfd0 sp=0x1400013bfd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 8 gp=0x14000003c00 m=nil [GC worker (idle)]:
+runtime.gopark(0x105ce8d00?, 0x1?, 0x3f?, 0xaa?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000186f10 sp=0x14000186ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x14000186fb0 sp=0x14000186f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x14000186fd0 sp=0x14000186fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000186fd0 sp=0x14000186fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 9 gp=0x14000003dc0 m=nil [GC worker (idle)]:
+runtime.gopark(0x105ce8d00?, 0x3?, 0xc6?, 0xbf?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000135f10 sp=0x14000135ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x14000135fb0 sp=0x14000135f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x14000135fd0 sp=0x14000135fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000135fd0 sp=0x14000135fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 10 gp=0x140000ee000 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b1189869?, 0x1?, 0xbc?, 0x8c?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x1400007bf10 sp=0x1400007bef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x1400007bfb0 sp=0x1400007bf10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x1400007bfd0 sp=0x1400007bfb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x1400007bfd0 sp=0x1400007bfd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 11 gp=0x140000ee1c0 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b118e46b?, 0x1?, 0x15?, 0x94?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000138f10 sp=0x14000138ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x14000138fb0 sp=0x14000138f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x14000138fd0 sp=0x14000138fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000138fd0 sp=0x14000138fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 12 gp=0x140000ee380 m=nil [GC worker (idle)]:
+runtime.gopark(0x17b6b1183232?, 0x3?, 0x9?, 0xb4?, 0x0?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14018881f10 sp=0x14018881ef0 pc=0x104fa0628
+runtime.gcBgMarkWorker(0x1400003e380)
+	/usr/local/go/src/runtime/mgc.go:1412 +0xdc fp=0x14018881fb0 sp=0x14018881f10 pc=0x104f46d1c
+runtime.gcBgMarkStartWorkers.gowrap1()
+	/usr/local/go/src/runtime/mgc.go:1328 +0x28 fp=0x14018881fd0 sp=0x14018881fb0 pc=0x104f46c08
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14018881fd0 sp=0x14018881fd0 pc=0x104fa93e4
+created by runtime.gcBgMarkStartWorkers in goroutine 1
+	/usr/local/go/src/runtime/mgc.go:1328 +0x140
+
+goroutine 13 gp=0x140001028c0 m=nil [chan receive, 10 minutes]:
+runtime.gopark(0x0?, 0xe0?, 0x38?, 0xab?, 0x10?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x1400018d9d0 sp=0x1400018d9b0 pc=0x104fa0628
+runtime.chanrecv(0x140001822a0, 0x0, 0x1)
+	/usr/local/go/src/runtime/chan.go:639 +0x414 fp=0x1400018da50 sp=0x1400018d9d0 pc=0x104f34274
+runtime.chanrecv1(0x140001a0058?, 0x14000196f80?)
+	/usr/local/go/src/runtime/chan.go:489 +0x14 fp=0x1400018da80 sp=0x1400018da50 pc=0x104f33e24
+testing.(*B).doBench(0x140000ec508)
+	/usr/local/go/src/testing/benchmark.go:267 +0x78 fp=0x1400018dae0 sp=0x1400018da80 pc=0x105058438
+testing.(*benchContext).processBench(0x1400000c8d0, 0x1057c6780?)
+	/usr/local/go/src/testing/benchmark.go:582 +0x2cc fp=0x1400018dc80 sp=0x1400018dae0 pc=0x105059d2c
+testing.(*B).run(0x140000ec508?)
+	/usr/local/go/src/testing/benchmark.go:258 +0x64 fp=0x1400018dcb0 sp=0x1400018dc80 pc=0x105058234
+testing.(*B).Run(0x140000ec288, {0x14000194500?, 0x1400018de80?}, 0x14000114120)
+	/usr/local/go/src/testing/benchmark.go:683 +0x3f8 fp=0x1400018ddb0 sp=0x1400018dcb0 pc=0x10505a618
+github.com/ava-labs/avalanchego/x/merkledb.Benchmark_MerkleDB_DBInterface_disk(0x140000ec288)
+	/Users/justinlang/Code/avalution/x/merkledb/db_disk_test.go:229 +0x1ec fp=0x1400018df40 sp=0x1400018ddb0 pc=0x1054e757c
+testing.(*B).runN(0x140000ec288, 0x1)
+	/usr/local/go/src/testing/benchmark.go:193 +0x128 fp=0x1400018df90 sp=0x1400018df40 pc=0x105057b08
+testing.(*B).run1.func1()
+	/usr/local/go/src/testing/benchmark.go:215 +0x4c fp=0x1400018dfd0 sp=0x1400018df90 pc=0x10505813c
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x1400018dfd0 sp=0x1400018dfd0 pc=0x104fa93e4
+created by testing.(*B).run1 in goroutine 1
+	/usr/local/go/src/testing/benchmark.go:208 +0x90
+
+goroutine 15 gp=0x14000103180 m=nil [select, 10 minutes]:
+runtime.gopark(0x1400018bf88?, 0x2?, 0x0?, 0x80?, 0x1400018bf4c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x1400018bde0 sp=0x1400018bdc0 pc=0x104fa0628
+runtime.selectgo(0x1400018bf88, 0x1400018bf48, 0x105ce9ec0?, 0x0, 0x140002c5788?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x1400018bf10 sp=0x1400018bde0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140001b0300)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x1400018bfb0 sp=0x1400018bf10 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x1400018bfd0 sp=0x1400018bfb0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x1400018bfd0 sp=0x1400018bfd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 14
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 16 gp=0x14000103340 m=nil [select]:
+runtime.gopark(0x14000137f50?, 0x3?, 0xa8?, 0x7e?, 0x14000137f12?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000137da0 sp=0x14000137d80 pc=0x104fa0628
+runtime.selectgo(0x14000137f50, 0x14000137f0c, 0x140001b0300?, 0x0, 0x0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14000137ed0 sp=0x14000137da0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1400022e980)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x14000137fb0 sp=0x14000137ed0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x14000137fd0 sp=0x14000137fb0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000137fd0 sp=0x14000137fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 14
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 49 gp=0x14000103500 m=nil [select, 10 minutes]:
+runtime.gopark(0x14000076788?, 0x2?, 0x0?, 0xe0?, 0x1400007674c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140000765e0 sp=0x140000765c0 pc=0x104fa0628
+runtime.selectgo(0x14000076788, 0x14000076748, 0x0?, 0x0, 0x0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14000076710 sp=0x140000765e0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140001b0ac0)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x140000767b0 sp=0x14000076710 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x140000767d0 sp=0x140000767b0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140000767d0 sp=0x140000767d0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 14
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 50 gp=0x140001036c0 m=nil [select]:
+runtime.gopark(0x14000076f50?, 0x3?, 0x0?, 0x0?, 0x14000076f12?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000076da0 sp=0x14000076d80 pc=0x104fa0628
+runtime.selectgo(0x14000076f50, 0x14000076f0c, 0x140001b0ac0?, 0x0, 0x0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14000076ed0 sp=0x14000076da0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1400022ea00)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x14000076fb0 sp=0x14000076ed0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x14000076fd0 sp=0x14000076fb0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000076fd0 sp=0x14000076fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 14
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 181 gp=0x140000eefc0 m=nil [select, 10 minutes]:
+runtime.gopark(0x140002bf788?, 0x2?, 0x0?, 0x0?, 0x140002bf74c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002bf5e0 sp=0x140002bf5c0 pc=0x104fa0628
+runtime.selectgo(0x140002bf788, 0x140002bf748, 0x0?, 0x0, 0x140000c4210?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x140002bf710 sp=0x140002bf5e0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140001b0e00)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x140002bf7b0 sp=0x140002bf710 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x140002bf7d0 sp=0x140002bf7b0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002bf7d0 sp=0x140002bf7d0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 180 gp=0x140002ee540 m=nil [select]:
+runtime.gopark(0x14018883f50?, 0x3?, 0x70?, 0xcc?, 0x14018883f12?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14018883da0 sp=0x14018883d80 pc=0x104fa0628
+runtime.selectgo(0x14018883f50, 0x14018883f0c, 0x140001b0d40?, 0x0, 0x0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14018883ed0 sp=0x14018883da0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1400022ea80)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x14018883fb0 sp=0x14018883ed0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x14018883fd0 sp=0x14018883fb0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14018883fd0 sp=0x14018883fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 179 gp=0x14000302c40 m=nil [select, 10 minutes]:
+runtime.gopark(0x140002c3788?, 0x2?, 0x0?, 0x40?, 0x140002c374c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002c35e0 sp=0x140002c35c0 pc=0x104fa0628
+runtime.selectgo(0x140002c3788, 0x140002c3748, 0x0?, 0x0, 0x0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x140002c3710 sp=0x140002c35e0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140001b0d40)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x140002c37b0 sp=0x140002c3710 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x140002c37d0 sp=0x140002c37b0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002c37d0 sp=0x140002c37d0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 209 gp=0x140000efdc0 m=nil [select]:
+runtime.gopark(0x1400018cf50?, 0x3?, 0xc8?, 0xbf?, 0x1400018cf12?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x1400018cda0 sp=0x1400018cd80 pc=0x104fa0628
+runtime.selectgo(0x1400018cf50, 0x1400018cf0c, 0x140001b0e00?, 0x0, 0x0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x1400018ced0 sp=0x1400018cda0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x14018436000)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x1400018cfb0 sp=0x1400018ced0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x1400018cfd0 sp=0x1400018cfb0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x1400018cfd0 sp=0x1400018cfd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 1171087 gp=0x14000103dc0 m=nil [select]:
+runtime.gopark(0x140002bff88?, 0x2?, 0x0?, 0x80?, 0x140002bff4c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002bfde0 sp=0x140002bfdc0 pc=0x104fa0628
+runtime.selectgo(0x140002bff88, 0x140002bff48, 0x0?, 0x0, 0x2?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x140002bff10 sp=0x140002bfde0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140188aa740)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x140002bffb0 sp=0x140002bff10 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x140002bffd0 sp=0x140002bffb0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002bffd0 sp=0x140002bffd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 1171122 gp=0x1404f3aa700 m=nil [select]:
+runtime.gopark(0x140002c1750?, 0x3?, 0x1?, 0x0?, 0x140002c1712?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002c15a0 sp=0x140002c1580 pc=0x104fa0628
+runtime.selectgo(0x140002c1750, 0x140002c170c, 0x140188aa7c0?, 0x0, 0x140aafa5fb0?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x140002c16d0 sp=0x140002c15a0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1403242e080)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x140002c17b0 sp=0x140002c16d0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x140002c17d0 sp=0x140002c17b0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002c17d0 sp=0x140002c17d0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 12255 gp=0x14060906fc0 m=nil [select, 5 minutes]:
+runtime.gopark(0x140002c5f88?, 0x2?, 0x0?, 0xe0?, 0x140002c5f4c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002c5de0 sp=0x140002c5dc0 pc=0x104fa0628
+runtime.selectgo(0x140002c5f88, 0x140002c5f48, 0x0?, 0x0, 0x2?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x140002c5f10 sp=0x140002c5de0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140000b4200)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x140002c5fb0 sp=0x140002c5f10 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x140002c5fd0 sp=0x140002c5fb0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002c5fd0 sp=0x140002c5fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 1171088 gp=0x14060907500 m=nil [select]:
+runtime.gopark(0x14018896f50?, 0x3?, 0x28?, 0xd8?, 0x14018896f12?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14018896da0 sp=0x14018896d80 pc=0x104fa0628
+runtime.selectgo(0x14018896f50, 0x14018896f0c, 0x140188aa740?, 0x0, 0x3?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14018896ed0 sp=0x14018896da0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1403242e000)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x14018896fb0 sp=0x14018896ed0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x14018896fd0 sp=0x14018896fb0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14018896fd0 sp=0x14018896fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 12256 gp=0x14059df4540 m=nil [select]:
+runtime.gopark(0x14018785f50?, 0x3?, 0x78?, 0x8e?, 0x14018785f12?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14018785da0 sp=0x14018785d80 pc=0x104fa0628
+runtime.selectgo(0x14018785f50, 0x14018785f0c, 0x140000b4200?, 0x0, 0x3?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14018785ed0 sp=0x14018785da0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1400022eb00)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x14018785fb0 sp=0x14018785ed0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x14018785fd0 sp=0x14018785fb0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14018785fd0 sp=0x14018785fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 12353 gp=0x14059df4700 m=nil [select, 5 minutes]:
+runtime.gopark(0x14000075f88?, 0x2?, 0x0?, 0xe0?, 0x14000075f4c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x14000075de0 sp=0x14000075dc0 pc=0x104fa0628
+runtime.selectgo(0x14000075f88, 0x14000075f48, 0x0?, 0x0, 0x14032f5e630?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x14000075f10 sp=0x14000075de0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140000b4280)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x14000075fb0 sp=0x14000075f10 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x14000075fd0 sp=0x14000075fb0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x14000075fd0 sp=0x14000075fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+goroutine 12354 gp=0x14047345880 m=nil [select]:
+runtime.gopark(0x1400007b750?, 0x3?, 0x1?, 0x0?, 0x1400007b712?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x1400007b5a0 sp=0x1400007b580 pc=0x104fa0628
+runtime.selectgo(0x1400007b750, 0x1400007b70c, 0x140000b4280?, 0x0, 0x1405204b810?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x1400007b6d0 sp=0x1400007b5a0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*Cache).processItems(0x1400022eb80)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:459 +0xf4 fp=0x1400007b7b0 sp=0x1400007b6d0 pc=0x105414c74
+github.com/dgraph-io/ristretto.NewCache.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x28 fp=0x1400007b7d0 sp=0x1400007b7b0 pc=0x105413de8
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x1400007b7d0 sp=0x1400007b7d0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.NewCache in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/cache.go:211 +0x63c
+
+goroutine 1171121 gp=0x14060987dc0 m=nil [select]:
+runtime.gopark(0x140002c1f88?, 0x2?, 0x0?, 0xe0?, 0x140002c1f4c?)
+	/usr/local/go/src/runtime/proc.go:424 +0xc8 fp=0x140002c1de0 sp=0x140002c1dc0 pc=0x104fa0628
+runtime.selectgo(0x140002c1f88, 0x140002c1f48, 0x0?, 0x0, 0x14035f92790?, 0x1)
+	/usr/local/go/src/runtime/select.go:335 +0x67c fp=0x140002c1f10 sp=0x140002c1de0 pc=0x104f7bf9c
+github.com/dgraph-io/ristretto.(*defaultPolicy).processItems(0x140188aa7c0)
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:101 +0x64 fp=0x140002c1fb0 sp=0x140002c1f10 pc=0x105416564
+github.com/dgraph-io/ristretto.newDefaultPolicy.gowrap1()
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x28 fp=0x140002c1fd0 sp=0x140002c1fb0 pc=0x105416438
+runtime.goexit({})
+	/usr/local/go/src/runtime/asm_arm64.s:1223 +0x4 fp=0x140002c1fd0 sp=0x140002c1fd0 pc=0x104fa93e4
+created by github.com/dgraph-io/ristretto.newDefaultPolicy in goroutine 106
+	/Users/justinlang/go/pkg/mod/github.com/dgraph-io/ristretto@v0.2.0/policy.go:85 +0x134
+
+r0      0x68
+r1      0x0
+r2      0x68
+r3      0xfc4b76c3
+r4      0x0
+r5      0x0
+r6      0x1
+r7      0x104fc4d90
+r8      0x105cc0ba0
+r9      0x14000143148
+r10     0x1408c678620
+r11     0x0
+r12     0x104fc4d90
+r13     0x16aed2d60
+r14     0xe
+r15     0xf
+r16     0x99
+r17     0x19c0947fc
+r18     0x0
+r19     0x16aed2c38
+r20     0x140001431e8
+r21     0x14000143198
+r22     0x3aed
+r23     0xb693724ce2e6b318
+r24     0x0
+r25     0x14000064ba8
+r26     0x0
+r27     0x810
+r28     0x105cc0300
+r29     0x16aed2d48
+lr      0x104faab48
+sp      0x16aed2d40
+pc      0x19c094804
+fault   0x19c094804
+*** Test killed with quit: ran too long (11m0s).
+exit status 2
+FAIL	github.com/ava-labs/avalanchego/x/merkledb	660.087s
+FAIL

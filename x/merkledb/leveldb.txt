@@ -1,0 +1,7 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+BenchmarkBatchWrite/merkledb_16_1024_pairs_32_keys_32_values_BatchWrite-10         	     208	   5872213 ns/op
+PASS
+ok  	github.com/ava-labs/avalanchego/x/merkledb	2.221s

@@ -1,0 +1,8 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+Benchmark_MerkleDB_DBInterface_disk/merkledb_2_1024_pairs_32_keys_32_values_Get-10         	 1577463	       724.4 ns/op
+Benchmark_MerkleDB_DBInterface_disk/merkledb_2_1024_pairs_32_keys_32_values_Delete-10      	     217	   6040406 ns/op
+Benchmark_MerkleDB_DBInterface_disk/merkledb_4_1024_pairs_32_keys_32_values_Get-10         	signal: interrupt
+FAIL	github.com/ava-labs/avalanchego/x/merkledb	66.892s

@@ -129,25 +129,68 @@ func Test_MerkleDB_DB_Interface(t *testing.T) {
 func TestDelete(t *testing.T) {
 	require := require.New(t)
 	keys, values := dbtest.SetupBenchmark(t, 1024, 32, 32)
-	for _, bf := range validBranchFactors {
 
-		db, err := getBasicDBWithBranchFactor(bf)
-		require.NoError(err)
+	db, err := getBasicDB(t)
+	require.NoError(err)
 
-		for i, key := range keys {
-			value := values[i]
-			require.NoError(db.Put(key, value))
-		}
-
-		require.NoError(db.Delete(keys[0]))
-		t.Cleanup(func() {
-			db.Close()
-		})
+	for i, key := range keys {
+		value := values[i]
+		require.NoError(db.Put(key, value))
 	}
+
+	require.NoError(db.Delete(keys[0]))
+	t.Cleanup(func() {
+		db.Close()
+	})
 
 }
 
+
+func BenchmarkBatchWrite(t *testing.B){
+	
+	require := require.New(t)
+	keys, values := dbtest.SetupBenchmark(t, 1024, 32, 32)
+	bf := BranchFactor16
+	db, err := getBasicDBWithBranchFactor(bf)
+	require.NoError(err)
+	batch := db.NewBatch()
+
+	// Add all key/value pairs to the batch.
+	for i, key := range keys {
+		require.NoError(batch.Put(key, values[i]))
+	}
+
+	// Write the whole batch.
+	require.NoError(batch.Write())
+	
+}
+
+//	func initTracer() func(context.Context) error {
+//		// Create a stdout exporter with pretty-print enabled.
+//		exporter, err := stdouttrace.New(
+//			stdouttrace.WithPrettyPrint(),
+//		)
+//		if err != nil {
+//			log.Fatalf("failed to initialize stdouttrace exporter: %v", err)
+//		}
+//		// Create a tracer provider with a batcher and AlwaysSample sampler.
+//		tp := sdktrace.NewTracerProvider(
+//			sdktrace.WithBatcher(exporter),
+//			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+//		)
+//		// Set the global tracer provider.
+//		otel.SetTracerProvider(tp)
+//		return tp.Shutdown
+//	}
 func Benchmark_MerkleDB_DBInterface(b *testing.B) {
+	// Initialize the tracer once for the benchmark.
+	// shutdownTracer := initTracer()
+	// defer func() {
+	// 	if err := shutdownTracer(context.Background()); err != nil {
+	// 		b.Errorf("failed to shutdown tracer: %v", err)
+	// 	}
+	// }()
+
 	for _, size := range dbtest.BenchmarkSizes {
 		keys, values := dbtest.SetupBenchmark(b, size[0], size[1], size[2])
 		for _, bf := range validBranchFactors {

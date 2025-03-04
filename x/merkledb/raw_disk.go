@@ -10,13 +10,16 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	rtrace "runtime/trace" // Alias runtime/trace as rtrace for clarity
 
 	// "github.com/hashicorp/golang-lru"
-
-	"github.com/dgraph-io/ristretto"
-
+	// "go.opentelemetry.io/otel"
 	"github.com/ava-labs/avalanchego/database"
+	"github.com/ava-labs/avalanchego/trace"
 	"github.com/ava-labs/avalanchego/utils/maybe"
+	"github.com/dgraph-io/ristretto"
+	"go.opentelemetry.io/otel/attribute"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
 var _ Disk = &rawDisk{}
@@ -61,27 +64,38 @@ type rawDisk struct {
 	hasher       Hasher
 	cache        *ristretto.Cache
 	deletedCache *ristretto.Cache
+	debugTracer  trace.Tracer
+	rootNode    *node
+
 }
 
+// Example usage in newRawDisk.
 func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*rawDisk, error) {
 	dm, err := newDiskManager(nil, dir, fileName)
 	if err != nil {
 		return nil, err
 	}
 	cache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e6,     // Number of keys to track frequency (higher = better hit rate)
-		MaxCost:     2 << 30, // Maximum cost in bytes (adjust as needed)
-		BufferItems: 64,      // Number of keys per eviction buffer
+		NumCounters: 1e6,
+		MaxCost:     2 << 30,
+		BufferItems: 64,
 	})
-
 	deletedCache, _ := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e5,     // Number of keys to track frequency (higher = better hit rate)
-		MaxCost:     1 << 30, // Maximum cost in bytes (adjust as needed)
-		BufferItems: 64,      // Number of keys per eviction buffer
+		NumCounters: 1e5,
+		MaxCost:     1 << 30,
+		BufferItems: 64,
 	})
 
-	// correctly read rootId from the header
-	return &rawDisk{dm: dm, hasher: hasher, config: config, cache: cache, deletedCache: deletedCache}, nil
+	// Wrap the OTEL tracer to match the required interface.
+	// Return the rawDisk instance with the wrapped tracer.
+	return &rawDisk{
+		dm:           dm,
+		hasher:       hasher,
+		config:       config,
+		cache:        cache,
+		deletedCache: deletedCache,
+		debugTracer:      getTracerIfEnabled(config.TraceLevel, DebugTrace, config.Tracer), // Compatible with the expected interface.
+	}, nil
 }
 
 func (r *rawDisk) getShutdownType() ([]byte, error) {
@@ -195,102 +209,113 @@ func (r *rawDisk) printTree(rootDiskAddr diskAddress, changes *changeSummary) er
 }
 
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
-	// change the rootnode's diskaddress to on file diskaddress if it exists
-	// iterate through the entire tree
+	// Start the top-level span for the entire writeChanges function.
+	// Begin a runtime trace region for the entire writeChanges function.
+	rtRegionWriteChanges := rtrace.StartRegion(ctx, "MerkleDB.writeChanges (runtime)")
+	defer rtRegionWriteChanges.End()
 
-	// rootnode diskaddress rootchange.before
-	// nodes.children.diskaddress - missing
+	// Start the top-level OpenTelemetry span.
+	ctx, span := r.debugTracer.Start(ctx, "MerkleDB.writeChanges",
+		oteltrace.WithAttributes(attribute.Int("nodeCount", len(changes.nodes))),
+	)
+
+	defer span.End()
+
+	// Gather all keys from changes.
 	var keys []Key
-
 	for k := range changes.nodes {
 		keys = append(keys, k)
 	}
 
-	// sort the keys by length, then start at the longest keys (leaf nodes)
-	// sorting longest to shortest
+	// Sort the keys by length (longest first, for leaf nodes first).
 	sort.Slice(keys, func(i, j int) bool {
 		return keys[i].length > keys[j].length
 	})
 
+	// Create a span for partitioning data (calculating totalLenBytes).
+	rtRegionPartition := rtrace.StartRegion(ctx, "PartitionData (runtime)")
+	_, partitionSpan := r.debugTracer.Start(ctx, "PartitionData")
 	totalLenBytes := 0
 	for _, nodes := range changes.nodes {
 		if nodes.after != nil {
-			// Increase length by one for the padding byte per node
+			// Increase length by one for the padding byte per node.
 			totalLenBytes += len(encodeDBNode_disk(&nodes.after.dbNode)) + 1
 			totalLenBytes += 16 * len(nodes.after.children)
 		}
 	}
-	// every node in the tree has a diskaddress of its children except leaf nodes
-	// find how many leaf nodes there are
+	partitionSpan.End()
+	rtRegionPartition.End()
 
-	// log.Printf("Total length of bytes %d", totalLenBytes)
-
-	// fetch the available disk address for totallenbytes
+	// Fetch the available disk address for the total length of bytes.
 	totalDiskAddress, err := r.dm.fetch(int64(totalLenBytes))
 	if err != nil {
+		span.RecordError(err)
 		return err
 	}
 
-	// Start partitioning the data within the totaldiskaddress
-	// Start with longest keys (children), then move up the tree
-	// Start with the leaf nodes
-	// Iterate through the keys
+	// Set up variables for writing data.
 	totalOffset := 0
 	childrenNodes := make(map[Key]diskAddress)
 	totalBytes := make([]byte, 0)
 	numWritten := 0
 	rootDiskAddr := diskAddress{}
 	totalRootBytes := make([]byte, 0)
+
+	// Create a span for processing the keys loop.
+	rtRegionKeysLoop := rtrace.StartRegion(ctx, "ProcessKeysLoop (runtime)")
+	_, keysLoopSpan := r.debugTracer.Start(ctx, "ProcessKeysLoop",
+		oteltrace.WithAttributes(attribute.Int("keysCount", len(keys))),
+	)
 	for _, k := range keys {
-		// find the nodechange associated with the key
+		// Get the node change for the key.
 		nodeChange := changes.nodes[k]
-		// filter through nodes that arent changed
+		// Skip nodes that haven't changed.
 		if nodeChange.after == nil {
 			continue
 		}
 
-		// Ensure root is not being written twice
-
-		// Iterate through node's children
+		// Iterate through the node's children.
 		for token, child := range nodeChange.after.children {
-
-			// Create the complete key (current key + compressed key of the child)
+			// Create the complete key (current key + compressed key of the child).
 			completeKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
 			if child.compressedKey.length != 0 {
 				completeKey = completeKey.Extend(child.compressedKey)
 			}
 
-			// CASE WHERE NODES HAVE NOT BEEN WRITTEN TO DISK
-			// Check whether or not there exists a value for the child in the map
+			// If the child has already been written, update its disk address.
 			if childrenNodes[completeKey] != (diskAddress{}) {
-				// If there is a value, set the disk address of the child to the value in the map
 				child.diskAddr = childrenNodes[completeKey]
 			}
-			// IF THE CHILDREN ARE ALREADY WRITTEN TO DISK, THEY SHOULD HAVE A DISKADDRESS ASSOCIATED WITH THEM ALREADY
-			// THEREFORE WE CAN SKIP THIS STEP
 		}
-		// check to ensure that all of its children have disk addresses
+
+		// Ensure that all children have valid disk addresses.
 		for _, child := range nodeChange.after.children {
-			// Check remainingNodes actually have disk addresses
 			if child.diskAddr == (diskAddress{}) {
+				keysLoopSpan.RecordError(errors.New("regular node child disk address missing"))
+				keysLoopSpan.End()
 				return errors.New("regular node child disk address missing")
 			}
 		}
+
+		// Process the root node separately.
 		if nodeChange.after.key == changes.rootChange.after.Value().key {
-			// writing rootNode to header
+			// Write the root node to header.
 			if changes.rootChange.after.HasValue() {
 				rootNode := changes.rootChange.after.Value()
 				rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
-				rootDiskAddr = diskAddress{totalDiskAddress.offset + int64(totalOffset) + int64(numWritten), int64(len(rootNodeBytes))}
+				rootDiskAddr = diskAddress{
+					totalDiskAddress.offset + int64(totalOffset) + int64(numWritten),
+					int64(len(rootNodeBytes)),
+				}
 				totalOffset += len(rootNodeBytes)
 				numWritten++
 				totalBytes = append(totalBytes, rootNodeBytes...)
 				if err != nil {
+					keysLoopSpan.End()
 					return err
 				}
 
-				// iterate through cache and delete all nodes with same key value
-				// as the root node
+				// Update cache: delete nodes with the same key value as the root.
 				changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
 				if changes.rootChange.after.HasValue() {
 					compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
@@ -300,43 +325,44 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 					}
 				}
 
-				// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
-				// add function that would write the root node to the disk while also updating the disk address
-				if err != nil {
-					return err
-				}
+				// Update total root bytes.
+				r.rootNode = changes.rootChange.after.Value()
 				rootDiskAddrBytes := rootDiskAddr.bytes()
 				totalRootBytes = append(totalRootBytes, rootDiskAddrBytes[:]...)
 				totalBytes = append(totalBytes, 0)
-				// r.dm.file.WriteAt(rootDiskAddrBytes[:], 1)
 
+				// Write the root key to disk.
 				rootKey := rootNode.key
 				rootKeyByteArray := encodeKey(rootKey)
-
-				// need to set tthe endof file to something different - current issue is that its ovelapping with end of file
-
 				size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size+totalDiskAddress.offset))
 				if err != nil {
+					keysLoopSpan.End()
 					return err
 				}
-				rootKeyDiskAddr := diskAddress{int64(totalDiskAddress.size + totalDiskAddress.offset), int64(size)}
-				// log.Print("wrote root key to disk", rootKeyDiskAddr)
-				// log.Print("total disk address", totalDiskAddress)
+				rootKeyDiskAddr := diskAddress{
+					int64(totalDiskAddress.size + totalDiskAddress.offset),
+					int64(size),
+				}
 				rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
 				totalRootBytes = append(totalRootBytes, rootKeyDiskAddrBytes[:]...)
 				r.dm.file.WriteAt(totalRootBytes[:], 1)
 
-				// print the tree
+				// Print the tree by updating the disk address.
 				changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
 			}
 		} else {
+			// Process non-root nodes.
 			nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
-			diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset) + int64(numWritten), int64(len(nodeBytes))}
+			diskAddr := diskAddress{
+				totalDiskAddress.offset + int64(totalOffset) + int64(numWritten),
+				int64(len(nodeBytes)),
+			}
 			totalOffset += len(nodeBytes)
 			totalBytes = append(totalBytes, nodeBytes...)
 			totalBytes = append(totalBytes, 0)
 			numWritten++
 			if err != nil {
+				keysLoopSpan.End()
 				return err
 			}
 
@@ -348,55 +374,44 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 					r.deletedCache.Del(compositeKey)
 				}
 			}
-			// log.Print("Setting node in cache", nodeChange.after.dbNode.diskAddr)
-			// If there is not a node with the key in the map, create a new map with the key being the ch
+			// If the node is a leaf, compress the key and store the disk address.
 			if childrenNodes[k] == (diskAddress{}) {
-				// If the node is a leaf node, compress the key and store the disk address
 				key := Key{length: k.length, value: k.value}
 				childrenNodes[key] = diskAddr
 			}
-
 		}
 	}
-
-	// write the total bytes to the disk
+	keysLoopSpan.End()
+	rtRegionKeysLoop.End()
+	// Create a span for writing the total bytes to disk.
+	rtRegionWriteTotal := rtrace.StartRegion(ctx, "WriteTotalBytes (runtime)")
+	_, writeSpan := r.debugTracer.Start(ctx, "WriteTotalBytes")
 	_, err = r.dm.file.WriteAt(totalBytes, totalDiskAddress.offset)
 	if err != nil {
+		writeSpan.RecordError(err)
+		writeSpan.End()
 		return err
 	}
-	// err = r.printTree(rootDiskAddr, changes)
-	if err != nil {
-		return err
-	}
+	writeSpan.End()
+	rtRegionWriteTotal.End()
 
-	// if err := r.dm.file.Sync(); err != nil {
-	// 	return err
-	// }
-
-	// }
-	// if err := r.dm.file.Sync(); err != nil {
-	// 	return err
-	// }
-	// ensuring that there are two trees, then add old one to freelist
+	// Clean up deleted nodes: add old nodes to the free list.
 	for _, nodeChange := range changes.nodes {
-		if nodeChange.before != nil && nodeChange.after == nil {			// r.dm.free.put(nodeChange.before.diskAddr)
-			// check that node has a key value and a disk address
-			if nodeChange.before.key != (Key{}) {
-				if nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
-					compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
-					r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
-					if val, _ := r.cache.Get(compositeKey); val != nil {
-						r.cache.Del(compositeKey)
-					}
+		if nodeChange.before != nil && nodeChange.after == nil {
+			if nodeChange.before.key != (Key{}) && nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
+				compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
+				r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
+				if val, _ := r.cache.Get(compositeKey); val != nil {
+					r.cache.Del(compositeKey)
 				}
 			}
 		}
-
-		// }
-
 	}
+
+	// Sync the file to disk.
 	return r.dm.file.Sync()
 }
+
 
 func (r *rawDisk) Clear() error {
 	return r.dm.file.Truncate(0)
@@ -443,21 +458,21 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	}
 
 	// log.Printf("Getting node for key %v", key)
-	metadata, err := r.dm.getHeader()
-	if err != nil {
-		return nil, err
-	}
+	// metadata, err := r.dm.getHeader()
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	rootAddress := diskAddress{
-		offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
-		size:   int64(binary.BigEndian.Uint64(metadata[8:16])),
-	}
+	// rootAddress := diskAddress{
+	// 	offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
+	// 	size:   int64(binary.BigEndian.Uint64(metadata[8:16])),
+	// }
 
-	// log.Printf("Root address %v", rootAddress)
-	rootBytes, err := r.dm.get(rootAddress)
-	if err != nil {
-		return nil, err
-	}
+	// // log.Printf("Root address %v", rootAddress)
+	// rootBytes, err := r.dm.get(rootAddress)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	var (
 		// all node paths start at the root
@@ -466,27 +481,34 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		tokenSize = BranchFactorToTokenSize[r.config.BranchFactor]
 	)
 
-	err = decodeDBNode_disk(rootBytes, &currentDbNode)
-	currentDbNode.diskAddr = rootAddress
-	if err != nil {
-		return nil, database.ErrNotFound
+	// err = decodeDBNode_disk(rootBytes, &currentDbNode)
+	// currentDbNode.diskAddr = rootAddress
+	// if err != nil {
+	// 	return nil, database.ErrNotFound
+	// }
+
+	// rootKeyAddr := diskAddress{
+	// 	offset: int64(binary.BigEndian.Uint64(metadata[16:24])),
+	// 	size:   int64(binary.BigEndian.Uint64(metadata[24:32])),
+	// }
+
+	// rootKeyBytes, err := r.dm.get(rootKeyAddr)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// // log.Printf("Here")
+	// currKey, err := decodeKey(rootKeyBytes[:])
+	// if err != nil {
+	// 	return nil, err
+	// }
+	currKey := Key{}
+
+	if r.rootNode != nil {
+		currentDbNode = r.rootNode.dbNode
+		currKey 		= r.rootNode.key
 	}
 
-	rootKeyAddr := diskAddress{
-		offset: int64(binary.BigEndian.Uint64(metadata[16:24])),
-		size:   int64(binary.BigEndian.Uint64(metadata[24:32])),
-	}
-
-	rootKeyBytes, err := r.dm.get(rootKeyAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	// log.Printf("Here")
-	currKey, err := decodeKey(rootKeyBytes[:])
-	if err != nil {
-		return nil, err
-	}
 
 	if !key.HasPrefix(currKey) {
 		// log.Printf("key %v %v, currKey %v %v", key.length, []byte(key.value), currKey.length, []byte(currKey.value))

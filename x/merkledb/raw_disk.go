@@ -549,15 +549,25 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		keyLen += currKey.length - tokenSize
 
 		// grab the next node along the path
-		nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
-		// tempDiskAddr = currentDbNode.diskAddr
-		if err != nil {
-			return nil, err
-		}
-		err = decodeDBNode_disk(nextBytes, &currentDbNode)
-		currentDbNode.diskAddr = nextChildEntry.diskAddr
-		if err != nil {
-			return nil, err
+
+
+
+		// Add caching check for the next node
+		if val, found := r.cache.Get(fmt.Sprintf("%s:%d", currKey.value, currKey.length)); found {
+			if val != nil {
+				currentDbNode = val.(dbNode)
+				currentDbNode.diskAddr = val.(dbNode).diskAddr
+			}
+		} else {
+			nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
+			if err != nil {
+				return nil, err
+			}
+			err = decodeDBNode_disk(nextBytes, &currentDbNode)
+			currentDbNode.diskAddr = nextChildEntry.diskAddr
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	// log.Print("found node at disk address ", tempDiskAddr)

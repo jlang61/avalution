@@ -457,23 +457,6 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		}
 	}
 
-	// log.Printf("Getting node for key %v", key)
-	// metadata, err := r.dm.getHeader()
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// rootAddress := diskAddress{
-	// 	offset: int64(binary.BigEndian.Uint64(metadata[0:8])),
-	// 	size:   int64(binary.BigEndian.Uint64(metadata[8:16])),
-	// }
-
-	// // log.Printf("Root address %v", rootAddress)
-	// rootBytes, err := r.dm.get(rootAddress)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	var (
 		// all node paths start at the root
 		currentDbNode = dbNode{}
@@ -481,27 +464,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		tokenSize = BranchFactorToTokenSize[r.config.BranchFactor]
 	)
 
-	// err = decodeDBNode_disk(rootBytes, &currentDbNode)
-	// currentDbNode.diskAddr = rootAddress
-	// if err != nil {
-	// 	return nil, database.ErrNotFound
-	// }
-
-	// rootKeyAddr := diskAddress{
-	// 	offset: int64(binary.BigEndian.Uint64(metadata[16:24])),
-	// 	size:   int64(binary.BigEndian.Uint64(metadata[24:32])),
-	// }
-
-	// rootKeyBytes, err := r.dm.get(rootKeyAddr)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// // log.Printf("Here")
-	// currKey, err := decodeKey(rootKeyBytes[:])
-	// if err != nil {
-	// 	return nil, err
-	// }
+	
 	currKey := Key{}
 
 	if r.rootNode != nil {
@@ -520,38 +483,24 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	// tempDiskAddr := diskAddress{}
 	// while the entire path hasn't been matched
 	for keyLen < (key.length) {
-		// confirm that a child exists and grab its address before attempting to load it
-		// log.Printf("Token: %v", key.Token(keyLen, tokenSize))
-		// log.Printf("currentDbNode value %s", currentDbNode.value.Value())
-		// log.Printf("num of children %d", len(currentDbNode.children))
-		// for token, child := range currentDbNode.children {
-		// 	log.Printf("Token: %v for Child: %x", (token), child.compressedKey.value)
-		// }
-		// log.Printf("Checking key %x", key.Token(keyLen, tokenSize))
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keyLen, tokenSize)]
 
 		keyLen += tokenSize
 		if !hasChild {
 			return nil, database.ErrNotFound
 		}
-		// log.Printf("nextChildEntry %v", nextChildEntry)
 		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keyLen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
-			// return nil, errors.New("Key doesn't match an existing node")
 			return nil, database.ErrNotFound
 
 		}
 
 		// get the next key from the current child
 		currKey := ToToken(key.Token(keyLen-tokenSize, tokenSize), tokenSize)
-		// log.Printf("currKey %x", currKey)
 		currKey = currKey.Extend(nextChildEntry.compressedKey)
 		keyLen += currKey.length - tokenSize
 
 		// grab the next node along the path
-
-
-
 		// Add caching check for the next node
 		if val, found := r.cache.Get(fmt.Sprintf("%s:%d", currKey.value, currKey.length)); found {
 			if val != nil {
@@ -575,11 +524,9 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		dbNode:      currentDbNode,
 		key:         key,
 		valueDigest: currentDbNode.value,
-		//diskAddr:    tempDiskAddr,
 	}
 
 	returnNode.dbNode.diskAddr = currentDbNode.diskAddr
-	// log.Print("Found node in rawdisk", returnNode.dbNode.diskAddr, returnNode.key.value)
 
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil

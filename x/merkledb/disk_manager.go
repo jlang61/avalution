@@ -24,6 +24,7 @@ var _ DiskManager = &diskMgr{}
 type diskMgr struct {
 	file *os.File
 	free *freeList
+	offset int64
 }
 
 // TODO pointer and nil instead of diskMgr{}?
@@ -196,9 +197,9 @@ func (dm *diskMgr) fetch(byteLength int64) (diskAddress, error) {
 			log.Fatalf("failed to get end of file: %v", err)
 			return diskAddress{}, err
 		}
-		return diskAddress{offset: endOffset, size: int64(byteLength)}, nil
+		return diskAddress{offset: endOffset +dm.offset, size: int64(byteLength)}, nil
 	} else {
-		return diskAddress{offset: freeSpace.offset, size: int64(byteLength)}, nil
+		return diskAddress{offset: freeSpace.offset + dm.offset, size: int64(byteLength)}, nil
 	}
 
 
@@ -265,6 +266,11 @@ func (dm *diskMgr) endOfFile() (int64, error) {
 	return fileInfo.Size(), err
 }
 
+
+func (dm * diskMgr) setEOF(eof int64) (error) {
+	dm.offset += eof
+	return nil
+}
 // Helper function to calculate the next power of 2 for a given size
 func nextPowerOf2(n int) int {
 	if n <= 0 {

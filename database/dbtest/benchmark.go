@@ -18,10 +18,10 @@ var (
 	Benchmarks = map[string]func(b *testing.B, db database.Database, keys, values [][]byte){
 		// "Get":            BenchmarkGet,
 		// "Put":            BenchmarkPut,
-		// "Delete":         BenchmarkDelete,
+		"Delete":         BenchmarkDelete,
 		// "BatchPut":       BenchmarkBatchPut,
 		// "BatchDelete":    BenchmarkBatchDelete,
-		"BatchWrite":     BenchmarkBatchWrite,
+		// "BatchWrite":     BenchmarkBatchWrite,
 		// "ParallelGet":    BenchmarkParallelGet,
 		// "ParallelPut":    BenchmarkParallelPut,
 		// "ParallelDelete": BenchmarkParallelDelete,

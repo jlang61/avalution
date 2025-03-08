@@ -171,11 +171,11 @@ func (r *rawDisk) setShutdownType(shutdownType []byte) error {
 	_, err := r.dm.file.WriteAt(shutdownType, 0)
 	if err != nil {
 		return err
-	}
 	// Completely write all of the data in difflayer to the file
 	// and clear the diffLayer
-	if err != nil {
+	} else {
 		// Similar logic to writeChanges -> write children first, then write parent
+
 		var keys []Key
 		for k := range r.diffLayer {
 			keys = append(keys, k)

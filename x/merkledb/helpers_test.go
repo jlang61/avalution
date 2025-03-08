@@ -11,11 +11,18 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/ava-labs/avalanchego/database/memdb"
+
 	"github.com/ava-labs/avalanchego/ids"
 	"github.com/ava-labs/avalanchego/utils/hashing"
 	"github.com/ava-labs/avalanchego/utils/maybe"
+
+
+	"github.com/ava-labs/avalanchego/database/leveldb"
+	"github.com/ava-labs/avalanchego/utils/logging"
+	"github.com/prometheus/client_golang/prometheus"
+
 )
-const disk = true
+const disk = false
 func getBasicDB(tb testing.TB) (*merkleDB, error) {
 	if disk{
 		return getBasicDB_disk(tb)
@@ -29,21 +36,24 @@ func getBasicDB(tb testing.TB) (*merkleDB, error) {
 }
 
 func getBasicDBWithBranchFactor(bf BranchFactor) (*merkleDB, error) {
-	config := newDefaultConfig()
-	config.BranchFactor = bf
-	t := &testing.T{}
-	dir := t.TempDir()
-	if disk{
-		return getBasicDBWithBranchFactor_disk(bf,dir)
-	}
-	return newDatabase(
-		context.Background(),
-		memdb.New(),
-		config,
-		&mockMetrics{},
-	)
-}
+    config := newDefaultConfig()
+    config.BranchFactor = bf
+    t := &testing.T{}
 
+    folder := t.TempDir()
+    db, err := leveldb.New(folder, nil, logging.NoLog{}, prometheus.NewRegistry())
+    require.NoError(t, err)
+
+    if disk {
+        return getBasicDBWithBranchFactor_disk(bf, folder)
+    }
+    return newDatabase(
+        context.Background(),
+        db,
+        config,
+        &mockMetrics{},
+    )
+}
 // Writes []byte{i} -> []byte{i} for i in [0, 4]
 func writeBasicBatch(t *testing.T, db *merkleDB) {
 	require := require.New(t)

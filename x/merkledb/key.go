@@ -37,7 +37,7 @@ var (
 		BranchFactor2,
 		BranchFactor4,
 		BranchFactor16,
-		// BranchFactor256,
+		BranchFactor256,
 	}
 )
 

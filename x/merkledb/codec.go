@@ -351,7 +351,7 @@ func (r *codecReader) Key() (Key, error) {
 	}
 	byteLen := bytesNeeded(result.length)
 	if byteLen > len(r.b) {
-		return Key{}, io.ErrUnexpectedEOF
+ 		return Key{}, io.ErrUnexpectedEOF
 	}
 	if result.hasPartialByte() {
 		// Confirm that the padding bits in the partial byte are 0.

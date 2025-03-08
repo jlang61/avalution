@@ -8,7 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"log"
+	// "log"
 
 	// "log"
 	"sort"
@@ -280,20 +280,20 @@ func (r *rawDisk) setShutdownType(shutdownType []byte) error {
 		}
 
 		// ensuring that there are two trees, then add old one to freelist
-		for _, nodeChange := range r.diffLayer {
-			if nodeChange.before != nil && nodeChange.after == nil {
-				if nodeChange.before.key != (Key{}) {
-					if nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
-						compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
-						r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
-						if val, _ := r.cache.Get(compositeKey); val != nil {
-							r.cache.Del(compositeKey)
-						}
-					}
+		// for _, nodeChange := range r.diffLayer {
+		// 	if nodeChange.before != nil && nodeChange.after == nil {
+		// 		if nodeChange.before.key != (Key{}) {
+		// 			if nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
+		// 				compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
+		// 				r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
+		// 				if val, _ := r.cache.Get(compositeKey); val != nil {
+		// 					r.cache.Del(compositeKey)
+		// 				}
+		// 			}
 
-				}
-			}
-		}
+		// 		}
+		// 	}
+		// }
 	}
 	return r.dm.file.Sync()
 
@@ -329,7 +329,7 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 	if r.rootNode == nil {
 		return nil, database.ErrNotFound
 	}
-	return r.rootNode.key.Bytes(), nil
+	return encodeKey(r.rootNode.key), nil
 
 }
 
@@ -453,6 +453,17 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				// writing rootNode to header
 				if changes.rootChange.after.HasValue() {
 					rootNode := changes.rootChange.after.Value()
+					// assign children disk addresses to root node
+					for token, child := range rootNode.children {
+						completeKey := rootNode.key.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
+						if child.compressedKey.length != 0 {
+							completeKey = completeKey.Extend(child.compressedKey)
+						}
+						if childrenNodes[completeKey] != (diskAddress{}) {
+							child.diskAddr = childrenNodes[completeKey]
+						}
+					}
+
 					r.rootNode = rootNode
 					rootNodeBytes := encodeDBNode_disk(&rootNode.dbNode)
 					rootDiskAddr = diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
@@ -465,13 +476,13 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 					// iterate through cache and delete all nodes with same key value
 					// as the root node
 					changes.rootChange.after.Value().dbNode.diskAddr = rootDiskAddr
-					if changes.rootChange.after.HasValue() {
-						compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
-						r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
-						if val, _ := r.deletedCache.Get(compositeKey); val != nil {
-							r.deletedCache.Del(compositeKey)
-						}
-					}
+					// if changes.rootChange.after.HasValue() {
+					// 	compositeKey := fmt.Sprintf("%s:%d", changes.rootChange.after.Value().key.value, changes.rootChange.after.Value().key.length)
+					// 	r.cache.Set(compositeKey, changes.rootChange.after.Value().dbNode, changes.rootChange.after.Value().dbNode.diskAddr.size)
+					// 	if val, _ := r.deletedCache.Get(compositeKey); val != nil {
+					// 		r.deletedCache.Del(compositeKey)
+					// 	}
+					// }
 
 					// log.Print("Setting root node in cache", changes.rootChange.after.Value().dbNode.diskAddr)
 					// add function that would write the root node to the disk while also updating the disk address
@@ -540,23 +551,23 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		// err = r.printTree(rootDiskAddr, changes)
 
 		// ensuring that there are two trees, then add old one to freelist
-		for _, nodeChange := range changes.nodes {
-			if nodeChange.before != nil && nodeChange.after == nil { // r.dm.free.put(nodeChange.before.diskAddr)
-				// check that node has a key value and a disk address
-				if nodeChange.before.key != (Key{}) {
-					if nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
-						compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
-						r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
-						if val, _ := r.cache.Get(compositeKey); val != nil {
-							r.cache.Del(compositeKey)
-						}
-					}
-				}
-			}
+		// for _, nodeChange := range changes.nodes {
+		// 	if nodeChange.before != nil && nodeChange.after == nil { // r.dm.free.put(nodeChange.before.diskAddr)
+		// 		// check that node has a key value and a disk address
+		// 		if nodeChange.before.key != (Key{}) {
+		// 			if nodeChange.before.dbNode.diskAddr != (diskAddress{}) {
+		// 				compositeKey := fmt.Sprintf("%s:%d", nodeChange.before.key.value, nodeChange.before.key.length)
+		// 				r.deletedCache.Set(compositeKey, nodeChange.before.dbNode, nodeChange.before.dbNode.diskAddr.size)
+		// 				if val, _ := r.cache.Get(compositeKey); val != nil {
+		// 					r.cache.Del(compositeKey)
+		// 				}
+		// 			}
+		// 		}
+		// 	}
 
-			// }
+		// 	// }
 
-		}
+		// }
 		return r.dm.file.Sync()
 	}
 	return nil
@@ -689,7 +700,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		// }
 		// log.Printf("Checking key %x", key.Token(keyLen, tokenSize))
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keyLen, tokenSize)]
-
+		token := key.Token(keyLen, tokenSize)
 		keyLen += tokenSize
 		if !hasChild {
 			return nil, database.ErrNotFound
@@ -703,17 +714,18 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		}
 
 		// get the next key from the current child
-		currKey := ToToken(key.Token(keyLen-tokenSize, tokenSize), tokenSize)
+		// currKey := ToToken(key.Token(keyLen-tokenSize, tokenSize), tokenSize)
 
 		// create the entire key by extending the current key with the child's compressed key
 
 		// log.Printf("currKey %x", currKey)
+		currKey = currKey.Extend(ToToken(token, tokenSize))
 		currKey = currKey.Extend(nextChildEntry.compressedKey)
 		keyLen += currKey.length - tokenSize
 
 		// Search first through the difflayer
 		if diffLayerNode, ok := r.diffLayer[currKey]; ok {
-			log.Print("Found node in diff layer")
+			// log.Print("Found node in diff layer")
 			// Check if the node has a before or after
 			if diffLayerNode.after != nil {
 				// If the node has an after, return the node

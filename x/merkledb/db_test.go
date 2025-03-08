@@ -138,8 +138,9 @@ func TestDelete(t *testing.T) {
 			value := values[i]
 			require.NoError(db.Put(key, value))
 		}
-
-		require.NoError(db.Delete(keys[0]))
+		for _, key := range keys {
+			require.NoError(db.Delete(key))
+		}
 		t.Cleanup(func() {
 			db.Close()
 		})

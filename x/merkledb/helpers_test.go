@@ -36,17 +36,18 @@ func getBasicDB(tb testing.TB) (*merkleDB, error) {
 }
 
 func getBasicDBWithBranchFactor(bf BranchFactor) (*merkleDB, error) {
-    config := newDefaultConfig()
-    config.BranchFactor = bf
-    t := &testing.T{}
+	t := &testing.T{}
 
     folder := t.TempDir()
-    db, err := leveldb.New(folder, nil, logging.NoLog{}, prometheus.NewRegistry())
-    require.NoError(t, err)
-
     if disk {
         return getBasicDBWithBranchFactor_disk(bf, folder)
     }
+    config := newDefaultConfig()
+    config.BranchFactor = bf
+
+    db, err := leveldb.New(folder, nil, logging.NoLog{}, prometheus.NewRegistry())
+    require.NoError(t, err)
+
     return newDatabase(
         context.Background(),
         db,

@@ -22,7 +22,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 )
-const disk = true
+const disk = false
 func getBasicDB(tb testing.TB) (*merkleDB, error) {
 	if disk{
 		return getBasicDB_disk(tb)

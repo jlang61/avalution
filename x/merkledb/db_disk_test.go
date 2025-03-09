@@ -120,9 +120,9 @@ func newDatabase_disk(
 		return nil, err
 	}
 	if bytes.Equal(shutdownType, didNotHaveCleanShutdown) {
-		// if err := trieDB.rebuild(ctx, int(config.ValueNodeCacheSize)); err != nil {
-		// 	return nil, err
-		// }
+		if err := trieDB.rebuild(ctx, int(config.ValueNodeCacheSize)); err != nil {
+			return nil, err
+		}
 	} else {
 		if err := trieDB.initializeRoot(); err != nil {
 			return nil, err

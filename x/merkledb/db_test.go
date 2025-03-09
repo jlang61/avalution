@@ -1462,7 +1462,7 @@ func TestGetChangeProofEmptyRootID(t *testing.T) {
 
 // PASSES
 func TestCrashRecovery(t *testing.T) {
-	panic("issue of should it fail, adding panic so we don't forget")
+	// panic("issue of should it fail, adding panic so we don't forget")	
 
 	require := require.New(t)
 	tempDir := t.TempDir()

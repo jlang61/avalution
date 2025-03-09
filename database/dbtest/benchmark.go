@@ -18,13 +18,13 @@ var (
 	Benchmarks = map[string]func(b *testing.B, db database.Database, keys, values [][]byte){
 		"Get":            BenchmarkGet,
 		"Put":            BenchmarkPut,
-		// "Delete":         BenchmarkDelete,
-		// "BatchPut":       BenchmarkBatchPut,
-		// "BatchDelete":    BenchmarkBatchDelete,
-		// "BatchWrite":     BenchmarkBatchWrite,
-		// "ParallelGet":    BenchmarkParallelGet,
-		// "ParallelPut":    BenchmarkParallelPut,
-		// "ParallelDelete": BenchmarkParallelDelete,
+		"Delete":         BenchmarkDelete,
+		"BatchPut":       BenchmarkBatchPut,
+		"BatchDelete":    BenchmarkBatchDelete,
+		"BatchWrite":     BenchmarkBatchWrite,
+		"ParallelGet":    BenchmarkParallelGet,
+		"ParallelPut":    BenchmarkParallelPut,
+		"ParallelDelete": BenchmarkParallelDelete,
 	}
 	// BenchmarkSizes to use with each benchmark
 	BenchmarkSizes = [][]int{

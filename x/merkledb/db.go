@@ -315,10 +315,22 @@ func newDatabase(
 func (db *merkleDB) rebuild(ctx context.Context, cacheSize int) error {
 	db.root = maybe.Nothing[*node]()
 	db.rootID = ids.Empty
-
-	// Delete intermediate nodes.
-	if err := db.disk.clearIntermediateNodes(); err != nil {
-		return err
+	
+	if rawDisk, ok := db.disk.(*rawDisk); ok {
+		fileInfo, err := rawDisk.dm.file.Stat()
+		if err != nil {
+			return err
+		}
+		fileSize := fileInfo.Size()
+		if fileSize > 33 {
+			if err := db.initializeRoot(); err != nil {
+				return err
+			} else {
+				return nil 
+			}
+		} else {
+			return nil
+		}
 	}
 
 	// Add all key-value pairs back into the database.

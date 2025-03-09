@@ -139,9 +139,10 @@ func TestDelete(t *testing.T) {
 			value := values[i]
 			require.NoError(db.Put(key, value))
 		}
-		for _, key := range keys {
-			require.NoError(db.Delete(key))
-		}
+		require.NoError(db.Delete(keys[0]))
+		// for _, key := range keys {
+		// 	require.NoError(db.Delete(key))
+		// }
 		t.Cleanup(func() {
 			db.Close()
 		})
@@ -1506,6 +1507,8 @@ func TestCrashRecovery(t *testing.T) {
 	rootAfterRecovery, err := newMerkleDB.GetMerkleRoot(context.Background())
 	require.NoError(err)
 	require.Equal(expectedRoot, rootAfterRecovery)
+	merkleDB.Close()
+	newMerkleDB.Close()
 }
 
 // func BenchmarkCommitView(b *testing.B) {

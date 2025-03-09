@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+
 	// "log"
 
 	// "log"
@@ -353,6 +354,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 				if diffLayerNode, ok := r.diffLayer[key]; ok {
 					// check if the node is in the diff layer
 					if diffLayerNode.before != nil {
+						// log.Print(diffLayerNode.before.key.value)
 						// if the difflayer node is found and has a before value
 						// this node is adding a change on top of a change
 						r.diffLayer[key] = &change[*node]{diffLayerNode.before, newNode.after}
@@ -360,6 +362,8 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 						// if the node is not found in the diff layer, add it to the diff layer
 						r.diffLayer[key] = &change[*node]{newNode.before, newNode.after}
 					}
+					// Addiitonal step so that any children values with disk addresses are added to the diff laye	
+
 				} else {
 					// means that the node.before is on the raw disk
 					// and the node.after should be put in the diff layer
@@ -643,6 +647,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 			return diffLayerNode.after, nil
 		} else if diffLayerNode.before != nil {
 			// there is no before only an after
+			// log.Print("did not find node in diff layer first itr", key)
 			return nil, database.ErrNotFound
 		} else {
 			// there is no before or after of a node
@@ -655,21 +660,7 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		tokenSize     = BranchFactorToTokenSize[r.config.BranchFactor]
 	)
 
-	// err = decodeDBNode_disk(rootBytes, &currentDbNode)
-	// currentDbNode.diskAddr = rootAddress
-	// if err != nil {
-	// 	return nil, database.ErrNotFound
-	// }
 
-	// rootKeyAddr := diskAddress{
-	// 	offset: int64(binary.BigEndian.Uint64(metadata[16:24])),
-	// 	size:   int64(binary.BigEndian.Uint64(metadata[24:32])),
-	// }
-
-	// rootKeyBytes, err := r.dm.get(rootKeyAddr)
-	// if err != nil {
-	// 	return nil, err
-	// }
 	if r.rootNode == nil {
 		return nil, database.ErrNotFound
 	}
@@ -677,8 +668,10 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 
 	// log.Printf("Here")
 	currKey := Key{}
+	diffLayerKey := Key{}
 	if r.rootNode != nil {
 		currKey = r.rootNode.key
+		diffLayerKey = r.rootNode.key
 	}
 
 	if !key.HasPrefix(currKey) {
@@ -692,52 +685,46 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 	// while the entire path hasn't been matched
 	for keyLen < (key.length) {
 		// confirm that a child exists and grab its address before attempting to load it
-		// log.Printf("Token: %v", key.Token(keyLen, tokenSize))
-		// log.Printf("currentDbNode value %s", currentDbNode.value.Value())
-		// log.Printf("num of children %d", len(currentDbNode.children))
-		// for token, child := range currentDbNode.children {
-		// 	log.Printf("Token: %v for Child: %x", (token), child.compressedKey.value)
-		// }
-		// log.Printf("Checking key %x", key.Token(keyLen, tokenSize))
+
 		nextChildEntry, hasChild := currentDbNode.children[key.Token(keyLen, tokenSize)]
 		token := key.Token(keyLen, tokenSize)
 		keyLen += tokenSize
 		if !hasChild {
 			return nil, database.ErrNotFound
 		}
-		// log.Printf("nextChildEntry %v", nextChildEntry)
 		if !key.iteratedHasPrefix(nextChildEntry.compressedKey, keyLen, tokenSize) {
 			// there was no child along the path or the child that was there doesn't match the remaining path
 			// return nil, errors.New("Key doesn't match an existing node")
+			// log.Printf("did not find node in diff layer iterated prefix, key bytes: %v", key.length)
+
 			return nil, database.ErrNotFound
 
 		}
 
 		// get the next key from the current child
-		// currKey := ToToken(key.Token(keyLen-tokenSize, tokenSize), tokenSize)
+		currKey := ToToken(key.Token(keyLen-tokenSize, tokenSize), tokenSize)
 
 		// create the entire key by extending the current key with the child's compressed key
-
-		// log.Printf("currKey %x", currKey)
-		currKey = currKey.Extend(ToToken(token, tokenSize))
+		diffLayerKey = diffLayerKey.Extend(ToToken(token, tokenSize))
+		diffLayerKey = diffLayerKey.Extend(nextChildEntry.compressedKey)
+		// currKey = currKey.Extend(ToToken(token, tokenSize))
 		currKey = currKey.Extend(nextChildEntry.compressedKey)
 		keyLen += currKey.length - tokenSize
 
 		// Search first through the difflayer
-		if diffLayerNode, ok := r.diffLayer[currKey]; ok {
-			// log.Print("Found node in diff layer")
+		if diffLayerNode, ok := r.diffLayer[diffLayerKey]; ok {
 			// Check if the node has a before or after
 			if diffLayerNode.after != nil {
 				// If the node has an after, return the node
 				currentDbNode = diffLayerNode.after.dbNode
 			} else if diffLayerNode.before != nil {
 				// there is no before only an after
+				// log.Print("did not find node in diff layer second itr", key)
 				return nil, database.ErrNotFound
 			}
 		} else {
 			// grab the next node along the path
 			nextBytes, err := r.dm.get(nextChildEntry.diskAddr)
-			// tempDiskAddr = currentDbNode.diskAddr
 			if err != nil {
 				return nil, err
 			}

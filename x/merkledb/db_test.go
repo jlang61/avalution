@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	// "log"
 	"math/rand"
 	"slices"
 	"strconv"
@@ -147,6 +148,40 @@ func TestDelete(t *testing.T) {
 	}
 
 }
+
+func TestPut(t *testing.T) {
+	require := require.New(t)
+
+	// Setup keys and values for testing
+	keys, values := dbtest.SetupBenchmark(t, 1024, 32, 32)
+	require.NotEmpty(keys)
+	require.Equal(len(keys), len(values))
+
+	for _, bf := range validBranchFactors {
+		db, err := getBasicDBWithBranchFactor(bf)
+		require.NoError(err)
+
+		// Insert key-value pairs into the database
+		for i, key := range keys {
+			value := values[i]
+			require.NoError(db.Put(key, value))
+		}
+
+		// Verify inserted values by reading them back
+		for i, key := range keys {
+			expectedValue := values[i]
+			actualValue, err := db.Get(key)
+			// log.Print("iteration ", i)
+			require.NoError(err)
+			require.Equal(expectedValue, actualValue)
+		}
+
+		t.Cleanup(func() {
+			db.Close()
+		})
+	}
+}
+
 
 func Benchmark_MerkleDB_DBInterface(b *testing.B) {
 	for _, size := range dbtest.BenchmarkSizes {

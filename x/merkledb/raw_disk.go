@@ -249,7 +249,7 @@ func (r *rawDisk) flush() error {
 		// Write root node bytes
 		rootNodeBytes := encodeDBNode_disk(&rootNodeChange.after.dbNode)
 		rootDiskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
-		log.Print("root disk address: ", rootDiskAddr)
+		// log.Print("root disk address: ", rootDiskAddr)
 		if rootDiskAddr.size == 0 && rootDiskAddr.offset == 0 {
 			log.Print("error")
 			return errors.New("root disk address is 0")
@@ -286,7 +286,7 @@ func (r *rawDisk) flush() error {
 	}
 	r.diffLayer = make(map[Key]*change[*node])
 	r.diffLayerSize = 0
-	log.Print(r.rootNode.diskAddr)
+	// log.Print(r.rootNode.diskAddr)
 	return nil
 }
 
@@ -464,7 +464,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// nodes.children.diskaddress - missing
 	var keys []Key
 	if r.rootNode != nil {
-		log.Print("r.rootnode disk address: ", r.rootNode.diskAddr)
+		// log.Print("r.rootnode disk address: ", r.rootNode.diskAddr)
 	}
 	for k := range changes.nodes {
 		keys = append(keys, k)
@@ -479,10 +479,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// 		log.Print("key: ", key)
 	// 	}
 	// }
-	if r.diffLayerSize > 4000000 {
-		log.Print("flushed to disk")
-		return r.flush()
-	} else if r.rootNode != nil {
+	 if r.rootNode != nil {
 		for key, newNode := range changes.nodes {
 			// Check if the node.before is found in the diff layer
 			if newNode.before != nil {
@@ -537,7 +534,9 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 					r.rootNode = newNode.after
 				}
 			}
+
 		}
+
 	} else { // sort the keys by length, then start at the longest keys (leaf nodes)
 		// sorting longest to shortest
 		sort.Slice(keys, func(i, j int) bool {
@@ -687,6 +686,10 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 
 		// }
 		return r.dm.file.Sync()
+	}
+	if r.diffLayerSize > 4000000 {
+		// log.Print("flushed to disk")
+		return r.flush()
 	}
 	return nil
 }

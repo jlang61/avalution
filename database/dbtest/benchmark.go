@@ -128,12 +128,12 @@ geomean                                                                         
 var (
 	// Benchmarks is a list of all database benchmarks
 	Benchmarks = map[string]func(b *testing.B, db database.Database, keys, values [][]byte){
-		// "Get":            BenchmarkGet,
-		// "Put":            BenchmarkPut,
+		"Get":            BenchmarkGet,
+		"Put":            BenchmarkPut,
 		"Delete":         BenchmarkDelete,
 		// "BatchPut":       BenchmarkBatchPut,
 		// "BatchDelete":    BenchmarkBatchDelete,
-		// "BatchWrite":     BenchmarkBatchWrite,
+		"BatchWrite":     BenchmarkBatchWrite,
 		// "ParallelGet":    BenchmarkParallelGet,
 		// "ParallelPut":    BenchmarkParallelPut,
 		// "ParallelDelete": BenchmarkParallelDelete,
@@ -142,8 +142,8 @@ var (
 	// BenchmarkSizes to use with each benchmark
 	BenchmarkSizes = [][]int{
 		// count, keySize, valueSize
-		// {1024, 32, 32},
-		// {1024, 256, 256},
+		{1024, 32, 32},
+		{1024, 256, 256},
 		{1024, 2 * units.KiB, 2 * units.KiB},
 	}
 )

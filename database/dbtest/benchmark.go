@@ -128,21 +128,22 @@ geomean                                                                         
 var (
 	// Benchmarks is a list of all database benchmarks
 	Benchmarks = map[string]func(b *testing.B, db database.Database, keys, values [][]byte){
-		"Get":            BenchmarkGet,
-		"Put":            BenchmarkPut,
+		// "Get":            BenchmarkGet,
+		// "Put":            BenchmarkPut,
 		"Delete":         BenchmarkDelete,
-		"BatchPut":       BenchmarkBatchPut,
-		"BatchDelete":    BenchmarkBatchDelete,
-		"BatchWrite":     BenchmarkBatchWrite,
-		"ParallelGet":    BenchmarkParallelGet,
-		"ParallelPut":    BenchmarkParallelPut,
-		"ParallelDelete": BenchmarkParallelDelete,
+		// "BatchPut":       BenchmarkBatchPut,
+		// "BatchDelete":    BenchmarkBatchDelete,
+		// "BatchWrite":     BenchmarkBatchWrite,
+		// "ParallelGet":    BenchmarkParallelGet,
+		// "ParallelPut":    BenchmarkParallelPut,
+		// "ParallelDelete": BenchmarkParallelDelete,
+		// "Realistic":      BenchmarkRealisticWorkload,
 	}
 	// BenchmarkSizes to use with each benchmark
 	BenchmarkSizes = [][]int{
 		// count, keySize, valueSize
-		{1024, 32, 32},
-		{1024, 256, 256},
+		// {1024, 32, 32},
+		// {1024, 256, 256},
 		{1024, 2 * units.KiB, 2 * units.KiB},
 	}
 )
@@ -316,4 +317,57 @@ func BenchmarkParallelDelete(b *testing.B, db database.Database, keys, values []
 			require.NoError(db.Delete(keys[i%count]))
 		}
 	})
+}
+
+
+func BenchmarkRealisticWorkload(b *testing.B, db database.Database, keys, values [][]byte) {
+	require := require.New(b)
+	require.NotEmpty(keys)
+
+	count := len(keys)
+	existingEntries := int(float64(count) * 0.8) // Declare existingEntries explicitly
+
+	// Pre-fill database with 80% of keys to simulate existing data
+	for i := 0; i < existingEntries; i++ {
+		require.NoError(db.Put(keys[i], values[i]))
+	}
+
+	b.ResetTimer()
+
+	const opsPerBatch = 1000      // Number of operations per batch (K)
+	const writeRatio = 0.2        // 20% writes
+	const existingKeyRatio = 0.8  // 80% existing keys
+
+	rnd := rand.New(rand.NewSource(42)) // Use rnd consistently
+
+	for batchNum := 0; batchNum < b.N; batchNum++ {
+		batch := db.NewBatch()
+		for op := 0; op < opsPerBatch; op++ {
+			if rnd.Float64() < writeRatio {
+				// Write operation
+				var key []byte
+				if rnd.Float64() < existingKeyRatio {
+					// Existing key (80%)
+					key = keys[rnd.Intn(existingEntries)]
+				} else {
+					// New key (20%)
+					key = keys[existingEntries+rnd.Intn(count-existingEntries)]
+				}
+				value := values[rnd.Intn(len(values))]
+				require.NoError(batch.Put(key, value))
+			} else {
+				// Read operation
+				var key []byte
+				if rnd.Float64() < existingKeyRatio {
+					// Existing key (80%)
+					key = keys[rnd.Intn(existingEntries)]
+				} else {
+					// Non-existing key (20%)
+					key = keys[existingEntries+rnd.Intn(count-existingEntries)]
+				}
+				_, _ = db.Get(key) // ignore errors for non-existing keys
+			}
+		}
+		require.NoError(batch.Write())
+	}
 }

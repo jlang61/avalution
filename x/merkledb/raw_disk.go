@@ -8,14 +8,15 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"log"
 
 	// "log"
 
 	// "log"
 	"sort"
+	"unsafe"
 
 	// "github.com/hashicorp/golang-lru"
-
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
@@ -58,12 +59,27 @@ type rawDisk struct {
 	// [0] = shutdownType
 	// [1,17] = rootKey raw file offset
 	// [18,] = node store
-	dm           *diskMgr
-	config       Config
-	hasher       Hasher
+	dm     *diskMgr
+	config Config
+	hasher Hasher
 	// creates a diffLayer with before/after of nodes
-	diffLayer map[Key]*change[*node]
-	rootNode  *node
+	diffLayer     map[Key]*change[*node]
+	diffLayerSize int // should be in bytes
+	rootNode      *node
+}
+
+func estimateMapSize(m map[Key]*change[*node]) uintptr {
+	var totalSize uintptr = unsafe.Sizeof(m) // initial map header size
+	for k, v := range m {
+		totalSize += unsafe.Sizeof(k)
+		if v.before != nil {
+			totalSize += unsafe.Sizeof(v.before)
+		}
+		if v.after != nil {
+			totalSize += unsafe.Sizeof(v.after)
+		}
+	}
+	return totalSize
 }
 
 func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*rawDisk, error) {
@@ -95,9 +111,9 @@ func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*raw
 			return nil, err
 		}
 
-		rootNode := &node{}
-		decodeDBNode_disk(rootNodeBytes, &rootNode.dbNode)
-
+		initialRootNode := &node{}
+		decodeDBNode_disk(rootNodeBytes, &initialRootNode.dbNode)
+		initialRootNode.dbNode.diskAddr = rootAddress
 		if err != nil {
 			return nil, database.ErrNotFound
 		}
@@ -116,23 +132,24 @@ func newRawDisk(dir string, fileName string, hasher Hasher, config Config) (*raw
 			return nil, err
 		}
 
-		rootNode.key = rootKey
+		initialRootNode.key = rootKey
 
 		return &rawDisk{
-			dm:           dm,
-			hasher:       hasher,
-			config:       config,
-			diffLayer:    diffLayer,
-			rootNode:     rootNode,
+			dm:        dm,
+			hasher:    hasher,
+			config:    config,
+			diffLayer: diffLayer,
+			rootNode:  initialRootNode,
 		}, nil
 	}
 	// If file is empty, create a new root node
 	return &rawDisk{
-		dm:           dm,
-		hasher:       hasher,
-		config:       config,
-		diffLayer:    diffLayer,
-		rootNode:     nil,
+		dm:            dm,
+		hasher:        hasher,
+		config:        config,
+		diffLayer:     diffLayer,
+		rootNode:      nil,
+		diffLayerSize: 0,
 	}, nil
 }
 
@@ -144,6 +161,133 @@ func (r *rawDisk) getShutdownType() ([]byte, error) {
 		return nil, err
 	}
 	return shutdownType[:], nil
+}
+func (r *rawDisk) flush() error {
+	var keys []Key
+	for k := range r.diffLayer {
+		keys = append(keys, k)
+	}
+
+	// Sort keys by length: longest first to ensure leaves are written before parents
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i].length > keys[j].length
+	})
+
+	totalLenBytes := 0
+	for _, nodes := range r.diffLayer {
+		if nodes.after != nil {
+			totalLenBytes += len(encodeDBNode_disk(&nodes.after.dbNode))
+			totalLenBytes += 16 * len(nodes.after.children)
+		}
+	}
+
+	totalDiskAddress, err := r.dm.fetch(int64(totalLenBytes))
+	if err != nil {
+		return err
+	}
+
+	totalOffset := 0
+	childrenNodes := make(map[Key]diskAddress)
+	var totalBytes []byte
+
+	var rootNodeChange *change[*node]
+
+	for _, k := range keys {
+		nodeChange := r.diffLayer[k]
+		if nodeChange.after == nil {
+			continue
+		}
+
+		if nodeChange.after.key == r.rootNode.key {
+			rootNodeChange = nodeChange // Defer root node writing until after loop
+			continue                    // Skip root node for now
+		}
+
+		for token, child := range nodeChange.after.children {
+			childKey := k.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
+			if child.compressedKey.length != 0 {
+				childKey = childKey.Extend(child.compressedKey)
+			}
+			if addr, exists := childrenNodes[childKey]; exists {
+				child.diskAddr = addr
+			}
+			if child.diskAddr == (diskAddress{}) {
+				return errors.New("regular node child disk address missing")
+			}
+		}
+
+		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
+		diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(nodeBytes))}
+
+		totalOffset += len(nodeBytes)
+		totalBytes = append(totalBytes, nodeBytes...)
+		nodeChange.after.dbNode.diskAddr = diskAddr
+
+		childrenNodes[k] = diskAddr // Store in map for parent nodes to use later
+	}
+	_, err = r.dm.file.WriteAt(totalBytes, totalDiskAddress.offset)
+	if err != nil {
+		return err
+	}
+	// Now handle the root node separately after all other nodes are written:
+	if rootNodeChange != nil && rootNodeChange.after != nil && r.dm.file.Sync() == nil {
+
+		// Ensure all children have disk addresses
+		for token, child := range rootNodeChange.after.children {
+			childKey := r.rootNode.key.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
+			if child.compressedKey.length != 0 {
+				childKey = childKey.Extend(child.compressedKey)
+			}
+			if addr, exists := childrenNodes[childKey]; exists {
+				child.diskAddr = addr
+			}
+			if child.diskAddr == (diskAddress{}) {
+				return errors.New("root node child disk address missing")
+			}
+		}
+
+		// Write root node bytes
+		rootNodeBytes := encodeDBNode_disk(&rootNodeChange.after.dbNode)
+		rootDiskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
+		log.Print("root disk address: ", rootDiskAddr)
+		if rootDiskAddr.size == 0 && rootDiskAddr.offset == 0 {
+			log.Print("error")
+			return errors.New("root disk address is 0")
+		}
+		// write the root node to the disk
+		_, err := r.dm.file.WriteAt(rootNodeBytes, totalDiskAddress.offset+int64(totalOffset))
+		if err != nil {
+			return err
+		}
+		r.rootNode = rootNodeChange.after
+		r.rootNode.dbNode.diskAddr = rootDiskAddr
+
+		// Write root key and address to header:
+		rootDiskAddrBytes := rootDiskAddr.bytes()
+
+		rootKeyByteArray := encodeKey(r.rootNode.key)
+		size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size+totalDiskAddress.offset))
+		if err != nil {
+			return err
+		}
+
+		rootKeyDiskAddr := diskAddress{int64(totalDiskAddress.size + totalDiskAddress.offset), int64(size)}
+
+		var totalRootBytes []byte
+		totalRootBytes = append(totalRootBytes, rootDiskAddrBytes[:]...)
+
+		rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
+		totalRootBytes = append(totalRootBytes, rootKeyDiskAddrBytes[:]...)
+
+		_, err = r.dm.file.WriteAt(totalRootBytes[:], 1)
+		if err != nil {
+			return err
+		}
+	}
+	r.diffLayer = make(map[Key]*change[*node])
+	r.diffLayerSize = 0
+	log.Print(r.rootNode.diskAddr)
+	return nil
 }
 
 func (r *rawDisk) setShutdownType(shutdownType []byte) error {
@@ -193,7 +337,7 @@ func (r *rawDisk) setShutdownType(shutdownType []byte) error {
 
 		if nodeChange.after.key == r.rootNode.key {
 			rootNodeChange = nodeChange // Defer root node writing until after loop
-			continue                     // Skip root node for now
+			continue                    // Skip root node for now
 		}
 
 		for token, child := range nodeChange.after.children {
@@ -211,74 +355,73 @@ func (r *rawDisk) setShutdownType(shutdownType []byte) error {
 
 		nodeBytes := encodeDBNode_disk(&nodeChange.after.dbNode)
 		diskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(nodeBytes))}
-		
-        totalOffset += len(nodeBytes)
-        totalBytes = append(totalBytes, nodeBytes...)
-        nodeChange.after.dbNode.diskAddr = diskAddr
 
-        childrenNodes[k] = diskAddr // Store in map for parent nodes to use later
-    }
+		totalOffset += len(nodeBytes)
+		totalBytes = append(totalBytes, nodeBytes...)
+		nodeChange.after.dbNode.diskAddr = diskAddr
+
+		childrenNodes[k] = diskAddr // Store in map for parent nodes to use later
+	}
 	_, err = r.dm.file.WriteAt(totalBytes, totalDiskAddress.offset)
 	if err != nil {
 		return err
 	}
-    // Now handle the root node separately after all other nodes are written:
-    if rootNodeChange != nil && rootNodeChange.after != nil && r.dm.file.Sync() == nil {
-		
-        // Ensure all children have disk addresses
-        for token, child := range rootNodeChange.after.children {
-            childKey := r.rootNode.key.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
-            if child.compressedKey.length != 0 {
-                childKey = childKey.Extend(child.compressedKey)
-            }
-            if addr, exists := childrenNodes[childKey]; exists {
-                child.diskAddr = addr
-            }
-            if child.diskAddr == (diskAddress{}) {
-                return errors.New("root node child disk address missing")
-            }
-        }
+	// Now handle the root node separately after all other nodes are written:
+	if rootNodeChange != nil && rootNodeChange.after != nil && r.dm.file.Sync() == nil {
 
-        // Write root node bytes
-        rootNodeBytes := encodeDBNode_disk(&rootNodeChange.after.dbNode)
-        rootDiskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
-        
-		// write the root node to the disk 
+		// Ensure all children have disk addresses
+		for token, child := range rootNodeChange.after.children {
+			childKey := r.rootNode.key.Extend(ToToken(token, BranchFactorToTokenSize[r.config.BranchFactor]))
+			if child.compressedKey.length != 0 {
+				childKey = childKey.Extend(child.compressedKey)
+			}
+			if addr, exists := childrenNodes[childKey]; exists {
+				child.diskAddr = addr
+			}
+			if child.diskAddr == (diskAddress{}) {
+				return errors.New("root node child disk address missing")
+			}
+		}
+
+		// Write root node bytes
+		rootNodeBytes := encodeDBNode_disk(&rootNodeChange.after.dbNode)
+		rootDiskAddr := diskAddress{totalDiskAddress.offset + int64(totalOffset), int64(len(rootNodeBytes))}
+
+		// write the root node to the disk
 		_, err := r.dm.file.WriteAt(rootNodeBytes, totalDiskAddress.offset+int64(totalOffset))
 		if err != nil {
 			return err
 		}
 
-        r.rootNode.dbNode.diskAddr = rootDiskAddr
+		r.rootNode.dbNode.diskAddr = rootDiskAddr
 
-        // Write root key and address to header:
-        rootDiskAddrBytes := rootDiskAddr.bytes()
-        
-        rootKeyByteArray := encodeKey(r.rootNode.key)
-        size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size+totalDiskAddress.offset))
-        if err != nil {
-            return err
-        }
-        
-        rootKeyDiskAddr := diskAddress{int64(totalDiskAddress.size + totalDiskAddress.offset), int64(size)}
-        
-        var totalRootBytes []byte
-        totalRootBytes = append(totalRootBytes, rootDiskAddrBytes[:]...)
-        
-        rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
-        totalRootBytes = append(totalRootBytes, rootKeyDiskAddrBytes[:]...)
-        
-        _, err = r.dm.file.WriteAt(totalRootBytes[:], 1)
-        if err != nil {
-            return err
-        }
-    }
+		// Write root key and address to header:
+		rootDiskAddrBytes := rootDiskAddr.bytes()
 
-    // Now write all accumulated bytes (including the deferred root node) at once:
+		rootKeyByteArray := encodeKey(r.rootNode.key)
+		size, err := r.dm.file.WriteAt(rootKeyByteArray, int64(totalDiskAddress.size+totalDiskAddress.offset))
+		if err != nil {
+			return err
+		}
 
-    return r.dm.file.Sync()
+		rootKeyDiskAddr := diskAddress{int64(totalDiskAddress.size + totalDiskAddress.offset), int64(size)}
+
+		var totalRootBytes []byte
+		totalRootBytes = append(totalRootBytes, rootDiskAddrBytes[:]...)
+
+		rootKeyDiskAddrBytes := rootKeyDiskAddr.bytes()
+		totalRootBytes = append(totalRootBytes, rootKeyDiskAddrBytes[:]...)
+
+		_, err = r.dm.file.WriteAt(totalRootBytes[:], 1)
+		if err != nil {
+			return err
+		}
+	}
+	r.diffLayerSize = 0
+	// Now write all accumulated bytes (including the deferred root node) at once:
+
+	return r.dm.file.Sync()
 }
-
 
 func (r *rawDisk) clearIntermediateNodes() error {
 	return errors.New("clear intermediate nodes and rebuild not supported for raw disk")
@@ -317,17 +460,29 @@ func (r *rawDisk) getRootKey() ([]byte, error) {
 func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) error {
 	// change the rootnode's diskaddress to on file diskaddress if it exists
 	// iterate through the entire tree
-
 	// rootnode diskaddress rootchange.before
 	// nodes.children.diskaddress - missing
 	var keys []Key
-
+	if r.rootNode != nil {
+		log.Print("r.rootnode disk address: ", r.rootNode.diskAddr)
+	}
 	for k := range changes.nodes {
 		keys = append(keys, k)
 	}
 	// Check if there is a merkle tree on the disk already
 	// if not, create a new one
-	if r.rootNode != nil {
+	// log.Print("size of diff layer: ", estimateMapSize(r.diffLayer))
+	// flush if greater than 4 MB
+	// log.Print(r.diffLayerSize)
+	// for key, _ := range changes.nodes {
+	// 	if key.length == 16384 {
+	// 		log.Print("key: ", key)
+	// 	}
+	// }
+	if r.diffLayerSize > 4000000 {
+		log.Print("flushed to disk")
+		return r.flush()
+	} else if r.rootNode != nil {
 		for key, newNode := range changes.nodes {
 			// Check if the node.before is found in the diff layer
 			if newNode.before != nil {
@@ -337,21 +492,43 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 						// if the difflayer node is found and has a before value
 						// this node is adding a change on top of a change
 						r.diffLayer[key] = &change[*node]{diffLayerNode.before, newNode.after}
+						if diffLayerNode.after != nil {
+							r.diffLayerSize -= len(encodeDBNode_disk(&diffLayerNode.after.dbNode))
+						}
+						if newNode.after != nil {
+							r.diffLayerSize += len(encodeDBNode_disk(&newNode.after.dbNode))
+						}
+
 					} else {
 						// if the node is not found in the diff layer, add it to the diff layer
 						r.diffLayer[key] = &change[*node]{newNode.before, newNode.after}
+						if diffLayerNode.after != nil {
+							r.diffLayerSize -= len(encodeDBNode_disk(&diffLayerNode.after.dbNode))
+						}
+						if newNode.after != nil {
+							r.diffLayerSize += len(encodeDBNode_disk(&newNode.after.dbNode))
+						}
+						// also add size of the new node to the diff layer size
 					}
-					// Addiitonal step so that any children values with disk addresses are added to the diff laye	
+					// Addiitonal step so that any children values with disk addresses are added to the diff laye
 
 				} else {
 					// means that the node.before is on the raw disk
 					// and the node.after should be put in the diff layer
 					r.diffLayer[key] = &change[*node]{newNode.before, newNode.after}
+					if newNode.after != nil {
+						r.diffLayerSize += len(encodeDBNode_disk(&newNode.after.dbNode))
+					}
+					r.diffLayerSize += len(key.Bytes())
 				}
 			} else {
 				// if the node does not have a before, it means that it is a new node
 				// and should be added to the diff layer
 				r.diffLayer[key] = &change[*node]{nil, newNode.after}
+				if newNode.after != nil {
+					r.diffLayerSize += len(encodeDBNode_disk(&newNode.after.dbNode))
+				}
+				r.diffLayerSize += len(key.Bytes())
 			}
 
 			// Special case for rootnode
@@ -526,12 +703,14 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		// Check if the node has a before or after
 		if diffLayerNode.after != nil {
 			// If the node has an after, return the node
+
 			return diffLayerNode.after, nil
 		} else if diffLayerNode.before != nil {
 			// there is no before only an after
 			return nil, database.ErrNotFound
 		} else {
 			// there is no before or after of a node
+			log.Print("wtf")
 			return nil, errors.New("Node not found in diff layer")
 		}
 	}
@@ -540,7 +719,6 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		currentDbNode = dbNode{}
 		tokenSize     = BranchFactorToTokenSize[r.config.BranchFactor]
 	)
-
 
 	if r.rootNode == nil {
 		return nil, database.ErrNotFound
@@ -616,7 +794,6 @@ func (r *rawDisk) getNode(key Key, hasValue bool) (*node, error) {
 		key:         key,
 		valueDigest: currentDbNode.value,
 	}
-
 
 	returnNode.setValueDigest(r.hasher)
 	return returnNode, nil

@@ -191,7 +191,7 @@ func New(file string, configBytes []byte, log logging.Logger, reg prometheus.Reg
 		BlockCacheCapacity:     DefaultBlockCacheSize,
 		DisableSeeksCompaction: true,
 		OpenFilesCacheCapacity: DefaultHandleCap,
-		WriteBuffer:            DefaultWriteBufferSize,
+		WriteBuffer:            DefaultWriteBufferSize/2,
 		FilterBitsPerKey:       DefaultBitsPerKey,
 		MaxManifestFileSize:    DefaultMaxManifestFileSize,
 		MetricUpdateFrequency:  DefaultMetricUpdateFrequency,

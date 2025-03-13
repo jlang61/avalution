@@ -2,56 +2,56 @@ goos: darwin
 goarch: arm64
 pkg: github.com/ava-labs/avalanchego/x/merkledb
 cpu: Apple M1 Pro
-                                                                                 │ levelDBSize6MB_Realistic.txt │    diffLayerSize12MB_Realistic.txt    │
-                                                                                 │            sec/op            │    sec/op     vs base                 │
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10                         4.367m ± ∞ ¹   2.815m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10                         3.134m ± ∞ ¹   2.043m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10                        2.500m ± ∞ ¹   1.604m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10                       2.277m ± ∞ ¹   1.464m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10                       7.147m ± ∞ ¹   4.699m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10                       5.927m ± ∞ ¹   3.132m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10                      4.228m ± ∞ ¹   2.285m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10                     3.975m ± ∞ ¹   2.098m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10                     38.99m ± ∞ ¹   21.98m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10                     31.49m ± ∞ ¹   12.80m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10                   27.541m ± ∞ ¹   7.809m ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10                  27.895m ± ∞ ¹   5.692m ± ∞ ¹        ~ (p=1.000 n=1) ²
-geomean                                                                                            7.820m         3.887m        -50.29%
+                                                                                 │ levelDBSize12MB_Realistic.txt │    diffLayerSize12MB_Realistic.txt    │
+                                                                                 │            sec/op             │    sec/op     vs base                 │
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10                          4.516m ± ∞ ¹   2.815m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10                          3.263m ± ∞ ¹   2.043m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10                         2.457m ± ∞ ¹   1.604m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10                        2.236m ± ∞ ¹   1.464m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10                        7.394m ± ∞ ¹   4.699m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10                        5.025m ± ∞ ¹   3.132m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10                       4.035m ± ∞ ¹   2.285m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10                      3.808m ± ∞ ¹   2.098m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10                      39.66m ± ∞ ¹   21.98m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10                      27.91m ± ∞ ¹   12.80m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10                    24.960m ± ∞ ¹   7.809m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10                   21.937m ± ∞ ¹   5.692m ± ∞ ¹        ~ (p=1.000 n=1) ²
+geomean                                                                                             7.424m         3.887m        -47.64%
 ¹ need >= 6 samples for confidence interval at level 0.95
 ² need >= 4 samples to detect a difference at alpha level 0.05
 
-                                                                                 │ levelDBSize6MB_Realistic.txt │    diffLayerSize12MB_Realistic.txt     │
-                                                                                 │             B/op             │     B/op       vs base                 │
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10                        1.356Mi ± ∞ ¹   1.003Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10                       1089.9Ki ± ∞ ¹   851.6Ki ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10                       916.8Ki ± ∞ ¹   729.7Ki ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10                      863.7Ki ± ∞ ¹   732.3Ki ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10                      2.314Mi ± ∞ ¹   1.679Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10                      2.089Mi ± ∞ ¹   1.537Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10                     1.934Mi ± ∞ ¹   1.479Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10                    1.883Mi ± ∞ ¹   1.503Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10                   25.217Mi ± ∞ ¹   7.245Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10                   26.161Mi ± ∞ ¹   7.326Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10                  27.646Mi ± ∞ ¹   7.617Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10                 28.167Mi ± ∞ ¹   7.873Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
-geomean                                                                                           3.827Mi         2.109Mi        -44.88%
+                                                                                 │ levelDBSize12MB_Realistic.txt │    diffLayerSize12MB_Realistic.txt     │
+                                                                                 │             B/op              │     B/op       vs base                 │
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10                         1.374Mi ± ∞ ¹   1.003Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10                        1142.8Ki ± ∞ ¹   851.6Ki ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10                        970.6Ki ± ∞ ¹   729.7Ki ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10                       929.6Ki ± ∞ ¹   732.3Ki ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10                       2.444Mi ± ∞ ¹   1.679Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10                       2.161Mi ± ∞ ¹   1.537Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10                      1.961Mi ± ∞ ¹   1.479Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10                     1.912Mi ± ∞ ¹   1.503Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10                    23.758Mi ± ∞ ¹   7.245Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10                    25.411Mi ± ∞ ¹   7.326Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10                   26.635Mi ± ∞ ¹   7.617Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10                  26.748Mi ± ∞ ¹   7.873Mi ± ∞ ¹        ~ (p=1.000 n=1) ²
+geomean                                                                                            3.869Mi         2.109Mi        -45.48%
 ¹ need >= 6 samples for confidence interval at level 0.95
 ² need >= 4 samples to detect a difference at alpha level 0.05
 
-                                                                                 │ levelDBSize6MB_Realistic.txt │    diffLayerSize12MB_Realistic.txt     │
-                                                                                 │          allocs/op           │   allocs/op    vs base                 │
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10                         15.10k ± ∞ ¹    15.85k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10                         11.82k ± ∞ ¹    12.27k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10                        9.952k ± ∞ ¹   10.142k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10                       9.533k ± ∞ ¹    9.709k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10                       15.72k ± ∞ ¹    15.86k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10                       12.49k ± ∞ ¹    12.23k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10                      10.47k ± ∞ ¹    10.13k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10                    10.147k ± ∞ ¹    9.707k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10                     46.25k ± ∞ ¹    16.14k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10                     42.76k ± ∞ ¹    12.31k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10                    40.88k ± ∞ ¹    10.13k ± ∞ ¹        ~ (p=1.000 n=1) ²
-_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10                  40.885k ± ∞ ¹    9.713k ± ∞ ¹        ~ (p=1.000 n=1) ²
-geomean                                                                                            18.01k          11.78k        -34.60%
+                                                                                 │ levelDBSize12MB_Realistic.txt │    diffLayerSize12MB_Realistic.txt     │
+                                                                                 │           allocs/op           │   allocs/op    vs base                 │
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10                          15.10k ± ∞ ¹    15.85k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10                          11.81k ± ∞ ¹    12.27k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10                         9.893k ± ∞ ¹   10.142k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10                        9.480k ± ∞ ¹    9.709k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10                        15.56k ± ∞ ¹    15.86k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10                        12.47k ± ∞ ¹    12.23k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10                       10.40k ± ∞ ¹    10.13k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10                      9.948k ± ∞ ¹    9.707k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10                      38.88k ± ∞ ¹    16.14k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10                      36.55k ± ∞ ¹    12.31k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10                     33.99k ± ∞ ¹    10.13k ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10                   33.639k ± ∞ ¹    9.713k ± ∞ ¹        ~ (p=1.000 n=1) ²
+geomean                                                                                             16.91k          11.78k        -30.33%
 ¹ need >= 6 samples for confidence interval at level 0.95
 ² need >= 4 samples to detect a difference at alpha level 0.05

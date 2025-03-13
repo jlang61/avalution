@@ -20,6 +20,7 @@ import (
 
 	"github.com/ava-labs/avalanchego/database"
 	"github.com/ava-labs/avalanchego/utils/maybe"
+	"github.com/ava-labs/avalanchego/utils/units"
 )
 
 var _ Disk = &rawDisk{}
@@ -687,7 +688,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 		// }
 		return r.dm.file.Sync()
 	}
-	if r.diffLayerSize > 4000000 {
+	if r.diffLayerSize > 6 * units.MiB {
 		// log.Print("flushed to disk")
 		return r.flush()
 	}

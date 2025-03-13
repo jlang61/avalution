@@ -1,0 +1,54 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Delete-10         	  389228	      2744 ns/op	    3465 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_BatchWrite-10     	     100	  10930063 ns/op	 3328885 B/op	   31090 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Get-10            	 1694821	       716.7 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Put-10            	   14036	     74742 ns/op	   23569 B/op	     220 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_BatchWrite-10     	     151	   7771433 ns/op	 2487365 B/op	   22065 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Get-10            	 1703914	       710.8 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Put-10            	   19484	     66521 ns/op	   18125 B/op	     165 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Delete-10         	  371859	      3005 ns/op	    3456 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_BatchWrite-10    	     216	   5648462 ns/op	 2088902 B/op	   16175 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Get-10           	 1635250	       699.4 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Put-10           	   17731	     63682 ns/op	   22706 B/op	     183 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Delete-10        	  409389	      2657 ns/op	    3463 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Get-10          	 1710987	       702.7 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Put-10          	    5336	    214057 ns/op	  108153 B/op	     812 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Delete-10       	  335092	      3138 ns/op	    3694 B/op	      26 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_BatchWrite-10   	     247	   4931251 ns/op	 1925415 B/op	   14012 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Get-10          	 1501863	       759.8 ns/op	     656 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Put-10          	   14937	     87251 ns/op	   26620 B/op	     226 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Delete-10       	  403086	      2865 ns/op	    3469 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_BatchWrite-10   	     100	  25186869 ns/op	 5931935 B/op	   32996 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Get-10          	 1497626	       730.6 ns/op	     656 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Put-10          	   20367	     65698 ns/op	   21543 B/op	     171 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Delete-10       	  363411	      2832 ns/op	    3464 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_BatchWrite-10   	     100	  16734091 ns/op	 5352808 B/op	   23659 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Put-10         	   14740	     76193 ns/op	   26725 B/op	     186 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Delete-10      	  364882	      2841 ns/op	    3476 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_BatchWrite-10  	     100	  13914135 ns/op	 4914504 B/op	   17469 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Get-10         	 1464139	       854.3 ns/op	     656 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_BatchWrite-10 	     122	   9721798 ns/op	 4703206 B/op	   15276 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Get-10        	 1537944	       768.6 ns/op	     656 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Put-10        	    4526	    261387 ns/op	  130308 B/op	     820 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Delete-10     	  277473	      4522 ns/op	    3866 B/op	      27 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_BatchWrite-10 	      42	 152675068 ns/op	63561259 B/op	   86507 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Get-10        	  187974	      8180 ns/op	   12174 B/op	      17 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Put-10        	    4923	    279274 ns/op	  112472 B/op	     354 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Delete-10     	   73983	     16767 ns/op	   16136 B/op	      47 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Delete-10     	  136204	      8970 ns/op	   10149 B/op	      36 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_BatchWrite-10 	      42	  91929172 ns/op	62115927 B/op	   66384 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Get-10        	  181938	      6362 ns/op	   11935 B/op	      16 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Put-10        	    6462	    209419 ns/op	  113875 B/op	     294 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Delete-10    	   99254	     11080 ns/op	   10922 B/op	      42 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_BatchWrite-10         	      68	  83395296 ns/op	61732296 B/op	   53635 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Get-10                	  138444	      9330 ns/op	   13694 B/op	      20 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Put-10                	    5821	    227696 ns/op	  134941 B/op	     301 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Get-10               	  139987	     13167 ns/op	   13340 B/op	      21 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Put-10               	    1778	    691041 ns/op	  395351 B/op	     849 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Delete-10            	   21652	     48984 ns/op	   32856 B/op	      87 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_BatchWrite-10        	      87	  57570085 ns/op	60485490 B/op	   47568 allocs/op
+PASS
+ok  	github.com/ava-labs/avalanchego/x/merkledb	138.216s

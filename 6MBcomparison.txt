@@ -1,0 +1,71 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+                                                                              │ levelDBSize6MB_Size32.txt │      diffLayerSize6MB_Size32.txt      │
+                                                                              │          sec/op           │    sec/op     vs base                 │
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Get-10                         698.5n ± ∞ ¹   692.8n ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Put-10                         67.25µ ± ∞ ¹   56.16µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Delete-10                      2.683µ ± ∞ ¹   3.214µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_BatchWrite-10                  9.988m ± ∞ ¹   7.394m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Put-10                         57.90µ ± ∞ ¹   40.54µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Delete-10                      2.618µ ± ∞ ¹   3.101µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_BatchWrite-10                  7.523m ± ∞ ¹   4.645m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Get-10                         683.6n ± ∞ ¹   739.7n ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_BatchWrite-10                 5.588m ± ∞ ¹   3.444m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Get-10                        696.4n ± ∞ ¹   698.7n ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Put-10                        57.91µ ± ∞ ¹   49.02µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Delete-10                     2.602µ ± ∞ ¹   3.028µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Delete-10                    2.972µ ± ∞ ¹   3.151µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_BatchWrite-10                4.844m ± ∞ ¹   3.013m ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Get-10                       678.5n ± ∞ ¹   698.4n ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Put-10                       231.7µ ± ∞ ¹   193.4µ ± ∞ ¹        ~ (p=1.000 n=1) ²
+geomean                                                                                      32.15µ         28.44µ        -11.55%
+¹ need >= 6 samples for confidence interval at level 0.95
+² need >= 4 samples to detect a difference at alpha level 0.05
+
+                                                                              │ levelDBSize6MB_Size32.txt │      diffLayerSize6MB_Size32.txt       │
+                                                                              │           B/op            │     B/op       vs base                 │
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Get-10                          208.0 ± ∞ ¹     208.0 ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Put-10                        22.79Ki ± ∞ ¹   17.35Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Delete-10                     3.382Ki ± ∞ ¹   3.378Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_BatchWrite-10                 3.071Mi ± ∞ ¹   2.186Mi ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Put-10                        17.69Ki ± ∞ ¹   13.84Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Delete-10                     3.372Ki ± ∞ ¹   3.368Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_BatchWrite-10                 2.352Mi ± ∞ ¹   1.626Mi ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Get-10                          208.0 ± ∞ ¹     208.0 ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_BatchWrite-10                1.988Mi ± ∞ ¹   1.395Mi ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Get-10                         208.0 ± ∞ ¹     208.0 ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Put-10                       22.00Ki ± ∞ ¹   18.85Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Delete-10                    3.380Ki ± ∞ ¹   3.385Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Delete-10                   3.577Ki ± ∞ ¹   3.592Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_BatchWrite-10               1.832Mi ± ∞ ¹   1.297Mi ± ∞ ¹        ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Get-10                        208.0 ± ∞ ¹     208.0 ± ∞ ¹        ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Put-10                      105.5Ki ± ∞ ¹   108.1Ki ± ∞ ¹        ~ (p=1.000 n=1) ³
+geomean                                                                                     14.97Ki         13.17Ki        -12.05%
+¹ need >= 6 samples for confidence interval at level 0.95
+² all samples are equal
+³ need >= 4 samples to detect a difference at alpha level 0.05
+
+                                                                              │ levelDBSize6MB_Size32.txt │     diffLayerSize6MB_Size32.txt      │
+                                                                              │         allocs/op         │  allocs/op    vs base                │
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Get-10                          5.000 ± ∞ ¹    5.000 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Put-10                          221.0 ± ∞ ¹    224.0 ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Delete-10                       25.00 ± ∞ ¹    25.00 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_BatchWrite-10                  31.09k ± ∞ ¹   36.56k ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Put-10                          165.0 ± ∞ ¹    161.0 ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Delete-10                       25.00 ± ∞ ¹    25.00 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_BatchWrite-10                  22.08k ± ∞ ¹   25.08k ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Get-10                          5.000 ± ∞ ¹    5.000 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_BatchWrite-10                 16.18k ± ∞ ¹   18.52k ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Get-10                         5.000 ± ∞ ¹    5.000 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Put-10                         183.0 ± ∞ ¹    170.0 ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Delete-10                      25.00 ± ∞ ¹    25.00 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Delete-10                     26.00 ± ∞ ¹    26.00 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_BatchWrite-10                14.01k ± ∞ ¹   15.98k ± ∞ ¹       ~ (p=1.000 n=1) ³
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Get-10                        5.000 ± ∞ ¹    5.000 ± ∞ ¹       ~ (p=1.000 n=1) ²
+_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Put-10                        813.0 ± ∞ ¹    810.0 ± ∞ ¹       ~ (p=1.000 n=1) ³
+geomean                                                                                       161.5          166.3        +2.97%
+¹ need >= 6 samples for confidence interval at level 0.95
+² all samples are equal
+³ need >= 4 samples to detect a difference at alpha level 0.05

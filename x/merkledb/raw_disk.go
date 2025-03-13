@@ -463,7 +463,7 @@ func (r *rawDisk) writeChanges(ctx context.Context, changes *changeSummary) erro
 	// iterate through the entire tree
 	// rootnode diskaddress rootchange.before
 	// nodes.children.diskaddress - missing
-	var keys []Key
+	keys := make([]Key, 0, len(changes.nodes))
 	if r.rootNode != nil {
 		// log.Print("r.rootnode disk address: ", r.rootNode.diskAddr)
 	}

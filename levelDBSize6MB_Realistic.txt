@@ -1,0 +1,18 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Realistic-10         	     268	   4367211 ns/op	 1421510 B/op	   15095 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Realistic-10         	     390	   3134273 ns/op	 1116042 B/op	   11817 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Realistic-10        	     483	   2499833 ns/op	  938779 B/op	    9952 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Realistic-10       	     536	   2276678 ns/op	  884415 B/op	    9533 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_256_keys_256_values_Realistic-10       	     168	   7147327 ns/op	 2426533 B/op	   15724 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_256_keys_256_values_Realistic-10       	     238	   5926593 ns/op	 2190475 B/op	   12491 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_256_keys_256_values_Realistic-10      	     279	   4227891 ns/op	 2028399 B/op	   10468 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_256_keys_256_values_Realistic-10     	     304	   3975061 ns/op	 1974952 B/op	   10147 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_2048_keys_2048_values_Realistic-10     	      39	  38990406 ns/op	26442249 B/op	   46251 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_2048_keys_2048_values_Realistic-10     	      54	  31492305 ns/op	27431915 B/op	   42762 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_2048_keys_2048_values_Realistic-10    	      57	  27541020 ns/op	28989187 B/op	   40878 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_2048_keys_2048_values_Realistic-10   	      51	  27894560 ns/op	29535539 B/op	   40885 allocs/op
+PASS
+ok  	github.com/ava-labs/avalanchego/x/merkledb	24.685s

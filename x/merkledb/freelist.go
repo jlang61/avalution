@@ -49,8 +49,15 @@ func (f *freeList) get(size int64) (diskAddress, bool) {
 	if f.closed {
 		return diskAddress{}, false
 	}*/
+	if size == 0{
+		return diskAddress{}, false
+	}
 	bucket := f.bucketIndex(size)
 
+	// first check whether or not the bucket would be out of bounds
+	if bucket >= len(f.buckets) && size >0 {
+		return diskAddress{}, false
+	}
 	if len(f.buckets[bucket]) > 0 {
 		space := f.buckets[bucket][len(f.buckets[bucket])-1]
 		f.buckets[bucket] = f.buckets[bucket][:len(f.buckets[bucket])-1]
@@ -72,7 +79,7 @@ func (f *freeList) put(space diskAddress) {
 
 // bucketIndex returns the index of the bucket that the size belongs to.
 func (f *freeList) bucketIndex(size int64) int {
-	return int(math.Ceil(math.Log2(float64(size))))
+	return int(math.Floor(math.Log2(float64(size))))
 }
 
 // close writes the remaining diskAddresses in the freeList to a file and closes the file.

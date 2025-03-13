@@ -1,0 +1,22 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/ava-labs/avalanchego/x/merkledb
+cpu: Apple M1 Pro
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Get-10         	 1544097	       698.5 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Put-10         	   16202	     67249 ns/op	   23342 B/op	     221 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_Delete-10      	  409508	      2683 ns/op	    3463 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_2_1024_pairs_32_keys_32_values_BatchWrite-10  	     120	   9988220 ns/op	 3220383 B/op	   31085 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Put-10         	   20560	     57900 ns/op	   18116 B/op	     165 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Delete-10      	  416328	      2618 ns/op	    3453 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_BatchWrite-10  	     160	   7523388 ns/op	 2466732 B/op	   22080 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_4_1024_pairs_32_keys_32_values_Get-10         	 1717653	       683.6 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_BatchWrite-10 	     220	   5588308 ns/op	 2084822 B/op	   16183 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Get-10        	 1711069	       696.4 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Put-10        	   19574	     57909 ns/op	   22525 B/op	     183 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_16_1024_pairs_32_keys_32_values_Delete-10     	  428187	      2602 ns/op	    3461 B/op	      25 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Delete-10    	  379186	      2972 ns/op	    3663 B/op	      26 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_BatchWrite-10         	     253	   4844299 ns/op	 1920878 B/op	   14007 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Get-10                	 1739715	       678.5 ns/op	     208 B/op	       5 allocs/op
+Benchmark_MerkleDB_DBInterface/merkledb_256_1024_pairs_32_keys_32_values_Put-10                	    5592	    231684 ns/op	  108074 B/op	     813 allocs/op
+PASS
+ok  	github.com/ava-labs/avalanchego/x/merkledb	35.387s

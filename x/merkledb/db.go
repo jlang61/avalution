@@ -316,6 +316,7 @@ func (db *merkleDB) rebuild(ctx context.Context, cacheSize int) error {
 	db.root = maybe.Nothing[*node]()
 	db.rootID = ids.Empty
 
+
 	// if it is a rawdisk ->
 	// check size of file 
 	// if more than 0 -> initialize root 
